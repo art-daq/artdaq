@@ -14,9 +14,12 @@ try
 
 	std::ostringstream descstr;
 	descstr << *argv
-	        << " <-c <config-file>> <other-options> [<source-file>]+";
+	        << " [-M <shared memory>] <-e>";
 	bpo::options_description desc(descstr.str());
-	desc.add_options()("config,c", bpo::value<std::string>(), "Configuration file.")("events,e", "Print event information")("key,M", bpo::value<std::string>(), "Shared Memory to attach to")("help,h", "produce help message");
+	desc.add_options()
+		("key,M", bpo::value<std::string>(), "Shared Memory to attach to")
+		("events,e", "Print event information")
+		("help,h", "produce help message");
 	bpo::variables_map vm;
 	try
 	{
@@ -34,52 +37,39 @@ try
 		std::cout << desc << std::endl;
 		return 1;
 	}
-	if ((vm.count("config") == 0u) && (vm.count("key") == 0u))
-	{
-		std::cerr << "Exception from command line processing in " << *argv
-		          << ": no configuration file given.\n"
-		          << "For usage and an options list, please do '"
-		          << *argv << " --help"
-		          << "'.\n";
-		return 2;
-	}
 
 	fhicl::ParameterSet pset;
 	if (vm.count("key") != 0u)
 	{
 		pset.put("shared_memory_key", vm["key"].as<std::string>());
-		pset.put("buffer_count", 1);
-		pset.put("max_event_size_bytes", 1024);
-		pset.put("ReadEventInfo", vm.count("events") > 0);
+		auto bkey = vm["key"].as<std::string>();
+		if (bkey[2] == 'e' && bkey[3] == 'e')
+		{
+			bkey[2] = 'b';
+			bkey[3] = 'b';
+			pset.put("broadcast_shared_memory_key", bkey);
+			pset.put("read_event_info", true);
+		}
+		else
+		{
+			pset.put("read_event_info", vm.count("events") > 0);
+		}
 	}
 	else
 	{
-		if (getenv("FHICL_FILE_PATH") == nullptr)
-		{
-			std::cerr
-			    << "INFO: environment variable FHICL_FILE_PATH was not set. Using \".\"\n";
-			setenv("FHICL_FILE_PATH", ".", 0);
-		}
-		cet::filepath_lookup_after1 lookup_policy("FHICL_FILE_PATH");
-		pset = fhicl::ParameterSet::make(vm["config"].as<std::string>(), lookup_policy);
-	}
-
-	if (!pset.has_key("shared_memory_key"))
-	{
 		std::cerr << "You must specify a shared_memory_key in FHiCL or provide one on the command line!" << std::endl;
+		return -2;
 	}
 
-	if (pset.get<bool>("ReadEventInfo", false))
+	TLOG() << "Going to read shared memory " << std::showbase << std::hex << pset.get<uint32_t>("shared_memory_key") << " Event Mode: " << std::boolalpha << pset.get<bool>("read_event_info");
+	if (pset.get<bool>("read_event_info", false))
 	{
 		artdaq::SharedMemoryEventReceiver t(pset.get<uint32_t>("shared_memory_key"), pset.get<uint32_t>("broadcast_shared_memory_key", pset.get<uint32_t>("shared_memory_key")));
 		std::cout << t.toString() << std::endl;
 	}
 	else
 	{
-		artdaq::SharedMemoryManager t(pset.get<uint32_t>("shared_memory_key"),
-		                              pset.get<size_t>("buffer_count"),
-		                              pset.get<size_t>("max_event_size_bytes"),
-		                              pset.get<size_t>("stale_buffer_timeout_usec", 1000000));
+		artdaq::SharedMemoryManager t(pset.get<uint32_t>("shared_memory_key"), 0, 0, 0);
 		std::cout << t.toString() << std::endl;
 	}
 
