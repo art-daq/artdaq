@@ -39,4 +39,5 @@ cet_build_plugin(RootDAQOut art::module
   TRACE::MF
 )
 
-
+install_headers()
+install_source()
