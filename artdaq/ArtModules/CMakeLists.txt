@@ -44,6 +44,7 @@ cet_build_plugin(ArtdaqGlobalsService art::service
 cet_make_library(SOURCE
   detail/ShmemWrapper.cc
   detail/TransferWrapper.cc
+  detail/ListenTransferWrapper.cc
   LIBRARIES
   PUBLIC
   artdaq_plugin_types::commander
@@ -161,6 +162,12 @@ cet_make_library(LIBRARY_NAME ArtdaqInputHelper INTERFACE
 )
 
 cet_build_plugin(TransferInput ${stype}
+  LIBRARIES PRIVATE
+  artdaq::ArtModules
+  artdaq::ArtdaqInputHelper
+)
+
+cet_build_plugin(TransferListenerInput ${stype}
   LIBRARIES PRIVATE
   artdaq::ArtModules
   artdaq::ArtdaqInputHelper

@@ -136,4 +136,5 @@ cet_make_exec(NAME PrintSharedMemory
 )
 
 install_fhicl(SUBDIRS fcl)
+install_headers()
 install_source()
