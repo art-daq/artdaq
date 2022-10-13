@@ -243,7 +243,7 @@ private:
 
 	std::unique_ptr<TBufferFile> prepareMessage(artdaq::Fragment::sequence_id_t seqID, artdaq::Fragment::timestamp_t ts, artdaq::Fragment::type_t type)
 	{
-		artdaq::NetMonHeader hdr;
+		artdaq::NetMonHeader hdr{};
 		outputFrag = std::make_unique<artdaq::Fragment>(last_fragment_size_, seqID, my_rank, type, hdr, ts);
 		auto msg = std::make_unique<TBufferFile>(TBuffer::kWrite, last_fragment_size_ * sizeof(artdaq::RawDataType), outputFrag->dataBegin(), kFALSE, &Fragment_ReAllocChar);
 		msg->SetWriteMode();
@@ -256,7 +256,7 @@ private:
 
 	void sendMessage(std::unique_ptr<TBufferFile>& msg)
 	{
-		artdaq::NetMonHeader hdr;
+		artdaq::NetMonHeader hdr{};
 		hdr.data_length = static_cast<uint64_t>(msg->Length());
 		outputFrag->updateMetadata(hdr);
 		outputFrag->resizeBytes(hdr.data_length);
