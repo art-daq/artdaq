@@ -213,7 +213,7 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 			recvd_fragments[type] = incoming_events_->GetFragmentsByType(errflag, type);
 			if (!recvd_fragments[type])
 			{
-				TLOG(TLVL_ERROR) << "Error retrieving Fragments from shared memory! (Most likely due to a buffer overwrite) Retrying...";
+				TLOG(TLVL_WARNING) << "Error retrieving Fragments from shared memory! (Most likely due to a buffer overwrite) Retrying...";
 				incoming_events_->ReleaseBuffer();
 				recvd_fragments.clear();
 				continue;
