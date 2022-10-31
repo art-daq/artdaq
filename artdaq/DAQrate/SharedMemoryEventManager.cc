@@ -225,6 +225,10 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 				TLOG(TLVL_WARNING) << app_name << ": Back-pressure condition: All Shared Memory buffers have been full for " << TimeUtils::GetElapsedTime(last_fragment_header_write_time_) << " s!";
 				last_backpressure_report_time_ = std::chrono::steady_clock::now();
 			}
+			if (metricMan)
+			{
+				metricMan->sendMetric("Back-pressure wait time", TimeUtils::GetElapsedTime(last_fragment_header_write_time_), "s", 1, MetricMode::LastPoint);
+			}
 			return nullptr;
 		}
 		if (buffer == -2)

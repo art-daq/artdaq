@@ -295,6 +295,11 @@ bool artdaq::FragmentBuffer::waitForDataBufferReady(Fragment::fragment_id_t id)
 					                   << ", szB=" << dataBuffer->DataBufferDepthBytes << "/" << maxDataBufferDepthBytes_ << ")"
 					                   << ", timestamps=" << dataBuffer->DataBuffer.front()->timestamp() << "-" << dataBuffer->DataBuffer.back()->timestamp();
 					TLOG(TLVL_DEBUG + 33) << "Bad Omen: Possible causes include requests not getting through or Ignored-mode BR issues";
+
+					if (metricMan)
+					{
+						metricMan->sendMetric("Bad Omen wait time", waittime / 1000.0, "s", 1, MetricMode::LastPoint);
+					}
 				}
 				first = false;
 			}
