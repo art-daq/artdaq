@@ -194,6 +194,21 @@ void ELArtdaqMetric::routePayload(const std::ostringstream& oss, const ErrorObj&
 	if (lvlNum >= 0 && metricMan)
 	{
 		metricMan->sendMetric(message, 1, "messages/s", lvlNum, artdaq::MetricMode::Rate);
+		switch (lvlNum)
+		{
+			case 0:
+				metricMan->sendMetric("Error Message Rate", 1, "messages/s", 1, artdaq::MetricMode::Rate);
+				break;
+			case 1:
+				metricMan->sendMetric("Warning Message Rate", 1, "messages/s", 1, artdaq::MetricMode::Rate);
+				break;
+			case 2:
+				metricMan->sendMetric("Info Message Rate", 1, "messages/s", 1, artdaq::MetricMode::Rate);
+				break;
+			case 3:
+				metricMan->sendMetric("Debug Message Rate", 1, "messages/s", 1, artdaq::MetricMode::Rate);
+				break;
+		}
 	}
 }
 }  // end namespace mfplugins
