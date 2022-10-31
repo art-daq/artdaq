@@ -46,6 +46,8 @@ public:
 		fhicl::Atom<bool> removeNumbers = fhicl::Atom<bool>(fhicl::Name{"removeNumbers"}, fhicl::Comment{"Remove numbers from messages"}, true);
 		/// "messageLength" (Default: 20): Number of characters to use for metric title
 		fhicl::Atom<size_t> messageLength = fhicl::Atom<size_t>(fhicl::Name{"messageLength"}, fhicl::Comment{"Maximum length of metric titles (0 for unlimited)"}, 20);
+		/// "metricLevelOffset" (Default: 10): Offset for Metric Levels (+0: summary rates, +1 errors, ...)
+		fhicl::Atom<size_t> metricLevelOffset = fhicl::Atom<size_t>(fhicl::Name{"metricLevelOffset"}, fhicl::Comment{"Offset for Metric Levels (+0: summary rates, +1 errors, ...)"}, 10);
 	};
 	/// Used for ParameterSet validation
 	using Parameters = fhicl::WrappedTable<Config>;
@@ -91,6 +93,7 @@ private:
 	bool showError_{true};
 	bool removeNumbers_{true};
 	size_t messageLength_{20};
+	size_t metricLevelOffset_{10};
 };
 
 // END DECLARATION
@@ -108,6 +111,7 @@ ELArtdaqMetric::ELArtdaqMetric(Parameters const& pset)
     , showError_(pset().showError())
     , removeNumbers_(pset().removeNumbers())
     , messageLength_(pset().messageLength())
+    , metricLevelOffset_(pset().metricLevelOffset())
 {
 	TLOG(TLVL_INFO) << "ELArtdaqMetric MessageLogger destination plugin initialized.";
 }
@@ -137,11 +141,13 @@ void ELArtdaqMetric::fillUsrMsg(std::ostringstream& oss, const ErrorObj& msg)
 		std::copy_if(tmpStr.begin(), tmpStr.end(),
 		             std::back_inserter(usrMsg), isxdigit);
 	}
-	else {
+	else
+	{
 		usrMsg = tmpStr;
 	}
 
-	if (messageLength_ > 0 && usrMsg.size() > messageLength_) {
+	if (messageLength_ > 0 && usrMsg.size() > messageLength_)
+	{
 		usrMsg.resize(messageLength_);
 	}
 
@@ -158,55 +164,51 @@ void ELArtdaqMetric::routePayload(const std::ostringstream& oss, const ErrorObj&
 
 	auto level = xid.severity().getLevel();
 	int lvlNum = -1;
+	bool sendMessageMetric = false;
 
 	switch (level)
 	{
 		case mf::ELseverityLevel::ELsev_success:
 		case mf::ELseverityLevel::ELsev_zeroSeverity:
 		case mf::ELseverityLevel::ELsev_unspecified:
-			if (showDebug_)
-			{
-				lvlNum = 3;
-			}
+			sendMessageMetric = showDebug_;
+			lvlNum = 3;
 			break;
 
 		case mf::ELseverityLevel::ELsev_info:
-			if (showInfo_)
-			{
-				lvlNum = 2;
-			}
+			sendMessageMetric = showInfo_;
+			lvlNum = 2;
 			break;
 
 		case mf::ELseverityLevel::ELsev_warning:
-			if (showWarning_)
-			{
-				lvlNum = 1;
-			}
+			sendMessageMetric = showWarning_;
+			lvlNum = 1;
 			break;
 		default:
-			if (showError_)
-			{
-				lvlNum = 0;
-			}
+			sendMessageMetric = showError_;
+			lvlNum = 0;
 			break;
 	}
 
-	if (lvlNum >= 0 && metricMan)
+	if (metricMan)
 	{
-		metricMan->sendMetric(message, 1, "messages/s", lvlNum, artdaq::MetricMode::Rate);
+		if (sendMessageMetric)
+		{
+			metricMan->sendMetric(message, 1, "messages/s", lvlNum + metricLevelOffset_ + 1, artdaq::MetricMode::Rate);
+		}
 		switch (lvlNum)
 		{
 			case 0:
-				metricMan->sendMetric("Error Message Rate", 1, "messages/s", 1, artdaq::MetricMode::Rate);
+				metricMan->sendMetric("Error Message Rate", 1, "messages/s", metricLevelOffset_, artdaq::MetricMode::Rate);
 				break;
 			case 1:
-				metricMan->sendMetric("Warning Message Rate", 1, "messages/s", 1, artdaq::MetricMode::Rate);
+				metricMan->sendMetric("Warning Message Rate", 1, "messages/s", metricLevelOffset_, artdaq::MetricMode::Rate);
 				break;
 			case 2:
-				metricMan->sendMetric("Info Message Rate", 1, "messages/s", 1, artdaq::MetricMode::Rate);
+				metricMan->sendMetric("Info Message Rate", 1, "messages/s", metricLevelOffset_, artdaq::MetricMode::Rate);
 				break;
 			case 3:
-				metricMan->sendMetric("Debug Message Rate", 1, "messages/s", 1, artdaq::MetricMode::Rate);
+				metricMan->sendMetric("Debug Message Rate", 1, "messages/s", metricLevelOffset_, artdaq::MetricMode::Rate);
 				break;
 		}
 	}
