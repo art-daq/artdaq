@@ -348,6 +348,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 				// Mark the Fragment as invalid
 				/* \todo Make a RawFragmentHeader field that marks it as invalid while maintaining previous type! */
 				hdrLoc->type = Fragment::ErrorFragmentType;
+				header.type = Fragment::ErrorFragmentType;
 
 				shm_manager_->DoneWritingFragment(header);
 				// throw cet::exception("DataReceiverManager") << "Unexpected return code from receiveFragmentData after receiveFragmentHeader! (Expected: " << ret << ", Got: " << ret2 << ")";
