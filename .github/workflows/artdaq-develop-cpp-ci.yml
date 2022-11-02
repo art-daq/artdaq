@@ -36,6 +36,8 @@ jobs:
     
     - name: setup dev area
       run: |
+          cd /opt/otsdaq
+          source /opt/otsdaq/products/setup
           source /opt/otsdaq/setup_ots.sh
           
     - name: checkout package for CI
