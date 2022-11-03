@@ -51,7 +51,7 @@ jobs:
           export REPO=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')
           cd /opt/otsdaq
           source setup_ots.sh || true
-          cp -pr $GITHUB_WORKSPACE/$REPO srcs
+          cp -pr $GITHUB_WORKSPACE/art-daq/$REPO srcs
           mrb b >$GITHUB_WORKSPACE/build.log 2>&1
 
 
