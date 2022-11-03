@@ -48,10 +48,10 @@ jobs:
         cat << EOT > build_pkg.sh
         #!/bin/bash
         
-        set -x
-        export REPO=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')
         cd /scratch/art-daq
         source /cvmfs/fermilab.opensciencegrid.org/products/artdaq/setup || true
+        set -x
+        export REPO=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')
         mkdir build_${REPO}
         cd build_${REPO}
         set +x
