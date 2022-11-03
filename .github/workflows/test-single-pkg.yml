@@ -52,10 +52,10 @@ jobs:
         source /cvmfs/fermilab.opensciencegrid.org/products/artdaq/setup || true
         set -x
         export REPO=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')
-        mkdir build_$REPO
-        cd build_$REPO
+        mkdir build_\$REPO
+        cd build_\$REPO
         set +x
-        source ../$REPO/ups/setup_for_development -${{ github.event.inputs.build-type }} ${{ github.event.inputs.quals }} || true
+        source ../\$REPO/ups/setup_for_development -${{ github.event.inputs.build-type }} ${{ github.event.inputs.quals }} || true
         buildtool -t 2>&1 | tee build.log
         EOT
         chmod +x build_pkg.sh
