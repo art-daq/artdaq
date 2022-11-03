@@ -50,16 +50,16 @@ jobs:
         cd /scratch/art-daq
         source /cvmfs/fermilab.opensciencegrid.org/products/artdaq/setup || true
         
-        set -x
         export REPO=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')
         export quals=`echo ${{ matrix.qualifiers }}|sed 's/-/:/g'`
-        export buildname=build_\$REPO_${{ matrix.build-type }}_${{ matrix.qualifiers }}
+        export buildname="build_\${REPO}_${{ matrix.build-type }}_${{ matrix.qualifiers }}"
+
         mkdir \$buildname
         cd \$buildname
+
         echo "Logging to /scratch/\$buildname.log"
-        set +x
-        source ../\$REPO/ups/setup_for_development -${{ matrix.build-type }} \$quals 2>&1 | tee /scratch/\$buildname.log || true
-        buildtool 2>&1 | tee -a /scratch/\$buildname.log
+        echo source ../\$REPO/ups/setup_for_development -${{ matrix.build-type }} \$quals 2>&1 | tee /scratch/\$buildname.log || true
+        echo buildtool 2>&1 | tee -a /scratch/\$buildname.log
         EOT
         chmod +x build_pkg.sh
 
