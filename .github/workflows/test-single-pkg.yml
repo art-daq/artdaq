@@ -15,11 +15,6 @@ jobs:
   build_single_pkg:
     name: build single pkg
     runs-on: ubuntu-latest
-    container:
-      image: "eflumerf/sl7-minimal:latest"
-    defaults:
-      run:
-        shell: bash
 
     steps:
     - uses: cvmfs-contrib/github-action-cvmfs@v3
