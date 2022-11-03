@@ -45,7 +45,7 @@ jobs:
       
         export REPO=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')
         export quals=`echo ${{ matrix.qualifiers }}|sed 's/-/:/g'`
-        export logfile=$GITHUB_WORKSPACE/scratch/build-${{ matrix.build-type }}_${{ matrix.qualifiers }}.log
+        export buildname=build_$REPO_${{ matrix.build-type }}_${{ matrix.qualifiers }}
         cd $GITHUB_WORKSPACE/scratch
         cat << EOT > build_pkg.sh
         #!/bin/bash
@@ -53,10 +53,10 @@ jobs:
         cd /scratch/art-daq
         source /cvmfs/fermilab.opensciencegrid.org/products/artdaq/setup || true
 
-        mkdir build_$REPO
-        cd build_$REPO
-        source ../$REPO/ups/setup_for_development -${{ matrix.build-type }} $quals 2>&1 | tee $logfile || true
-        buildtool -t 2>&1 | tee -a $logfile
+        mkdir $buildname
+        cd $buildname
+        source ../$REPO/ups/setup_for_development -${{ matrix.build-type }} $quals 2>&1 | tee /scratch/$buildname.log || true
+        buildtool 2>&1 | tee -a /scratch/$buildname.log
         EOT
         chmod +x build_pkg.sh
 
@@ -66,7 +66,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: build_log_${{ matrix.build-type }}_${{ matrix.qualifiers }}
-        path: ${{ github.workspace }}/scratch/build-${{ matrix.build-type }}_${{ matrix.qualifiers }}.log
+        path: ${{ github.workspace }}/scratch/build_*_${{ matrix.build-type }}_${{ matrix.qualifiers }}.log
 
     - name: change dir permission again
       run: |
