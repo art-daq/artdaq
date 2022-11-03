@@ -52,7 +52,8 @@ jobs:
           cd /opt/otsdaq
           source setup_ots.sh || true
           cp -pr $GITHUB_WORKSPACE/art-daq/$REPO srcs
-          mrb b >$GITHUB_WORKSPACE/build.log 2>&1
+          echo "Starting build"
+          mrb b 2>&1 | tee $GITHUB_WORKSPACE/build.log
 
 
     - name: upload build log file
