@@ -58,8 +58,8 @@ jobs:
         cd \$buildname
 
         echo "Logging to /scratch/\$buildname.log"
-        echo source ../\$REPO/ups/setup_for_development -${{ matrix.build-type }} \$quals 2>&1 | tee /scratch/\$buildname.log || true
-        echo buildtool 2>&1 | tee -a /scratch/\$buildname.log
+        source ../\$REPO/ups/setup_for_development -${{ matrix.build-type }} \$quals 2>&1 | tee /scratch/\$buildname.log || true
+        buildtool 2>&1 | tee -a /scratch/\$buildname.log
         EOT
         chmod +x build_pkg.sh
 
