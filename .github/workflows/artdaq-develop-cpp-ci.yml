@@ -6,13 +6,9 @@ on:
   push:
     branches: 
       - develop
-      - patch/*
-      - prep-release/*
     paths-ignore:
       - 'docs/**'
       - '.github/**'
-  pull_request:
-    branches: [ develop ]
   schedule:
     - cron: "0 7 * * *"
 
