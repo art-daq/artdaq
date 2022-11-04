@@ -1,6 +1,12 @@
 name: Build Single Pkg Workflow
 
 on:
+  push:
+    branches: 
+      - develop
+    paths-ignore:
+      - 'docs/**'
+      - '.github/**'
   pull_request:
     branches: [ develop ]
   workflow_dispatch:
@@ -40,7 +46,7 @@ jobs:
         repository: ${{ github.repository }}
         path: scratch/${{ github.repository }}
 
-    - name: start docker container with bind mount cvmfs
+    - name: run build in docker container with cvmfs bind mount
       run: |
       
         cd $GITHUB_WORKSPACE/scratch
@@ -59,13 +65,13 @@ jobs:
 
         echo "Logging to /scratch/\$buildname.log"
         echo "Calling source ../\$REPO/ups/setup_for_development -${{ matrix.build-type }} \$quals 2>&1 | tee /scratch/\$buildname.log || true"
-        source ../\$REPO/ups/setup_for_development -${{ matrix.build-type }} \$quals 2>&1 | tee /scratch/\$buildname.log || true
+        source ../\$REPO/ups/setup_for_development -${{ matrix.build-type }} \$quals || true
 
         echo "Active UPS products:"
         ups active || true
         
-        echo "Calling buildtool 2>&1 | tee -a /scratch/\$buildname.log"
-        buildtool 2>&1 | tee -a /scratch/\$buildname.log
+        echo "Calling buildtool &| tee /scratch/\$buildname.log"
+        buildtool &| tee /scratch/\$buildname.log
         EOT
         chmod +x build_pkg.sh
 

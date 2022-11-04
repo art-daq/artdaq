@@ -3,12 +3,6 @@ name: build-develop
 # Controls when the action will run. Workflow runs when manually triggered using the UI
 # or API.
 on:
-  push:
-    branches: 
-      - develop
-    paths-ignore:
-      - 'docs/**'
-      - '.github/**'
   schedule:
     - cron: "0 7 * * *"
 
