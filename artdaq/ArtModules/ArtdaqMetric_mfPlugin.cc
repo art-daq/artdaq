@@ -38,10 +38,10 @@ public:
 		    fhicl::Atom<bool>{fhicl::Name{"showInfo"}, fhicl::Comment{"Send Metrics for Info messages"}, false};
 		/// "showWarning" (Default: true): Send metrics for Warning messages
 		fhicl::Atom<bool> showWarning =
-		    fhicl::Atom<bool>{fhicl::Name{"showWarning"}, fhicl::Comment{"Send Metrics for Warning messages"}, false};
+		    fhicl::Atom<bool>{fhicl::Name{"showWarning"}, fhicl::Comment{"Send Metrics for Warning messages"}, true};
 		/// "showError" (Default: true): Send metrics for Error messages
 		fhicl::Atom<bool> showError =
-		    fhicl::Atom<bool>{fhicl::Name{"showError"}, fhicl::Comment{"Send Metrics for Error messages"}, false};
+		    fhicl::Atom<bool>{fhicl::Name{"showError"}, fhicl::Comment{"Send Metrics for Error messages"}, true};
 		/// "removeNumbers" (Default: true): Remove numbers from message to try to make more overlaps
 		fhicl::Atom<bool> removeNumbers = fhicl::Atom<bool>(fhicl::Name{"removeNumbers"}, fhicl::Comment{"Remove numbers from messages"}, true);
 		/// "messageLength" (Default: 20): Number of characters to use for metric title
@@ -194,21 +194,21 @@ void ELArtdaqMetric::routePayload(const std::ostringstream& oss, const ErrorObj&
 	{
 		if (sendMessageMetric)
 		{
-			metricMan->sendMetric(message, 1, "messages/s", lvlNum + metricLevelOffset_ + 1, artdaq::MetricMode::Rate);
+			metricMan->sendMetric(message, 1, "messages", lvlNum + metricLevelOffset_ + 1, artdaq::MetricMode::Rate);
 		}
 		switch (lvlNum)
 		{
 			case 0:
-				metricMan->sendMetric("Error Message Rate", 1, "messages/s", metricLevelOffset_, artdaq::MetricMode::Rate);
+				metricMan->sendMetric("Error Message Rate", 1, "messages", metricLevelOffset_, artdaq::MetricMode::Rate);
 				break;
 			case 1:
-				metricMan->sendMetric("Warning Message Rate", 1, "messages/s", metricLevelOffset_, artdaq::MetricMode::Rate);
+				metricMan->sendMetric("Warning Message Rate", 1, "messages", metricLevelOffset_, artdaq::MetricMode::Rate);
 				break;
 			case 2:
-				metricMan->sendMetric("Info Message Rate", 1, "messages/s", metricLevelOffset_, artdaq::MetricMode::Rate);
+				metricMan->sendMetric("Info Message Rate", 1, "messages", metricLevelOffset_, artdaq::MetricMode::Rate);
 				break;
 			case 3:
-				metricMan->sendMetric("Debug Message Rate", 1, "messages/s", metricLevelOffset_, artdaq::MetricMode::Rate);
+				metricMan->sendMetric("Debug Message Rate", 1, "messages", metricLevelOffset_, artdaq::MetricMode::Rate);
 				break;
 		}
 	}
