@@ -42,10 +42,8 @@ public:
 		/// "showError" (Default: true): Send metrics for Error messages
 		fhicl::Atom<bool> showError =
 		    fhicl::Atom<bool>{fhicl::Name{"showError"}, fhicl::Comment{"Send Metrics for Error messages"}, true};
-		/// "removeNumbers" (Default: true): Remove numbers from message to try to make more overlaps
-		fhicl::Atom<bool> removeNumbers = fhicl::Atom<bool>(fhicl::Name{"removeNumbers"}, fhicl::Comment{"Remove numbers from messages"}, true);
-		/// "messageLength" (Default: 20): Number of characters to use for metric title
-		fhicl::Atom<size_t> messageLength = fhicl::Atom<size_t>(fhicl::Name{"messageLength"}, fhicl::Comment{"Maximum length of metric titles (0 for unlimited)"}, 20);
+		/// "messageLength" (Default: 40): Number of characters to use for metric title
+		fhicl::Atom<size_t> messageLength = fhicl::Atom<size_t>(fhicl::Name{"messageLength"}, fhicl::Comment{"Maximum length of metric titles (0 for unlimited)"}, 40);
 		/// "metricLevelOffset" (Default: 10): Offset for Metric Levels (+0: summary rates, +1 errors, ...)
 		fhicl::Atom<size_t> metricLevelOffset = fhicl::Atom<size_t>(fhicl::Name{"metricLevelOffset"}, fhicl::Comment{"Offset for Metric Levels (+0: summary rates, +1 errors, ...)"}, 10);
 	};
@@ -91,7 +89,6 @@ private:
 	bool showInfo_{false};
 	bool showWarning_{true};
 	bool showError_{true};
-	bool removeNumbers_{true};
 	size_t messageLength_{20};
 	size_t metricLevelOffset_{10};
 };
@@ -109,7 +106,6 @@ ELArtdaqMetric::ELArtdaqMetric(Parameters const& pset)
     , showInfo_(pset().showInfo())
     , showWarning_(pset().showWarning())
     , showError_(pset().showError())
-    , removeNumbers_(pset().removeNumbers())
     , messageLength_(pset().messageLength())
     , metricLevelOffset_(pset().metricLevelOffset())
 {
@@ -131,21 +127,18 @@ void ELArtdaqMetric::fillUsrMsg(std::ostringstream& oss, const ErrorObj& msg)
 	std::ostringstream tmposs;
 	ELdestination::fillUsrMsg(tmposs, msg);
 
-	// remove leading "\n" if present
-	std::string tmpStr = tmposs.str().compare(0, 1, "\n") == 0 ? tmposs.str().erase(0, 1) : tmposs.str();
-
+	// remove "\n" if present
+	std::string tmpStr = tmposs.str();
+    auto cpos = tmpStr.find(':');
+    if(cpos != std::string::npos) {
+        tmpStr.erase(0, cpos + 1);
+	}
+    
 	// remove numbers
 	std::string usrMsg;
-	if (removeNumbers_)
-	{
-		std::copy_if(tmpStr.begin(), tmpStr.end(),
-		             std::back_inserter(usrMsg), isxdigit);
-	}
-	else
-	{
-		usrMsg = tmpStr;
-	}
-
+	std::copy_if(tmpStr.begin(), tmpStr.end(),
+		             std::back_inserter(usrMsg), isalpha);
+	
 	if (messageLength_ > 0 && usrMsg.size() > messageLength_)
 	{
 		usrMsg.resize(messageLength_);
