@@ -18,8 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        build-type: [ 'd' ]
-        qualifiers: [ 's112-e20' ]
+        build-type: [ 'd', 'p' ]
+        qualifiers: [ 's112-e20', 's118-e20', 's118-e26' ]
 
     steps:
     - uses: cvmfs-contrib/github-action-cvmfs@v3
@@ -71,7 +71,7 @@ jobs:
         ups active || true
         
         echo "Calling buildtool 2>&1 | tee /scratch/\$buildname.log"
-        buildtool 2>&1 | tee /scratch/\$buildname.log
+        CETPKG_J=4 buildtool 2>&1 | tee /scratch/\$buildname.log
         EOT
         chmod +x build_pkg.sh
 
