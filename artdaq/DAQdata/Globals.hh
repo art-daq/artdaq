@@ -161,4 +161,6 @@ public:
 };
 }  // namespace artdaq
 
+#include "tracemf.h"
+
 #endif  // ARTDAQ_DAQDATA_GLOBALS_HH
