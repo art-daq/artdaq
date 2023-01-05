@@ -28,6 +28,10 @@ cet_cmake_module_directories(Modules BINARY)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL Clang AND
      CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 14.0.0)
+  # Clang 14 has a bug in which it complains about destructors of template classes
+  # e.g. ArtdaqInput<T>::~ArtdaqInput(), when it is expecting the destructor name to
+  # match what is on the left-hand side of the ::. This is a violation, however, of
+  # the C++20 standard. https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2020/p1787r6.html
   set(DT_FLAG -Wno-dtor-name)
 else()
   set(DT_FLAG)
