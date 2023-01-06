@@ -6,16 +6,17 @@
 
 namespace art {
 /**
-	 * \brief Trait definition (must precede source typedef).
-	 */
+ * \brief Trait definition (must precede source typedef).
+ */
 template<>
-struct Source_generator<ArtdaqInputHelper<artdaq::ListenTransferWrapper>> {
+struct Source_generator<ArtdaqInputHelper<artdaq::ListenTransferWrapper>>
+{
 	static constexpr bool value = true;  ///< Dummy variable
 };
 
 /**
-	 * \brief TransferInput is an art::Source using the artdaq::ListenTransferWrapper class as the data source
-	 */
+ * \brief TransferInput is an art::Source using the artdaq::ListenTransferWrapper class as the data source
+ */
 using TransferInput = art::Source<ArtdaqInputHelper<artdaq::ListenTransferWrapper>>;
 }  // namespace art
 

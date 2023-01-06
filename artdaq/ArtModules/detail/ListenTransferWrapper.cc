@@ -57,17 +57,19 @@ artdaq::ListenTransferWrapper::ListenTransferWrapper(const fhicl::ParameterSet& 
 	}
 	catch (...)
 	{
-          artdaq::ExceptionHandler(
-              artdaq::ExceptionHandlerRethrow::no,
-              "ListenTransferWrapper: could not configure metrics");
+		artdaq::ExceptionHandler(
+		    artdaq::ExceptionHandlerRethrow::no,
+		    "ListenTransferWrapper: could not configure metrics");
 	}
 
-	try {
-	  transfer_ = artdaq::MakeTransferPlugin(pset_, "transfer_plugin", artdaq::TransferInterface::Role::kReceive);
-	} catch(...) {
-	  artdaq::ExceptionHandler(artdaq::ExceptionHandlerRethrow::no, "ListenTransferWrapper: failure in call to MakeTransferPlugin");
+	try
+	{
+		transfer_ = artdaq::MakeTransferPlugin(pset_, "transfer_plugin", artdaq::TransferInterface::Role::kReceive);
 	}
-
+	catch (...)
+	{
+		artdaq::ExceptionHandler(artdaq::ExceptionHandlerRethrow::no, "ListenTransferWrapper: failure in call to MakeTransferPlugin");
+	}
 
 	// Clamp possible values
 	if (runningStateInterval_us_ < 1000)
@@ -161,26 +163,27 @@ artdaq::FragmentPtrs artdaq::ListenTransferWrapper::receiveMessage()
 			}
 			catch (...)
 			{
-                          artdaq::ExceptionHandler(
-                              artdaq::ExceptionHandlerRethrow::yes,
-				                 "Problem receiving data in ListenTransferWrapper::receiveMessage");
+				artdaq::ExceptionHandler(
+				    artdaq::ExceptionHandlerRethrow::yes,
+				    "Problem receiving data in ListenTransferWrapper::receiveMessage");
 			}
 		}
 
-		if (fragmentPtr->type() == artdaq::Fragment::EndOfSubrunFragmentType || fragmentPtr->type() == artdaq::Fragment::EndOfRunFragmentType) {
-		  // Ignore these for now
-		  continue;
+		if (fragmentPtr->type() == artdaq::Fragment::EndOfSubrunFragmentType || fragmentPtr->type() == artdaq::Fragment::EndOfRunFragmentType)
+		{
+			// Ignore these for now
+			continue;
 		}
 
 		if (fragmentPtr->type() == artdaq::Fragment::EndOfDataFragmentType)
 		{
-			//if (monitorRegistered_)
+			// if (monitorRegistered_)
 			//{
 			//	unregisterMonitor();
-			//}
+			// }
 			if (multi_run_mode_)
 			{
-			  //	initialized = false;
+				//	initialized = false;
 				continue;
 			}
 
@@ -191,10 +194,11 @@ artdaq::FragmentPtrs artdaq::ListenTransferWrapper::receiveMessage()
 
 		if (initialized || fragmentPtr->type() == artdaq::Fragment::InitFragmentType)
 		{
-		  if(initialized && fragmentPtr->type() == artdaq::Fragment::InitFragmentType) {
-		    // Ignore reinit for now, maybe handle in ArtdaqInputHelper later
-		    continue;
-		  }
+			if (initialized && fragmentPtr->type() == artdaq::Fragment::InitFragmentType)
+			{
+				// Ignore reinit for now, maybe handle in ArtdaqInputHelper later
+				continue;
+			}
 			initialized = true;
 			fragmentPtrs.push_back(std::move(fragmentPtr));
 			break;
@@ -233,7 +237,8 @@ artdaq::ListenTransferWrapper::receiveMessages()
 }
 
 void artdaq::ListenTransferWrapper::checkIntegrity(
-    const artdaq::Fragment& fragment) const {
+    const artdaq::Fragment& fragment) const
+{
 	const size_t artdaqheader = artdaq::detail::RawFragmentHeader::num_words() *
 	                            sizeof(artdaq::detail::RawFragmentHeader::RawDataType);
 	const auto payload = static_cast<size_t>(fragment.dataEndBytes() - fragment.dataBeginBytes());
