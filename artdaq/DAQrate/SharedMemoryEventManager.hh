@@ -266,6 +266,8 @@ public:
 	 */
 	size_t GetFragmentCountInBuffer(int buffer, Fragment::type_t type = Fragment::InvalidFragmentType);
 
+	void UpdateFragmentHeader(int buffer, detail::RawFragmentHeader hdr);
+
 	/**
 	 * \brief Run an art instance, recording the return codes and restarting it until the end flag is raised
 	 */
