@@ -129,16 +129,17 @@ void ELArtdaqMetric::fillUsrMsg(std::ostringstream& oss, const ErrorObj& msg)
 
 	// remove "\n" if present
 	std::string tmpStr = tmposs.str();
-    auto cpos = tmpStr.find(':');
-    if(cpos != std::string::npos) {
-        tmpStr.erase(0, cpos + 1);
+	auto cpos = tmpStr.find(':');
+	if (cpos != std::string::npos)
+	{
+		tmpStr.erase(0, cpos + 1);
 	}
-    
+
 	// remove numbers
 	std::string usrMsg;
 	std::copy_if(tmpStr.begin(), tmpStr.end(),
-		             std::back_inserter(usrMsg), isalpha);
-	
+	             std::back_inserter(usrMsg), isalpha);
+
 	if (messageLength_ > 0 && usrMsg.size() > messageLength_)
 	{
 		usrMsg.resize(messageLength_);

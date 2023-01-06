@@ -16,10 +16,7 @@ try
 	descstr << *argv
 	        << " [-M <shared memory>] <-e>";
 	bpo::options_description desc(descstr.str());
-	desc.add_options()
-		("key,M", bpo::value<std::string>(), "Shared Memory to attach to")
-		("events,e", "Print event information")
-		("help,h", "produce help message");
+	desc.add_options()("key,M", bpo::value<std::string>(), "Shared Memory to attach to")("events,e", "Print event information")("help,h", "produce help message");
 	bpo::variables_map vm;
 	try
 	{
