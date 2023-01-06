@@ -26,10 +26,21 @@ cet_cmake_env()
 # Find our own CMake modules, and tell everyone else where to find them.
 cet_cmake_module_directories(Modules BINARY)
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL Clang AND
+     CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 14.0.0)
+  # Clang 14 has a bug in which it complains about destructors of template classes
+  # e.g. ArtdaqInput<T>::~ArtdaqInput(), when it is expecting the destructor name to
+  # match what is on the left-hand side of the ::. This is a violation, however, of
+  # the C++20 standard. https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2020/p1787r6.html
+  set(DT_FLAG -Wno-dtor-name)
+else()
+  set(DT_FLAG)
+endif()
+
 cet_set_compiler_flags(DIAGS VIGILANT
   WERROR
   NO_UNDEFINED
-  EXTRA_FLAGS -pedantic -DRTI_UNIX -DRTI_LINUX -DRTI_64BIT -m64 
+  EXTRA_FLAGS -pedantic -DRTI_UNIX -DRTI_LINUX -DRTI_64BIT -m64 ${DT_FLAG}
 )
 
 string(TOUPPER ${CMAKE_BUILD_TYPE} BTYPE_UC)
@@ -80,15 +91,15 @@ find_package(TRACE 3.17.04 REQUIRED EXPORT)
 find_package(artdaq_core 3.08.04 REQUIRED EXPORT)
 find_package(artdaq_utilities 1.07.02 REQUIRED EXPORT)
 
-find_package(art_root_io 1.08.03 REQUIRED EXPORT)
-find_package(art 3.09.03 REQUIRED EXPORT)
-find_package(canvas_root_io REQUIRED EXPORT)
-find_package(canvas REQUIRED EXPORT)
-find_package(messagefacility REQUIRED EXPORT)
-find_package(fhiclcpp REQUIRED EXPORT)
-find_package(cetlib REQUIRED EXPORT)
-find_package(cetlib_except REQUIRED EXPORT)
-find_package(Boost COMPONENTS date_time program_options thread REQUIRED EXPORT)
+find_package(art_root_io 1.08.03 REQUIRED EXPORT QUIET)
+find_package(art 3.09.03 REQUIRED EXPORT QUIET)
+find_package(canvas_root_io REQUIRED EXPORT QUIET)
+find_package(canvas REQUIRED EXPORT QUIET)
+find_package(messagefacility REQUIRED EXPORT QUIET)
+find_package(fhiclcpp REQUIRED EXPORT QUIET)
+find_package(cetlib REQUIRED EXPORT QUIET)
+find_package(cetlib_except REQUIRED EXPORT QUIET)
+find_package(Boost QUIET COMPONENTS date_time program_options thread REQUIRED EXPORT)
 find_package(XMLRPC COMPONENTS c++2 client abyss-server REQUIRED EXPORT)
 
 include(BuildPlugins)
