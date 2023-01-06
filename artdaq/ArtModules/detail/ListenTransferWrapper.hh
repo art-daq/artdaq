@@ -15,51 +15,51 @@ class ParameterSet;
 namespace artdaq {
 class Fragment;
 
-    /**
-	 * \brief ListenTransferWrapper wraps a TransferInterface so that it can be used in the ArtdaqInput class
-	 * to make an art::Source
-	 * 
-	 * JCF, May-27-2016
-	 *
-	 * This is the class through which code that wants to access a
-	 * transfer plugin (e.g., input sources, AggregatorCore, etc.) can do
-	 * so. Its functionality is such that it satisfies the requirements
-	 * needed to be a template in the ArtdaqInput class
-	 */
+/**
+ * \brief ListenTransferWrapper wraps a TransferInterface so that it can be used in the ArtdaqInput class
+ * to make an art::Source
+ *
+ * JCF, May-27-2016
+ *
+ * This is the class through which code that wants to access a
+ * transfer plugin (e.g., input sources, AggregatorCore, etc.) can do
+ * so. Its functionality is such that it satisfies the requirements
+ * needed to be a template in the ArtdaqInput class
+ */
 class ListenTransferWrapper
 {
 public:
 	/**
-		 * \brief ListenTransferWrapper Constructor
-		 * \param pset ParameterSet used to configure the ListenTransferWrapper
-		 * 
-		 * \verbatim
-		 * ListenTransferWrapper accepts the following Parameters:
-		 * "timeoutInUsecs" (Default: 100000): The receive timeout
-		 * "maxEventsBeforeInit" (Default: 5): How many non-Init events to receive before raising an error
-		 * "allowedFragmentTypes" (Default: [226,227,229]): The Fragment type codes for expected Fragments
-		 * "dispatcherConnectTimeout" (Default: 0): Maximum amount of time (in seconds) to wait for the Dispatcher to reach the Running state. 0 to wait forever
-		 * "dispatcherConnectRetryInterval_us" (Default 1,000,000): Amount of time to wait between polls of the Dispatcher status while waiting for it to reach the Running state.
-		 * "quitOnFragmentIntegrityProblem" (Default: true): If there is an inconsistency in the received Fragment, throw an exception and quit when true
-		 * "allowMultipleRuns" (Default: true): If true, will ignore EndOfData message and reconnect to the Dispatcher once the next run starts
-		 * "debugLevel" (Default: 0): Enables some additional messages
-		 * "transfer_plugin" (REQUIRED): Name of the TransferInterface plugin to load
-		 * 
-		 * This parameter set is also passed to TransferInterface, so any necessary Parameters for TransferInterface or the requested plugin
-		 * should be included here.
-		 * \endverbatim
-		 */
+	 * \brief ListenTransferWrapper Constructor
+	 * \param pset ParameterSet used to configure the ListenTransferWrapper
+	 *
+	 * \verbatim
+	 * ListenTransferWrapper accepts the following Parameters:
+	 * "timeoutInUsecs" (Default: 100000): The receive timeout
+	 * "maxEventsBeforeInit" (Default: 5): How many non-Init events to receive before raising an error
+	 * "allowedFragmentTypes" (Default: [226,227,229]): The Fragment type codes for expected Fragments
+	 * "dispatcherConnectTimeout" (Default: 0): Maximum amount of time (in seconds) to wait for the Dispatcher to reach the Running state. 0 to wait forever
+	 * "dispatcherConnectRetryInterval_us" (Default 1,000,000): Amount of time to wait between polls of the Dispatcher status while waiting for it to reach the Running state.
+	 * "quitOnFragmentIntegrityProblem" (Default: true): If there is an inconsistency in the received Fragment, throw an exception and quit when true
+	 * "allowMultipleRuns" (Default: true): If true, will ignore EndOfData message and reconnect to the Dispatcher once the next run starts
+	 * "debugLevel" (Default: 0): Enables some additional messages
+	 * "transfer_plugin" (REQUIRED): Name of the TransferInterface plugin to load
+	 *
+	 * This parameter set is also passed to TransferInterface, so any necessary Parameters for TransferInterface or the requested plugin
+	 * should be included here.
+	 * \endverbatim
+	 */
 	explicit ListenTransferWrapper(const fhicl::ParameterSet& pset);
 
 	/**
-		 * \brief ListenTransferWrapper Destructor
-		 */
+	 * \brief ListenTransferWrapper Destructor
+	 */
 	virtual ~ListenTransferWrapper();
 
 	/**
-		 * \brief Receive a Fragment from the TransferInterface, and send it to art
-		 * \return Received Fragment
-		 */
+	 * \brief Receive a Fragment from the TransferInterface, and send it to art
+	 * \return Received Fragment
+	 */
 	artdaq::FragmentPtrs receiveMessage();
 	/**
 	 * \brief Receive all messsages for an event from ArtdaqSharedMemoryService
@@ -68,9 +68,9 @@ public:
 	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> receiveMessages();
 
 	/**
-		 * \brief Receive the Init message from the TransferInterface, and send it to art
-		 * \return Received InitFragment
-		 */
+	 * \brief Receive the Init message from the TransferInterface, and send it to art
+	 * \return Received InitFragment
+	 */
 	artdaq::FragmentPtrs receiveInitMessage()
 	{
 		return receiveMessage();
