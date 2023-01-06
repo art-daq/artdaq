@@ -319,6 +319,11 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 		return;
 	}
 
+	if (!frag.valid)
+	{
+		UpdateFragmentHeader(buffer, frag);
+	}
+
 	statsHelper_.addSample(FRAGMENTS_RECEIVED_STAT_KEY, frag.word_count * sizeof(RawDataType));
 	{
 		TLOG(TLVL_BUFLCK) << "DoneWritingFragment: obtaining buffer_mutexes lock for buffer " << buffer;
@@ -403,6 +408,28 @@ size_t artdaq::SharedMemoryEventManager::GetFragmentCountInBuffer(int buffer, Fr
 	}
 
 	return count;
+}
+
+void artdaq::SharedMemoryEventManager::UpdateFragmentHeader(int buffer, artdaq::detail::RawFragmentHeader hdr)
+{
+	if (buffer < 0)
+	{
+		return;
+	}
+	ResetReadPos(buffer);
+	IncrementReadPos(buffer, sizeof(detail::RawEventHeader));
+
+	while (MoreDataInBuffer(buffer))
+	{
+		auto fragHdr = reinterpret_cast<artdaq::detail::RawFragmentHeader*>(GetReadPos(buffer));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+		if (hdr.fragment_id == fragHdr->fragment_id)
+		{
+			*fragHdr = hdr;
+			break;
+		}
+	}
+
+	return;
 }
 
 void artdaq::SharedMemoryEventManager::RunArt(const std::shared_ptr<art_config_file>& config_file, size_t process_index, const std::shared_ptr<std::atomic<pid_t>>& pid_out)
