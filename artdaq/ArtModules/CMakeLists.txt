@@ -233,6 +233,10 @@ cet_build_plugin(TransferOutput art::module
   TRACE::MF
 )
 
+
+include(mfPlugin)
+mfPlugin( ArtdaqMetric LIBRARIES REG artdaq::DAQdata )
+
 install_headers(SUBDIRS detail)
 install_source(SUBDIRS detail)
 install_fhicl(SUBDIRS fcl)
