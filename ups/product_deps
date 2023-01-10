@@ -1,7 +1,7 @@
 # The parent line must be the first non-comment line in the file
 # This line defines the product name and version
 parent artdaq  
-defaultqual    e20:s112
+defaultqual    e20:s117
 
 # These optional lines define the installed directories where
 # headers, libraries, and executables will be found
@@ -21,7 +21,8 @@ old_style_config_vars
 #
 product					version		qual	flags			<table_format=2>
 art_root_io				v1_11_00	s118
-art_root_io				v1_08_03	s112
+art_root_io				v1_08_05	s117
+art_root_io				v1_08_03	s117
 artdaq_core             v3_09_04
 artdaq_utilities		v1_08_02
 artdaq_mfextensions		v1_08_02
@@ -45,6 +46,13 @@ e20:s118:debug	e20:debug	e20:s118:debug	e20:s118:debug		e20:debug	e20:s118:debug
 e20:s118:prof	e20:prof	e20:s118:prof	e20:s118:prof		e20:prof	e20:s118:prof		e20:s118:prof		e20:s118:prof			e20:prof	-nq-
 e26:s118:debug	e26:debug	e26:s118:debug	e26:s118:debug		e26:debug	e26:s118:debug		e26:s118:debug		e26:s118:debug			e26:debug	-nq-
 e26:s118:prof	e26:prof	e26:s118:prof	e26:s118:prof		e26:prof	e26:s118:prof		e26:s118:prof		e26:s118:prof			e26:prof	-nq-
+
+c7:s117:debug	c7:debug	c7:s117:debug	c7:s117:debug		c7:debug	c7:s117:debug		c7:s117:debug		c7:s117:debug			c7:debug	-nq-	
+c7:s117:prof	c7:prof		c7:s117:prof	c7:s117:prof		c7:prof		c7:s117:prof		c7:s117:prof		c7:s117:prof			c7:prof		-nq-	
+e20:s117:debug	e20:debug	e20:s117:debug	e20:s117:debug		e20:debug	e20:s117:debug		e20:s117:debug		e20:s117:debug			e20:debug	-nq-	
+e20:s117:prof	e20:prof	e20:s117:prof	e20:s117:prof		e20:prof	e20:s117:prof		e20:s117:prof		e20:s117:prof			e20:prof	-nq-	
+e19:s117:debug	e19:debug	e19:s117:debug	e19:s117:debug		e19:debug	e19:s117:debug		e19:s117:debug		e19:s117:debug			e19:debug	-nq-	
+e19:s117:prof	e19:prof	e19:s117:prof	e19:s117:prof		e19:prof	e19:s117:prof		e19:s117:prof		e19:s117:prof			e19:prof	-nq-	
 
 c7:s112:debug	c7:debug	c7:s112:debug	c7:s112:debug		c7:debug	c7:s112:debug		c7:s112:debug		c7:s112:debug			c7:debug	-nq-	
 c7:s112:prof	c7:prof		c7:s112:prof	c7:s112:prof		c7:prof		c7:s112:prof		c7:s112:prof		c7:s112:prof			c7:prof		-nq-	
