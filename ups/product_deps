@@ -22,7 +22,7 @@ old_style_config_vars
 product					version		qual	flags			<table_format=2>
 art_root_io				v1_11_00	s118
 art_root_io				v1_08_05	s117
-art_root_io				v1_08_03	s117
+art_root_io				v1_08_03	s112
 artdaq_core             v3_09_04
 artdaq_utilities		v1_08_02
 artdaq_mfextensions		v1_08_02
