@@ -321,7 +321,8 @@ void artdaq::TransferWrapper::registerMonitor()
 
 	while (retry > 0)
 	{
-		TLOG(TLVL_INFO) << "Attempting to register this monitor (\"" << transfer_->uniqueLabel()
+		label_ = dispatcherConfig.get<std::string>("unique_label");
+		TLOG(TLVL_INFO) << "Attempting to register this monitor (\"" << label_
 		                << "\") with the dispatcher aggregator";
 
 		auto status = commander_->send_register_monitor(dispatcherConfig.to_string());
@@ -381,10 +382,10 @@ void artdaq::TransferWrapper::unregisterMonitor()
 	int retry = 3;
 	while (retry > 0)
 	{
-		TLOG(TLVL_INFO) << "Requesting that this monitor (" << transfer_->uniqueLabel()
+		TLOG(TLVL_INFO) << "Requesting that this monitor (" << label_
 		                << ") be unregistered from the dispatcher aggregator";
 
-		auto status = commander_->send_unregister_monitor(transfer_->uniqueLabel());
+		auto status = commander_->send_unregister_monitor(label_);
 
 		TLOG(TLVL_INFO) << "Response from dispatcher is \"" << status << "\"";
 
