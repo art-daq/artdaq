@@ -104,6 +104,7 @@ private:
 	std::unique_ptr<TransferInterface> transfer_;
 	std::unique_ptr<CommanderInterface> commander_;
 	const fhicl::ParameterSet pset_;
+	std::string label_;
 	const std::string dispatcherHost_;
 	const std::string dispatcherPort_;
 	const std::string serverUrl_;
