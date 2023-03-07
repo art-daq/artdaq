@@ -20,28 +20,38 @@ old_style_config_vars
 
 #
 product					version		qual	flags			<table_format=2>
+art_root_io				v1_12_02	s122
 art_root_io				v1_11_00	s118
 art_root_io				v1_08_05	s117
 art_root_io				v1_08_03	s112
-artdaq_core             v3_09_04
-artdaq_utilities		v1_08_02
-artdaq_mfextensions		v1_08_02
-xmlrpc_c				v1_54_06
-swig					v4_0_2a		-		optional
+artdaq_core             v3_09_08
+artdaq_utilities		v1_08_03
+artdaq_mfextensions		v1_08_03
+xmlrpc_c				v1_54_06a
+swig					v4_0_2b		-		optional
 nodejs					v10_15_0	-		optional
-artdaq_epics_plugin		v1_05_02	-		optional
-artdaq_pcp_mmv_plugin	v1_03_02	-		optional
-cetmodules				v3_19_02	-		only_for_build
+artdaq_epics_plugin		v1_05_03	-		optional
+artdaq_pcp_mmv_plugin	v1_03_03	-		optional
+cetmodules				v3_21_00	-		only_for_build
 end_product_list
 
 # See https://cdcvs.fnal.gov/redmine/projects/cet-is-public/wiki/AboutQualifiers for information about the qualifiers used
 # -nq- means there is no qualifier
 # a "-" means the dependent product is not required by the parent and will not be setup
 qualifier		art_root_io	artdaq_core		artdaq_utilities	xmlrpc_c	artdaq_mfextensions	artdaq_epics_plugin	artdaq_pcp_mmv_plugin	swig		nodejs
+c14:s122:debug	c14:debug	c14:s122:debug	c14:s122:debug		c14:debug	c14:s122:debug		c14:s122:debug		c14:s122:debug			c14:debug	-nq-
+c14:s122:prof	c14:prof	c14:s122:prof	c14:s122:prof		c14:prof	c14:s122:prof		c14:s122:prof		c14:s122:prof			c14:prof	-nq-
+c15:s122:debug	c15:debug	c15:s122:debug	c15:s122:debug		c15:debug	c15:s122:debug		c15:s122:debug		c15:s122:debug			c15:debug	-nq-
+c15:s122:prof	c15:prof	c15:s122:prof	c15:s122:prof		c15:prof	c15:s122:prof		c15:s122:prof		c15:s122:prof			c15:prof	-nq-
+e20:s122:debug	e20:debug	e20:s122:debug	e20:s122:debug		e20:debug	e20:s122:debug		e20:s122:debug		e20:s122:debug			e20:debug	-nq-
+e20:s122:prof	e20:prof	e20:s122:prof	e20:s122:prof		e20:prof	e20:s122:prof		e20:s122:prof		e20:s122:prof			e20:prof	-nq-
+e26:s122:debug	e26:debug	e26:s122:debug	e26:s122:debug		e26:debug	e26:s122:debug		e26:s122:debug		e26:s122:debug			e26:debug	-nq-
+e26:s122:prof	e26:prof	e26:s122:prof	e26:s122:prof		e26:prof	e26:s122:prof		e26:s122:prof		e26:s122:prof			e26:prof	-nq-
+
 c7:s118:debug	c7:debug	c7:s118:debug	c7:s118:debug		c7:debug	c7:s118:debug		c7:s118:debug		c7:s118:debug			c7:debug	-nq-
 c7:s118:prof	c7:prof		c7:s118:prof	c7:s118:prof		c7:prof		c7:s118:prof		c7:s118:prof		c7:s118:prof			c7:prof		-nq-
-c14:s118:debug	c14:debug	c14:s118:debug	c14:s118:debug		c14:debug	c14:s118:debug		c14:s118:debug		c14:s118:debug			c14:debug	-nq-
-c14:s118:prof	c14:prof	c14:s118:prof	c14:s118:prof		c14:prof	c14:s118:prof		c14:s118:prof		c14:s118:prof			c14:prof	-nq-
+#c14:s118:debug	c14:debug	c14:s118:debug	c14:s118:debug		c14:debug	c14:s118:debug		c14:s118:debug		c14:s118:debug			c14:debug	-nq-
+#c14:s118:prof	c14:prof	c14:s118:prof	c14:s118:prof		c14:prof	c14:s118:prof		c14:s118:prof		c14:s118:prof			c14:prof	-nq-
 e20:s118:debug	e20:debug	e20:s118:debug	e20:s118:debug		e20:debug	e20:s118:debug		e20:s118:debug		e20:s118:debug			e20:debug	-nq-
 e20:s118:prof	e20:prof	e20:s118:prof	e20:s118:prof		e20:prof	e20:s118:prof		e20:s118:prof		e20:s118:prof			e20:prof	-nq-
 e26:s118:debug	e26:debug	e26:s118:debug	e26:s118:debug		e26:debug	e26:s118:debug		e26:s118:debug		e26:s118:debug			e26:debug	-nq-
