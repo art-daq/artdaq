@@ -2444,7 +2444,7 @@ BOOST_AUTO_TEST_CASE(WaitForDataBufferReady_RaceCondition)
 			fp.Reset(false);
 			counter++;
 		}
-		TLOG(TLVL_INFO) << "Reset " << RATE_TEST_COUNT << " times during loop. Time elapsed=" << artdaq::TimeUtils::GetElapsedTime(beginop);
+		TLOG(TLVL_INFO) << "Reset " << counter << " times during loop. Time elapsed=" << artdaq::TimeUtils::GetElapsedTime(beginop);
 	};
 
 	std::thread t1(gen_frags);

@@ -422,10 +422,7 @@ artdaq::MulticastTransfer::transfer_fragment_min_blocking_mode(artdaq::Fragment 
 		throw cet::exception("MulticastTransfer") << "Error in MulticastTransfer::copyFragmentTo: " << fragment.sizeBytes() << " byte fragment exceeds max_fragment_size of " << max_fragment_size_words_;  // NOLINT(cert-err60-cpp)
 	}
 
-	static size_t ncalls = 1;
 	auto num_subfragments = static_cast<size_t>(std::ceil(fragment.sizeBytes() / static_cast<float>(subfragment_size_)));
-
-	ncalls++;
 
 	fill_staging_memory(fragment);
 
