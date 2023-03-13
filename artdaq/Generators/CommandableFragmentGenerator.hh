@@ -98,8 +98,6 @@ public:
 		fhicl::Atom<bool> separate_monitoring_thread{fhicl::Name{"separate_monitoring_thread"}, fhicl::Comment{"Whether a thread that calls the checkHWStatus_ method should be created"}, false};
 		/// "hardware_poll_interval_us" (Default: 0) : If a separate monitoring thread is used, how often should it call checkHWStatus_
 		fhicl::Atom<int64_t> hardware_poll_interval_us{fhicl::Name{"hardware_poll_interval_us"}, fhicl::Comment{"If a separate monitoring thread is used, how often should it call checkHWStatus_"}, 0};
-		/// "board_id" (REQUIRED) : The identification number for this CommandableFragmentGenerator
-		fhicl::Atom<int> board_id{fhicl::Name{"board_id"}, fhicl::Comment{"The identification number for this CommandableFragmentGenerator"}};
 		/// "fragment_ids" (Default: empty vector) : A list of Fragment IDs created by this CommandableFragmentGenerator
 		/// Note that only one of fragment_ids and fragment_id should be specified in the configuration
 		fhicl::Sequence<Fragment::fragment_id_t> fragment_ids{fhicl::Name("fragment_ids"), fhicl::Comment("A list of Fragment IDs created by this CommandableFragmentGenerator")};
@@ -337,12 +335,6 @@ protected:
 	bool check_stop();
 
 	/**
-	 * \brief Gets the current board_id
-	 * \return The current board_id
-	 */
-	int board_id() const { return board_id_; }
-
-	/**
 	 * \brief Increment the event counter
 	 * \param step Amount to increment the event counter by
 	 * \return The previous value of the event counter
@@ -423,7 +415,6 @@ private:
 	std::string latest_exception_report_;
 	std::atomic<size_t> ev_counter_;
 
-	int board_id_;
 	std::string instance_name_for_metrics_;
 
 	// Depending on what sleep_on_stop_us_ is set to, this gives the
