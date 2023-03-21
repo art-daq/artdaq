@@ -736,6 +736,20 @@ RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& con
 		targetLocation = modifiedPattern.find(searchString);
 		TLOG(TLVL_DEBUG + 33) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
 	}
+	
+	// if the "Rank" keyword was specified in the filename pattern,
+	// perform the substitution
+	searchString = "${app_name}";
+	targetLocation = modifiedPattern.find(searchString);
+	TLOG(TLVL_DEBUG + 33) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+	while (targetLocation != std::string::npos)
+	{
+		std::ostringstream oss;
+		oss << artdaq::Globals::app_name_;
+		modifiedPattern.replace(targetLocation, searchString.length(), oss.str());
+		targetLocation = modifiedPattern.find(searchString);
+		TLOG(TLVL_DEBUG + 33) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+	}
 
 	// if one or more free-form substitutions were provided, we'll do them here
 	for (auto& sub : subs)
