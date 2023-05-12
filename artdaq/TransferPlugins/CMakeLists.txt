@@ -57,6 +57,11 @@ cet_build_plugin(Autodetect artdaq::transfer
   artdaq::TransferPlugins_TCPSocket_transfer
 )
 
+cet_build_plugin(Bundle artdaq::transfer
+  LIBRARIES PRIVATE
+  artdaq::TransferPlugins_TCPSocket_transfer
+)
+
 if (${USING_RTIDDS})
   cet_build_plugin(RTIDDS artdaq::transfer
     LIBRARIES PRIVATE artdaq::RTIDDS)

@@ -27,7 +27,7 @@ genToArt:
 
 source:
 {
-  module_type: RawInput
+  module_type: ArtdaqInput
   waiting_time: 25.0
   fragment_type_map: [[226, "ABC"]]
 }

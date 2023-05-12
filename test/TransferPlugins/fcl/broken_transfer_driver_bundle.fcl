@@ -1,0 +1,28 @@
+partition_number: 11
+
+## The rate at which to generate Fragments, in Hz
+fragment_rate_hz: 100  # default 10
+
+## Whether to use reliable-mode transfers (true) or min-blocking (false)
+reliable_mode: true  # default
+
+## The size of generated Fragments, in Fragment words
+fragment_size: 65536  # default
+
+## The timeout for min-blocking mode sends
+send_timeout_us: 100000  # default
+
+## The number of buffers in the Transfer Plugins
+transfer_buffer_count: 2  # default 10
+
+## The number of "EventBuilder" buffers on the receiver end
+event_buffer_count: 4  # default 20
+
+## The timeout for "EventBuilder" buffers to be marked incomplete and abandoned
+event_buffer_timeout_us: 100000  # default 1000000
+
+## The name of the Transfer Plugin to use
+transfer_to_use: "Bundle"
+
+## For if using Bundle and testing...
+#default_transfer_ps: { tcp_send_buffer_size: 0 }
