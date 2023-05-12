@@ -6,4 +6,3 @@ bin/*
 obj/*
 *.vcxproj*
 core.*
-CMakePresets.json
