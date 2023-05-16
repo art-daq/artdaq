@@ -99,6 +99,10 @@ try
 					usleep(10000);
 				}
 			}
+			if(artdaq::TimeUtils::GetElapsedTimeMilliseconds(start_time) >= tmo) {
+				TLOG(TLVL_ERROR) << "Timeout elapsed in requestSender";
+				return -2;
+			}
 		}
 
 		seq += seq_scale;
