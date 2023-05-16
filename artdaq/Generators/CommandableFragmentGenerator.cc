@@ -58,12 +58,8 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
     , exception_(false)
     , latest_exception_report_("none")
     , ev_counter_(1)
-    , board_id_(-1)
     , sleep_on_stop_us_(0)
 {
-	board_id_ = ps.get<int>("board_id");
-	instance_name_for_metrics_ = "BoardReader." + boost::lexical_cast<std::string>(board_id_);
-
 	auto fragment_ids = ps.get<std::vector<artdaq::Fragment::fragment_id_t>>("fragment_ids", std::vector<artdaq::Fragment::fragment_id_t>());
 
 	TLOG(TLVL_DEBUG + 33) << "artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(ps)";
@@ -89,10 +85,13 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 		throw cet::exception(latest_exception_report_);
 	}
 
+	int first_fragment_id = std::numeric_limits<int>::max();
 	for (auto& id : fragment_ids)
 	{
+		if (id < first_fragment_id) first_fragment_id = id;
 		expectedTypes_[id] = artdaq::Fragment::EmptyFragmentType;
 	}
+	instance_name_for_metrics_ = "BoardReader." + boost::lexical_cast<std::string>(first_fragment_id);
 
 	sleep_on_stop_us_ = ps.get<int>("sleep_on_stop_us", 0);
 }
