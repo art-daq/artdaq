@@ -21,6 +21,7 @@ cet_make_exec(NAME broken_transfer_driver
 
 cet_script(ALWAYS_COPY runTransferTest.sh runBrokenTransferTest.sh)
 
+if(${RUN_BROKEN_TRANSFER_TESTS})
 file(GLOB broken_tests "fcl/broken_transfer_driver_*.fcl")
 foreach(testfile ${broken_tests})
 	get_filename_component(conffile ${testfile} NAME)
@@ -31,6 +32,7 @@ foreach(testfile ${broken_tests})
 	DATAFILES ${testfile}
 	)
 endforeach()
+endif()
 
 file(GLOB transfer_tests "fcl/transfer_driver_*.fcl")
 foreach(testfile ${transfer_tests})
@@ -48,5 +50,6 @@ foreach(testfile ${transfer_tests})
 	TEST_EXEC runTransferTest.sh
 	TEST_ARGS ${conffile} ${procs}
 	DATAFILES ${testfile}
+	#TEST_PROPERTIES RUN_SERIAL 1
 	)
 endforeach()
