@@ -3,9 +3,9 @@
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_BundleTransfer").c_str()
 
+#include "artdaq-core/Data/ContainerFragmentLoader.hh"
 #include "artdaq/TransferPlugins/TCPSocketTransfer.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
-#include "artdaq-core/Data/ContainerFragmentLoader.hh"
 
 #include <boost/thread.hpp>
 
@@ -47,11 +47,11 @@ public:
 		}
 
 		ContainerFragment cf(*bundle_fragment_);
-		TLOG(TLVL_INFO) << "Retrieving Fragment " << current_block_index_ << " of " << cf.block_count();
+		TLOG(TLVL_INFO) << "Retrieving Fragment " << (current_block_index_ + 1) << " of " << cf.block_count();
 		fragment.resizeBytes(cf.fragSize(current_block_index_) - sizeof(detail::RawFragmentHeader));
 		memcpy(fragment.headerAddress(), static_cast<const uint8_t*>(cf.dataBegin()) + cf.fragmentIndex(current_block_index_), cf.fragSize(current_block_index_));
 		current_block_index_++;
-		if (current_block_index_ >= cf.block_count()) // Index vs. count!
+		if (current_block_index_ >= cf.block_count())  // Index vs. count!
 		{
 			bundle_fragment_.reset(nullptr);
 		}
@@ -72,7 +72,7 @@ public:
 			if (current_rank_ < RECV_SUCCESS) return current_rank_;
 		}
 		ContainerFragment cf(*bundle_fragment_);
-		TLOG(TLVL_INFO) << "Retrieving Fragment Header " << current_block_index_ << " of " << cf.block_count();
+		TLOG(TLVL_INFO) << "Retrieving Fragment Header " << (current_block_index_ + 1) << " of " << cf.block_count();
 		memcpy(&header, static_cast<const uint8_t*>(cf.dataBegin()) + cf.fragmentIndex(current_block_index_), sizeof(detail::RawFragmentHeader));
 		return current_rank_;
 	}
@@ -90,10 +90,10 @@ public:
 			return RECV_TIMEOUT;
 		}
 		ContainerFragment cf(*bundle_fragment_);
-		TLOG(TLVL_INFO) << "Retrieving Fragment Data " << current_block_index_ << " of " << cf.block_count();
+		TLOG(TLVL_INFO) << "Retrieving Fragment Data " << (current_block_index_ + 1) << " of " << cf.block_count();
 		memcpy(destination, static_cast<const uint8_t*>(cf.dataBegin()) + cf.fragmentIndex(current_block_index_) + sizeof(detail::RawFragmentHeader), cf.fragSize(current_block_index_) - sizeof(detail::RawFragmentHeader));
 		current_block_index_++;
-		if (current_block_index_ >= cf.block_count()) // Index vs. count!
+		if (current_block_index_ >= cf.block_count())  // Index vs. count!
 		{
 			bundle_fragment_.reset(nullptr);
 		}
@@ -113,20 +113,21 @@ public:
 			std::lock_guard<std::mutex> lk(fragment_mutex_);
 			if (bundle_fragment_ == nullptr)
 			{
-				bundle_fragment_.reset(new artdaq::Fragment(fragment.sequenceID(), fragment.fragmentID()));
+				bundle_fragment_.reset(new artdaq::Fragment(fragment.sequenceID() + 1, fragment.fragmentID()));
 				bundle_fragment_->setTimestamp(fragment.timestamp());
 				bundle_fragment_->reserve(max_hold_size_bytes_ / sizeof(artdaq::RawDataType));
-			}
+				send_fragment_started_ = std::chrono::steady_clock::now();
 
-			ContainerFragmentLoader cfl(*bundle_fragment_);
-			cfl.set_missing_data(false);  // Buffer mode is never missing data, even if there IS no data.
+				container_fragment_.reset(new ContainerFragmentLoader(*bundle_fragment_));
+				container_fragment_->set_missing_data(false);  // Buffer mode is never missing data, even if there IS no data.
+			}
 
 			// Eww, we have to copy
 			artdaq::Fragment frag(fragment);
 
-			cfl.addFragment(frag);
+			container_fragment_->addFragment(frag, true);
 		}
-		return send_bundle_fragment_(true, send_timeout_usec);
+		return send_bundle_fragment_(send_timeout_usec);
 	}
 
 	/**
@@ -141,23 +142,25 @@ public:
 			std::lock_guard<std::mutex> lk(fragment_mutex_);
 			if (bundle_fragment_ == nullptr)
 			{
-				bundle_fragment_.reset(new artdaq::Fragment(fragment.sequenceID(), fragment.fragmentID()));
+				bundle_fragment_.reset(new artdaq::Fragment(fragment.sequenceID() + 1, fragment.fragmentID()));
 				bundle_fragment_->setTimestamp(fragment.timestamp());
 				bundle_fragment_->reserve(max_hold_size_bytes_ / sizeof(artdaq::RawDataType));
+				send_fragment_started_ = std::chrono::steady_clock::now();
+
+				container_fragment_.reset(new ContainerFragmentLoader(*bundle_fragment_));
+				container_fragment_->set_missing_data(false);  // Buffer mode is never missing data, even if there IS no data.
 			}
 
-			ContainerFragmentLoader cfl(*bundle_fragment_);
-			cfl.set_missing_data(false);  // Buffer mode is never missing data, even if there IS no data.
-			cfl.addFragment(fragment);
+			container_fragment_->addFragment(fragment, true);
 		}
-		return send_bundle_fragment_(true, 0);
+		return send_bundle_fragment_(0);
 	}
 
 	/**
 	 * \brief Determine whether the TransferInterface plugin is able to send/receive data
 	 * \return True if the TransferInterface plugin is currently able to send/receive data
 	 */
-	bool isRunning() override { return theTransfer_->isRunning(); }
+	bool isRunning() override { return running_; }
 
 	/**
 	 * \brief Flush any in-flight data. This should be used by the receiver after the receive loop has
@@ -176,6 +179,7 @@ private:
 	size_t max_hold_size_bytes_;
 	int max_hold_time_us_;
 	FragmentPtr bundle_fragment_{nullptr};
+	std::unique_ptr<ContainerFragmentLoader> container_fragment_{nullptr};
 	size_t current_block_index_{0};
 	int current_rank_ = 0;
 
@@ -183,11 +187,12 @@ private:
 	std::unique_ptr<boost::thread> send_timeout_thread_;
 	std::atomic<bool> send_timeout_thread_running_{false};
 	std::atomic<bool> last_send_call_reliable_{true};
+	std::atomic<bool> running_{true};
 	std::mutex fragment_mutex_;
 
 	void start_timeout_thread_();
 	void send_timeout_thread_proc_();
-	CopyStatus send_bundle_fragment_(bool timeCheck, size_t send_timeout_usec);
+	CopyStatus send_bundle_fragment_(size_t send_timeout_usec, bool forceSend = false);
 	void receive_bundle_fragment_(size_t receiveTimeout);
 };
 }  // namespace artdaq
@@ -209,12 +214,16 @@ artdaq::BundleTransfer::BundleTransfer(const fhicl::ParameterSet& pset, Role rol
 
 artdaq::BundleTransfer::~BundleTransfer()
 {
-	send_timeout_thread_running_ = false;
-	if (send_timeout_thread_ && send_timeout_thread_->joinable())
+	if (role_ == Role::kSend)
 	{
-		send_timeout_thread_->join();
+		send_timeout_thread_running_ = false;
+		if (send_timeout_thread_ && send_timeout_thread_->joinable())
+		{
+			send_timeout_thread_->join();
+		}
+		send_bundle_fragment_(1000000, true);
 	}
-	send_bundle_fragment_(false, 1000000);
+	running_ = false;
 }
 
 void artdaq::BundleTransfer::start_timeout_thread_()
@@ -247,14 +256,14 @@ void artdaq::BundleTransfer::send_timeout_thread_proc_()
 {
 	while (send_timeout_thread_running_)
 	{
-		if (send_bundle_fragment_(true, 1000000) != CopyStatus::kSuccess)
+		if (send_bundle_fragment_(1000000) != CopyStatus::kSuccess)
 		{
 			usleep(5000);
 		}
 	}
 }
 
-artdaq::TransferInterface::CopyStatus artdaq::BundleTransfer::send_bundle_fragment_(bool timeCheck, size_t send_timeout_usec)
+artdaq::TransferInterface::CopyStatus artdaq::BundleTransfer::send_bundle_fragment_(size_t send_timeout_usec, bool forceSend)
 {
 	CopyStatus sts = CopyStatus::kErrorNotRequiringException;
 	std::lock_guard<std::mutex> lk(fragment_mutex_);
@@ -264,8 +273,8 @@ artdaq::TransferInterface::CopyStatus artdaq::BundleTransfer::send_bundle_fragme
 		return sts;
 	}
 
-	bool send_fragment = false;
-	if (!timeCheck || std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - send_fragment_started_).count() >= max_hold_time_us_)
+	bool send_fragment = forceSend;
+	if (std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - send_fragment_started_).count() >= max_hold_time_us_)
 	{
 		send_fragment = true;
 	}
@@ -300,7 +309,10 @@ void artdaq::BundleTransfer::receive_bundle_fragment_(size_t receiveTimeout)
 {
 	std::lock_guard<std::mutex> lk(fragment_mutex_);
 	bundle_fragment_.reset(new artdaq::Fragment(1));
+
+	TLOG(TLVL_DEBUG) << "Going to receive next bundle fragment";
 	current_rank_ = theTransfer_->receiveFragment(*bundle_fragment_, receiveTimeout);
+	TLOG(TLVL_DEBUG) << "Done with receiveFragment, current_rank_ = " << current_rank_;
 
 	if (current_rank_ < RECV_SUCCESS)
 	{
