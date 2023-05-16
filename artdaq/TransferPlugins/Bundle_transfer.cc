@@ -47,7 +47,7 @@ public:
 		}
 
 		ContainerFragment cf(*bundle_fragment_);
-		TLOG(TLVL_INFO) << "Retrieving Fragment " << (current_block_index_ + 1) << " of " << cf.block_count();
+		TLOG(TLVL_DEBUG + 32) << "Retrieving Fragment " << (current_block_index_ + 1) << " of " << cf.block_count();
 		fragment.resizeBytes(cf.fragSize(current_block_index_) - sizeof(detail::RawFragmentHeader));
 		memcpy(fragment.headerAddress(), static_cast<const uint8_t*>(cf.dataBegin()) + cf.fragmentIndex(current_block_index_), cf.fragSize(current_block_index_));
 		current_block_index_++;
@@ -72,7 +72,7 @@ public:
 			if (current_rank_ < RECV_SUCCESS) return current_rank_;
 		}
 		ContainerFragment cf(*bundle_fragment_);
-		TLOG(TLVL_INFO) << "Retrieving Fragment Header " << (current_block_index_ + 1) << " of " << cf.block_count();
+		TLOG(TLVL_DEBUG + 32) << "Retrieving Fragment Header " << (current_block_index_ + 1) << " of " << cf.block_count();
 		memcpy(&header, static_cast<const uint8_t*>(cf.dataBegin()) + cf.fragmentIndex(current_block_index_), sizeof(detail::RawFragmentHeader));
 		return current_rank_;
 	}
@@ -90,7 +90,7 @@ public:
 			return RECV_TIMEOUT;
 		}
 		ContainerFragment cf(*bundle_fragment_);
-		TLOG(TLVL_INFO) << "Retrieving Fragment Data " << (current_block_index_ + 1) << " of " << cf.block_count();
+		TLOG(TLVL_DEBUG + 32) << "Retrieving Fragment Data " << (current_block_index_ + 1) << " of " << cf.block_count();
 		memcpy(destination, static_cast<const uint8_t*>(cf.dataBegin()) + cf.fragmentIndex(current_block_index_) + sizeof(detail::RawFragmentHeader), cf.fragSize(current_block_index_) - sizeof(detail::RawFragmentHeader));
 		current_block_index_++;
 		if (current_block_index_ >= cf.block_count())  // Index vs. count!
@@ -310,9 +310,9 @@ void artdaq::BundleTransfer::receive_bundle_fragment_(size_t receiveTimeout)
 	std::lock_guard<std::mutex> lk(fragment_mutex_);
 	bundle_fragment_.reset(new artdaq::Fragment(1));
 
-	TLOG(TLVL_DEBUG) << "Going to receive next bundle fragment";
+	TLOG(TLVL_DEBUG + 34) << "Going to receive next bundle fragment";
 	current_rank_ = theTransfer_->receiveFragment(*bundle_fragment_, receiveTimeout);
-	TLOG(TLVL_DEBUG) << "Done with receiveFragment, current_rank_ = " << current_rank_;
+	TLOG(TLVL_DEBUG + 34) << "Done with receiveFragment, current_rank_ = " << current_rank_;
 
 	if (current_rank_ < RECV_SUCCESS)
 	{
