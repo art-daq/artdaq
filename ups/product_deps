@@ -21,6 +21,7 @@ old_style_config_vars
 #
 product					version		qual	flags			<table_format=2>
 art_root_io				v1_12_03	s123
+art_root_io				v1_11_03	s120a
 art_root_io				v1_11_02	s120
 art_root_io				v1_08_03	s112
 artdaq_core             v3_09_10
@@ -47,10 +48,19 @@ e20:s123:prof	e20:prof	e20:s123:prof	e20:s123:prof		e20:prof	e20:s123:prof		e20:
 e26:s123:debug	e26:debug	e26:s123:debug	e26:s123:debug		e26:debug	e26:s123:debug		e26:s123:debug		e26:s123:debug			e26:debug	-nq-
 e26:s123:prof	e26:prof	e26:s123:prof	e26:s123:prof		e26:prof	e26:s123:prof		e26:s123:prof		e26:s123:prof			e26:prof	-nq-
 
+c7:s120a:debug	c7:debug	c7:s120a:debug	c7:s120a:debug		c7:debug	c7:s120a:debug		c7:s120a:debug		c7:s120a:debug			c7:debug	-nq-
+c7:s120a:prof	c7:prof		c7:s120a:prof	c7:s120a:prof		c7:prof		c7:s120a:prof		c7:s120a:prof		c7:s120a:prof			c7:prof		-nq-
+c14:s120a:debug	c14:debug	c14:s120a:debug	c14:s120a:debug		c14:debug	c14:s120a:debug		c14:s120a:debug		c14:s120a:debug			c14:debug	-nq-
+c14:s120a:prof	c14:prof	c14:s120a:prof	c14:s120a:prof		c14:prof	c14:s120a:prof		c14:s120a:prof		c14:s120a:prof			c14:prof	-nq-
+e20:s120a:debug	e20:debug	e20:s120a:debug	e20:s120a:debug		e20:debug	e20:s120a:debug		e20:s120a:debug		e20:s120a:debug			e20:debug	-nq-
+e20:s120a:prof	e20:prof	e20:s120a:prof	e20:s120a:prof		e20:prof	e20:s120a:prof		e20:s120a:prof		e20:s120a:prof			e20:prof	-nq-
+e26:s120a:debug	e26:debug	e26:s120a:debug	e26:s120a:debug		e26:debug	e26:s120a:debug		e26:s120a:debug		e26:s120a:debug			e26:debug	-nq-
+e26:s120a:prof	e26:prof	e26:s120a:prof	e26:s120a:prof		e26:prof	e26:s120a:prof		e26:s120a:prof		e26:s120a:prof			e26:prof	-nq-
+
 c7:s120:debug	c7:debug	c7:s120:debug	c7:s120:debug		c7:debug	c7:s120:debug		c7:s120:debug		c7:s120:debug			c7:debug	-nq-
 c7:s120:prof	c7:prof		c7:s120:prof	c7:s120:prof		c7:prof		c7:s120:prof		c7:s120:prof		c7:s120:prof			c7:prof		-nq-
-#c14:s120:debug	c14:debug	c14:s120:debug	c14:s120:debug		c14:debug	c14:s120:debug		c14:s120:debug		c14:s120:debug			c14:debug	-nq-
-#c14:s120:prof	c14:prof	c14:s120:prof	c14:s120:prof		c14:prof	c14:s120:prof		c14:s120:prof		c14:s120:prof			c14:prof	-nq-
+c14:s120:debug	c14:debug	c14:s120:debug	c14:s120:debug		c14:debug	c14:s120:debug		c14:s120:debug		c14:s120:debug			c14:debug	-nq-
+c14:s120:prof	c14:prof	c14:s120:prof	c14:s120:prof		c14:prof	c14:s120:prof		c14:s120:prof		c14:s120:prof			c14:prof	-nq-
 e20:s120:debug	e20:debug	e20:s120:debug	e20:s120:debug		e20:debug	e20:s120:debug		e20:s120:debug		e20:s120:debug			e20:debug	-nq-
 e20:s120:prof	e20:prof	e20:s120:prof	e20:s120:prof		e20:prof	e20:s120:prof		e20:s120:prof		e20:s120:prof			e20:prof	-nq-
 e26:s120:debug	e26:debug	e26:s120:debug	e26:s120:debug		e26:debug	e26:s120:debug		e26:s120:debug		e26:s120:debug			e26:debug	-nq-
