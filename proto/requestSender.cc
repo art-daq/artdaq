@@ -105,6 +105,15 @@ try
 		ts += ts_scale;
 	}
 
+
+	if(request_buffer) {
+		auto recvd =receiver->GetReceivedMessageCount();
+		if(static_cast<int>(recvd) != num_requests) {
+			TLOG(TLVL_ERROR) << "Receiver reports reception of " << recvd << " messages, when expected " << num_requests << "!";
+			rc = -1;
+		}
+   	}
+
 	return rc;
 }
 catch (...)

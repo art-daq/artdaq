@@ -33,7 +33,7 @@
 
 artdaq::RequestReceiver::RequestReceiver()
     : request_stop_requested_(false)
-    , request_received_(false)
+    , requests_received_(0)
     , should_stop_(false)
     , request_addr_("227.128.12.26")
     , receive_requests_(false)
@@ -41,7 +41,7 @@ artdaq::RequestReceiver::RequestReceiver()
 
 artdaq::RequestReceiver::RequestReceiver(const fhicl::ParameterSet& ps, std::shared_ptr<RequestBuffer> output_buffer)
     : request_stop_requested_(false)
-    , request_received_(false)
+    , requests_received_(0)
     , should_stop_(false)
     , request_port_(ps.get<int>("request_port", 3001))
     , request_addr_(ps.get<std::string>("request_address", "227.128.12.26"))
@@ -122,7 +122,7 @@ void artdaq::RequestReceiver::stopRequestReception(bool force)
 {
 	std::unique_lock<std::mutex> lk(state_mutex_);
 	if (!receive_requests_) return;
-	if (!request_received_ && !force)
+	if (requests_received_ == 0 && !force)
 	{
 		TLOG(TLVL_ERROR) << "Stop request received by RequestReceiver, but no requests have ever been received." << std::endl
 		                 << "Check that UDP port " << request_port_ << " is open in the firewall config.";
@@ -159,7 +159,8 @@ void artdaq::RequestReceiver::stopRequestReception(bool force)
 		close(request_socket_);
 		request_socket_ = -1;
 	}
-	request_received_ = false;
+	TLOG(TLVL_INFO) << "RequestReceiver stopped, received " << requests_received_ << " request messages";
+	requests_received_ = 0;
 }
 
 void artdaq::RequestReceiver::startRequestReception()
@@ -252,8 +253,6 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 			continue;
 		}
 
-		request_received_ = true;
-
 		// 19-Dec-2018, KAB: added check on current run number
 		if (run_number_ != 0 && hdr_buffer->run_number != run_number_)
 		{
@@ -262,6 +261,8 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 			                   << ", ignoring this request.";
 			continue;
 		}
+
+		requests_received_++;
 
 		if (hdr_buffer->mode == artdaq::detail::RequestMessageMode::EndOfRun)
 		{

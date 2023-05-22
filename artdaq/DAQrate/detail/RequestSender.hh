@@ -143,6 +143,7 @@ private:
 	size_t min_request_interval_ms_;
 
 	std::atomic<int> request_sending_;
+	std::atomic<size_t> requests_sent_;
 	uint32_t run_number_;
 
 private:

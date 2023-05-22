@@ -94,6 +94,8 @@ public:
 	/// <param name="run">The current run number</param>
 	void SetRunNumber(uint32_t run) { run_number_ = run; }
 
+
+	size_t GetReceivedMessageCount() { return requests_received_.load(); }
 private:
 	RequestReceiver(RequestReceiver const&) = delete;
 	RequestReceiver(RequestReceiver&&) = delete;
@@ -102,7 +104,7 @@ private:
 
 	bool running_{false};
 	std::atomic<bool> request_stop_requested_;
-	std::atomic<bool> request_received_;
+	std::atomic<size_t> requests_received_;
 	std::atomic<bool> should_stop_;
 
 	int request_port_{3001};
