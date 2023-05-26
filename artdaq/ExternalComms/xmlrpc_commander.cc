@@ -719,9 +719,9 @@ void cmd_::execute(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const 
 {
 	TLOG(TLVL_DEBUG + 33) << "Received Request to " << _help << ", attempting to get lock";
 	std::unique_lock<std::timed_mutex> lk(_c.mutex_, std::defer_lock);
-	lk.try_lock_for(std::chrono::milliseconds(250));
+	auto ret = lk.try_lock_for(std::chrono::milliseconds(250));
 
-	if (lk.owns_lock())
+	if (ret && lk.owns_lock())
 	{
 		try
 		{

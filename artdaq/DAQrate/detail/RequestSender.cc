@@ -215,7 +215,7 @@ void RequestSender::SendRequest(bool endOfRunOnly)
 	}
 	last_request_send_time_ = std::chrono::steady_clock::now();
 	request_sending_++;
-	boost::thread request([=] { do_send_request_(); });
+	boost::thread request([this] { do_send_request_(); });
 	request.detach();
 }
 

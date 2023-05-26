@@ -305,7 +305,7 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 	{
 		for (auto it = dropped_data_.begin(); it != dropped_data_.end(); ++it)
 		{
-			if (it->first == frag)
+			if (frag.operator==(it->first)) // TODO, ELF 5/26/2023: Workaround until artdaq_core can be fixed for C++20
 			{
 				dropped_data_.erase(it);
 				return;
@@ -594,7 +594,7 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 			current_art_config_file_ = std::make_shared<art_config_file>(pset);
 	}
 	std::shared_ptr<std::atomic<pid_t>> pid(new std::atomic<pid_t>(-1));
-	boost::thread thread([=] { RunArt(current_art_config_file_, process_index, pid); });
+	boost::thread thread([=,this] { RunArt(current_art_config_file_, process_index, pid); });
 	thread.detach();
 
 	auto currentCount = GetAttachedCount() - initialCount;
