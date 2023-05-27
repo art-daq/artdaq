@@ -87,6 +87,7 @@ private:
 	std::shared_ptr<artdaq::detail::RawEventHeader> evtHeader_;
 	size_t read_timeout_;
 	bool resume_after_timeout_;
+	bool printed_exit_message_{false};
 };
 
 DECLARE_ART_SERVICE_INTERFACE_IMPL(ArtdaqSharedMemoryService, ArtdaqSharedMemoryServiceInterface, LEGACY)
@@ -156,6 +157,10 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 	TLOG(TLVL_DEBUG + 33) << "ReceiveEvent BEGIN";
 	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> recvd_fragments;
 
+	if(printed_exit_message_) {
+		return recvd_fragments;
+	}
+
 	while (recvd_fragments.empty())
 	{
 		TLOG(TLVL_DEBUG + 33) << "ReceiveEvent: Waiting for available buffer";
@@ -178,7 +183,11 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 		}
 		if (incoming_events_->IsEndOfData())
 		{
-			TLOG(TLVL_INFO) << "End of Data signal received, exiting";
+			if (!printed_exit_message_)
+			{
+				TLOG(TLVL_INFO) << "End of Data signal received, exiting";
+				printed_exit_message_ = true;
+			}
 			return recvd_fragments;
 		}
 

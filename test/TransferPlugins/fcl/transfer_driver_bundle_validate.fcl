@@ -3,9 +3,9 @@ num_receivers: 1
 sends_per_sender: 1000
 buffer_count: 10
 fragment_size: 0x1000
-transfer_plugin_type: TCPSocket
+transfer_plugin_type: Bundle
 validate_data_mode: true
-partition_number: 16
+partition_number: 8
 
 hostmap: [
 {rank: 0 host: localhost portOffset: 6300 },

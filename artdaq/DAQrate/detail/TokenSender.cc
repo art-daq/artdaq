@@ -120,7 +120,7 @@ void TokenSender::SendRoutingToken(int nSlots, int run_number, int rank)
 	{
 		return;
 	}
-	boost::thread token([=] { send_routing_token_(nSlots, run_number, rank); });
+	boost::thread token([this,nSlots,run_number,rank] { send_routing_token_(nSlots, run_number, rank); });
 	token.detach();
 	usleep(0);  // Give up time slice
 }

@@ -1,11 +1,10 @@
 num_senders: 1
 num_receivers: 1
-sends_per_sender: 1000
+sends_per_sender: 1000000
 buffer_count: 10
-fragment_size: 0x100000
-transfer_plugin_type: TCPSocket
-partition_number: 14
-nonblocking_sends: true
+fragment_size: 5120
+transfer_plugin_type: Bundle
+partition_number: 2
 
 hostmap: [
 {rank: 0 host: localhost portOffset: 5300 },
@@ -15,5 +14,3 @@ hostmap: [
 {rank: 4 host: localhost portOffset: 5340 },
 {rank: 5 host: localhost portOffset: 5350 }
 ]
-
-

@@ -24,7 +24,7 @@ process_name: TEST
 
 source:
 {
-  module_type: RawInput
+  module_type: ArtdaqInput
   waiting_time: 25.0
 }
 

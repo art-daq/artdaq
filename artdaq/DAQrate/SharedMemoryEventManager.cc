@@ -305,7 +305,7 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 	{
 		for (auto it = dropped_data_.begin(); it != dropped_data_.end(); ++it)
 		{
-			if (it->first == frag)
+			if (frag.operator==(it->first))  // TODO, ELF 5/26/2023: Workaround until artdaq_core can be fixed for C++20
 			{
 				dropped_data_.erase(it);
 				return;
@@ -432,13 +432,13 @@ void artdaq::SharedMemoryEventManager::UpdateFragmentHeader(int buffer, artdaq::
 	return;
 }
 
-void artdaq::SharedMemoryEventManager::RunArt(const std::shared_ptr<art_config_file>& config_file, size_t process_index, const std::shared_ptr<std::atomic<pid_t>>& pid_out)
+void artdaq::SharedMemoryEventManager::RunArt(size_t process_index, const std::shared_ptr<std::atomic<pid_t>>& pid_out)
 {
 	do
 	{
 		auto start_time = std::chrono::steady_clock::now();
 		send_init_frags_();
-		TLOG(TLVL_INFO) << "Starting art process with config file " << config_file->getFileName();
+		TLOG(TLVL_INFO) << "Starting art process with config file " << current_art_config_file_->getFileName();
 
 		pid_t pid = 0;
 
@@ -477,7 +477,7 @@ void artdaq::SharedMemoryEventManager::RunArt(const std::shared_ptr<art_config_f
 				}
 
 				TLOG(TLVL_DEBUG + 33) << "Parsing art command line";
-				auto args = parse_art_command_line_(config_file, process_index);
+				auto args = parse_art_command_line_(current_art_config_file_, process_index);
 
 				TLOG(TLVL_DEBUG + 33) << "Calling execvp with application name " << args[0];
 				execvp(args[0], &args[0]);
@@ -495,8 +495,8 @@ void artdaq::SharedMemoryEventManager::RunArt(const std::shared_ptr<art_config_f
 		{
 			// Using cin/cout here to ensure console is active (artdaqDriver)
 			std::cout << "Please run the following command in a separate terminal:" << std::endl
-			          << "art -c " << config_file->getFileName() << std::endl
-			          << "Then, in a third terminal, execute: \"ps aux|grep [a]rt -c " << config_file->getFileName() << "\" and note the PID of the art process." << std::endl
+			          << "art -c " << current_art_config_file_->getFileName() << std::endl
+			          << "Then, in a third terminal, execute: \"ps aux|grep [a]rt -c " << current_art_config_file_->getFileName() << "\" and note the PID of the art process." << std::endl
 			          << "Finally, return to this window and enter the pid: " << std::endl;
 			std::cin >> pid;
 		}
@@ -594,7 +594,7 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 			current_art_config_file_ = std::make_shared<art_config_file>(pset);
 	}
 	std::shared_ptr<std::atomic<pid_t>> pid(new std::atomic<pid_t>(-1));
-	boost::thread thread([=] { RunArt(current_art_config_file_, process_index, pid); });
+	boost::thread thread([this, process_index, pid] { RunArt( process_index, pid); });
 	thread.detach();
 
 	auto currentCount = GetAttachedCount() - initialCount;
