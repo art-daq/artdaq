@@ -133,6 +133,8 @@ public:
 	 * \param message Message to write
 	 */
 	void write_trace(int level, std::string const& name, std::string const& message);
+
+	bool initialized_;
 };
 
 #endif  // ARTDAQ_TOOLS_ARTDAQ_H
