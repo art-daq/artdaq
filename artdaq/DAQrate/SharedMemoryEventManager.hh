@@ -271,7 +271,7 @@ public:
 	/**
 	 * \brief Run an art instance, recording the return codes and restarting it until the end flag is raised
 	 */
-	void RunArt(const std::shared_ptr<art_config_file>& config_file, size_t process_index, const std::shared_ptr<std::atomic<pid_t>>& pid_out);
+	void RunArt(size_t process_index, const std::shared_ptr<std::atomic<pid_t>>& pid_out);
 	/**
 	 * \brief Start all the art processes
 	 */
@@ -380,7 +380,7 @@ public:
 	{
 		for (auto it = dropped_data_.begin(); it != dropped_data_.end(); ++it)
 		{
-			if (it->first == frag)
+			if (frag.operator==(it->first)) // TODO, ELF 5/26/2023: Workaround until artdaq_core can be fixed for C++20
 			{
 				return it->second->dataBegin();
 			}
