@@ -118,7 +118,7 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 		}
 
 		// ELF, Jul 21, 2020: This can take a long time, and we don't want to block the XMLRPC thread
-		boost::thread thread([=, this] { start_art_process_(label); });
+		boost::thread thread([this,label] { start_art_process_(label); });
 		thread.detach();
 	}
 	catch (const cet::exception& e)
@@ -179,7 +179,7 @@ std::string artdaq::DispatcherCore::unregister_monitor(std::string const& label)
 		}
 
 		// ELF, Jul 21, 2020: This can take a long time, and we don't want to block the XMLRPC thread
-		boost::thread thread([=,this] { stop_art_process_(label); });
+		boost::thread thread([this,label] { stop_art_process_(label); });
 		thread.detach();
 	}
 	catch (...)
