@@ -54,4 +54,20 @@ foreach(testfile ${transfer_tests})
 	)
 endforeach()
 
+else()
+
+	cet_test(transfer_driver_tcp_t HANDBUILT
+	TEST_EXEC runTransferTest.sh
+	TEST_ARGS transfer_driver_tcp.fcl 2
+	DATAFILES fcl/transfer_driver_tcp.fcl
+	#TEST_PROPERTIES RUN_SERIAL 1
+	)
+	
+	cet_test(transfer_driver_bundle_t HANDBUILT
+	TEST_EXEC runTransferTest.sh
+	TEST_ARGS transfer_driver_bundle.fcl 2
+	DATAFILES fcl/transfer_driver_bundle.fcl
+	#TEST_PROPERTIES RUN_SERIAL 1
+	)
+
 endif()
