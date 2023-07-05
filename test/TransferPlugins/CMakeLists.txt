@@ -21,7 +21,8 @@ cet_make_exec(NAME broken_transfer_driver
 
 cet_script(ALWAYS_COPY runTransferTest.sh runBrokenTransferTest.sh)
 
-if(${RUN_BROKEN_TRANSFER_TESTS})
+if(NOT ${CMAKE_INSTALL_PREFIX} MATCHES /scratch/workspace/artdaq-release-build)
+
 file(GLOB broken_tests "fcl/broken_transfer_driver_*.fcl")
 foreach(testfile ${broken_tests})
 	get_filename_component(conffile ${testfile} NAME)
@@ -32,7 +33,6 @@ foreach(testfile ${broken_tests})
 	DATAFILES ${testfile}
 	)
 endforeach()
-endif()
 
 file(GLOB transfer_tests "fcl/transfer_driver_*.fcl")
 foreach(testfile ${transfer_tests})
@@ -53,3 +53,21 @@ foreach(testfile ${transfer_tests})
 	#TEST_PROPERTIES RUN_SERIAL 1
 	)
 endforeach()
+
+else()
+
+	cet_test(transfer_driver_tcp_t HANDBUILT
+	TEST_EXEC runTransferTest.sh
+	TEST_ARGS transfer_driver_tcp.fcl 2
+	DATAFILES fcl/transfer_driver_tcp.fcl
+	#TEST_PROPERTIES RUN_SERIAL 1
+	)
+	
+	cet_test(transfer_driver_bundle_t HANDBUILT
+	TEST_EXEC runTransferTest.sh
+	TEST_ARGS transfer_driver_bundle.fcl 2
+	DATAFILES fcl/transfer_driver_bundle.fcl
+	#TEST_PROPERTIES RUN_SERIAL 1
+	)
+
+endif()
