@@ -94,8 +94,8 @@ public:
 	/// <param name="run">The current run number</param>
 	void SetRunNumber(uint32_t run) { run_number_ = run; }
 
-
 	size_t GetReceivedMessageCount() { return requests_received_.load(); }
+
 private:
 	RequestReceiver(RequestReceiver const&) = delete;
 	RequestReceiver(RequestReceiver&&) = delete;
