@@ -810,7 +810,8 @@ void cmd_::execute(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const 
 		/** Command class Constructor                                                                                                                                     \
 		 * \param c xmlrpc_commander to send parsed command to                                                                                                            \
 		 */                                                                                                                                                               \
-		explicit NAME##_(xmlrpc_commander& c) : cmd_(c, "s:sII", DESCRIPTION) {}                                                                                          \
+		explicit NAME##_(xmlrpc_commander& c) : cmd_(c, "s:sII", DESCRIPTION)                                                                                             \
+		{}                                                                                                                                                                \
                                                                                                                                                                           \
 		/** Default timeout for command */                                                                                                                                \
 		static const uint64_t defaultTimeout = 45;                                                                                                                        \
@@ -900,7 +901,8 @@ private:
 	public:                                                                                  \
 		/** NAME ## _ Constructor                                                            \
 		    \param c xmlrpc_commander to send transition commands to */                      \
-		NAME##_(xmlrpc_commander& c) : cmd_(c, "s:II", DESCRIPTION) {}                       \
+		NAME##_(xmlrpc_commander& c) : cmd_(c, "s:II", DESCRIPTION)                          \
+		{}                                                                                   \
                                                                                              \
 		/** Default timeout for command */                                                   \
 		static const uint64_t defaultTimeout = TIMEOUT;                                      \
