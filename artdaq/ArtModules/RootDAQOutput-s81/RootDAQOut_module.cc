@@ -736,7 +736,7 @@ RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& con
 		targetLocation = modifiedPattern.find(searchString);
 		TLOG(TLVL_DEBUG + 33) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
 	}
-	
+
 	// if the "Rank" keyword was specified in the filename pattern,
 	// perform the substitution
 	searchString = "${app_name}";

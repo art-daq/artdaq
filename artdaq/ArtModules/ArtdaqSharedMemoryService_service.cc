@@ -157,7 +157,8 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 	TLOG(TLVL_DEBUG + 33) << "ReceiveEvent BEGIN";
 	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> recvd_fragments;
 
-	if(printed_exit_message_) {
+	if (printed_exit_message_)
+	{
 		return recvd_fragments;
 	}
 

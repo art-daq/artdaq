@@ -594,7 +594,7 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 			current_art_config_file_ = std::make_shared<art_config_file>(pset);
 	}
 	std::shared_ptr<std::atomic<pid_t>> pid(new std::atomic<pid_t>(-1));
-	boost::thread thread([this, process_index, pid] { RunArt( process_index, pid); });
+	boost::thread thread([this, process_index, pid] { RunArt(process_index, pid); });
 	thread.detach();
 
 	auto currentCount = GetAttachedCount() - initialCount;

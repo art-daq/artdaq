@@ -380,7 +380,7 @@ public:
 	{
 		for (auto it = dropped_data_.begin(); it != dropped_data_.end(); ++it)
 		{
-			if (frag.operator==(it->first)) // TODO, ELF 5/26/2023: Workaround until artdaq_core can be fixed for C++20
+			if (frag.operator==(it->first))  // TODO, ELF 5/26/2023: Workaround until artdaq_core can be fixed for C++20
 			{
 				return it->second->dataBegin();
 			}

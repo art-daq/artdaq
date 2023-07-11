@@ -16,6 +16,7 @@ libdir      fq_dir      lib
 bindir      fq_dir      bin
 fcldir      product_dir fcl
 
+define_pythonpath
 old_style_config_vars
 
 #
