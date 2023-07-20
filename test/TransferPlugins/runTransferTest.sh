@@ -22,7 +22,7 @@ fi
 log=`basename $fcl|cut -f1 -d.`
 
 # No concurrency of transfer_driver tests!
-exec 200>/tmp/transfer_driver_`basename $fcl`.lockfile
+exec 200>/tmp/transfer_driver.lockfile
 flock -e 200
 
 for ii in `seq $nprocs`;do

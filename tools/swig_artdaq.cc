@@ -9,7 +9,7 @@ swig_artdaq::swig_artdaq(std::string const& config_string)
 	fhicl::ParameterSet config_ps = LoadParameterSet(config_string);
 	app_name = config_ps.get<std::string>("application_name", "external");
 	std::string mf_app_name = artdaq::setMsgFacAppName(app_name, config_ps.get<int>("id", 0));
-	artdaq::configureMessageFacility(mf_app_name.c_str());
+	artdaq::configureMessageFacility(mf_app_name.c_str(), config_ps.get<bool>("debug_logging", false), config_ps.get<bool>("log_to_console", true));
 	metricMan->initialize(config_ps.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet()), app_name);
 	initialized_ = true;
 }
