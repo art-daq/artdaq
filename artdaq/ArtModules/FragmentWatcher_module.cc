@@ -111,6 +111,11 @@ artdaq::FragmentWatcher::FragmentWatcher(fhicl::ParameterSet const& pset)
     , missing_fragments_by_fragmentID_()
     , empty_fragments_by_fragmentID_()
 {
+	auto ids = pset.get<std::vector<int>>("fragment_ids", {});
+	for (auto& id : ids)
+	{
+		expected_fragmentID_list_.insert(id);
+	}
 }
 
 artdaq::FragmentWatcher::~FragmentWatcher()
