@@ -327,8 +327,6 @@ OutputItem::OutputItem(BranchDescription const& bd)
     : branchDescription{bd}, product{nullptr}
 {}
 
-RootDAQOutFile::~RootDAQOutFile() = default;
-
 RootDAQOutFile::RootDAQOutFile(OutputModule* om,
                                string const& fileName,
                                ClosingCriteria const& fileSwitchCriteria,
@@ -345,8 +343,8 @@ RootDAQOutFile::RootDAQOutFile(OutputModule* om,
     , file_{fileName}
     , fileSwitchCriteria_{fileSwitchCriteria}
     , compressionLevel_{compressionLevel}
-    , freeOercent{freePercent}
-    , freeMB{freeMB}
+    , freePercent_{freePercent}
+    , freeMB_{freeMB}
     , saveMemoryObjectThreshold_{saveMemoryObjectThreshold}
     , treeMaxVirtualSize_{treeMaxVirtualSize}
     , splitLevel_{splitLevel}
@@ -686,7 +684,7 @@ void RootDAQOutFile::writeFileIndex()
 		findexElemPtr = &entry;
 		b->Fill();
 	}
-	b->SetAddress(nullptr);
+	b->SetAddress(0);
 }
 
 void RootDAQOutFile::writeProcessConfigurationRegistry()
