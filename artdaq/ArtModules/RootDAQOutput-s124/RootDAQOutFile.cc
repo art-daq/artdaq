@@ -1,4 +1,4 @@
-#include "artdaq/ArtModules/RootDAQOutput-s81/RootDAQOutFile.h"
+#include "artdaq/ArtModules/RootDAQOutput-s124/RootDAQOutFile.h"
 #include "TRACE/tracemf.h"
 // vim: set sw=2 expandtab :
 
@@ -345,8 +345,8 @@ RootDAQOutFile::RootDAQOutFile(OutputModule* om,
     , file_{fileName}
     , fileSwitchCriteria_{fileSwitchCriteria}
     , compressionLevel_{compressionLevel}
-    , freeOercent {freePercent}
-    , freeMB {freeMB}
+    , freeOercent{freePercent}
+    , freeMB{freeMB}
     , saveMemoryObjectThreshold_{saveMemoryObjectThreshold}
     , treeMaxVirtualSize_{treeMaxVirtualSize}
     , splitLevel_{splitLevel}
@@ -363,27 +363,6 @@ RootDAQOutFile::RootDAQOutFile(OutputModule* om,
 	    filePtr_.get(), rootNames::fileIndexTreeName(), 0);
 	parentageTree_ = RootOutputTree::makeTTree(
 	    filePtr_.get(), rootNames::parentageTreeName(), 0);
-#if ART_HEX_VERSION < 0x31100
-	// Create the tree that will carry (event) History objects.
-	eventHistoryTree_ = art::RootOutputTree::makeTTree(
-	    filePtr_.get(), art::rootNames::eventHistoryTreeName(), splitLevel);
-	if (eventHistoryTree_ == nullptr)
-	{
-		throw art::Exception(art::errors::FatalRootError)  // NOLINT(cert-err60-cpp)
-		    << "Failed to create the tree for History objects\n";
-	}
-	pHistory_ = new art::History;
-	if (eventHistoryTree_->Branch(art::rootNames::eventHistoryBranchName().c_str(),
-	                              &pHistory_,
-	                              basketSize,
-	                              0) == nullptr)
-	{
-		throw art::Exception(art::errors::FatalRootError)  // NOLINT(cert-err60-cpp)
-		    << "Failed to create a branch for History in the output file\n";
-	}
-	delete pHistory_;
-	pHistory_ = nullptr;
-#endif
 	treePointers_[0] =
 	    make_unique<RootOutputTree>(filePtr_.get(),
 	                                InEvent,
@@ -563,9 +542,6 @@ void RootDAQOutFile::beginInputFile(RootFileBlock const* rfb,
 			}
 		}
 	}
-#if ART_HEX_VERSION < 0x31200
-	treePointers_[InEvent]->beginInputFile(shouldFastClone);
-#endif
 
 	if (not fastCloningEnabled)
 	{
@@ -611,20 +587,7 @@ void RootDAQOutFile::writeOne(EventPrincipal const& e)
 	// want to do that first before writing anything to the file about
 	// this event.
 	fillBranches<InEvent>(e, pEventProductProvenanceVector_);
-	// History branch.
-#if ART_HEX_VERSION < 0x31100
-	art::History historyForOutput{e.history()};
-	historyForOutput.addEventSelectionEntry(om_->selectorConfig());
-	pHistory_ = &historyForOutput;
-	int sz = eventHistoryTree_->Fill();
-	if (sz <= 0)
-	{
-		throw art::Exception(art::errors::FatalRootError)  // NOLINT(cert-err60-cpp)
-		    << "Failed to fill the History tree for event: " << e.eventID()
-		    << "\nTTree::Fill() returned " << sz << " bytes written." << std::endl;
-	}
-	pHistory_ = &e.history();
-#endif
+
 	// Add the dataType to the job report if it hasn't already been done
 	if (!dataTypeReported_)
 	{
@@ -725,14 +688,6 @@ void RootDAQOutFile::writeFileIndex()
 	}
 	b->SetAddress(nullptr);
 }
-
-#if ART_HEX_VERSION < 0x31100
-void RootDAQOutFile::writeEventHistory()
-{
-	std::lock_guard sentry{mutex_};
-	art::RootOutputTree::writeTTree(eventHistoryTree_);
-}
-#endif
 
 void RootDAQOutFile::writeProcessConfigurationRegistry()
 {

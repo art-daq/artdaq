@@ -52,8 +52,8 @@ public:
 		MaxSize = 1,
 		Unset = 2
 	};
-	using RootDAQOutTreePtrArray =
-	    std::array<std::unique_ptr<RootDAQOutTree>, NumBranchTypes>;
+	using RootOutputTreePtrArray =
+	    std::array<std::unique_ptr<RootOutputTree>, NumBranchTypes>;
 
 	~RootDAQOutFile();
 	explicit RootDAQOutFile(OutputModule*,
@@ -80,9 +80,6 @@ public:
 	void writeRun(RunPrincipal const&);
 	void writeFileFormatVersion();
 	void writeFileIndex();
-#if ART_HEX_VERSION < 0x31100
-	void writeEventHistory();
-#endif
 	void writeProcessConfigurationRegistry();
 	void writeProcessHistoryRegistry();
 	void writeParameterSetRegistry();
@@ -152,8 +149,7 @@ private:
 	    &runProductProvenanceVector_};
 	ProductProvenances* pResultsProductProvenanceVector_{
 	    &resultsProductProvenanceVector_};
-	History const* pHistory_;
-	RootDAQOutTreePtrArray treePointers_;
+	RootOutputTreePtrArray treePointers_;
 	bool dataTypeReported_{false};
 	std::array<ProductDescriptionsByID, NumBranchTypes> descriptionsToPersist_{
 	    {}};

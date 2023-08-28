@@ -27,16 +27,27 @@ cet_make_library(LIBRARY_NAME RootDAQOutput USE_PROJECT_NAME NO_EXPORT
   ROOT::Tree
   TRACE::MF
   Boost::date_time
+    range-v3::range-v3
 )
 
 # Use art::module due to issue with art::Output in v3_09_03
 cet_build_plugin(RootDAQOut art::module 
-  LIBRARIES PRIVATE
+  LIBRARIES REG
   artdaq::RootDAQOutput
   artdaq::ArtModules
-  art_root_io::detail
-  art::Framework_IO_detail
   TRACE::MF
+    art_root_io::detail
+    art_root_io::art_root_io
+    art::Framework_IO
+    art::Framework_IO_detail
+    art::Framework_Core
+    art::Framework_Principal
+    art::Utilities
+    canvas::canvas
+    messagefacility::MF_MessageLogger
+    fhiclcpp::types
+    fhiclcpp::fhiclcpp
+    hep_concurrency::hep_concurrency
 )
 
 install_headers()
