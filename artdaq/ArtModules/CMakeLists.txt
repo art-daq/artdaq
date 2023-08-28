@@ -1,4 +1,5 @@
-	add_subdirectory(RootDAQOutput-s81)
+
+add_subdirectory(RootDAQOutput-s124)
 
 cet_register_export_set(SET_NAME AMPluginTypes NAMESPACE artdaq_plugin_types)
 
