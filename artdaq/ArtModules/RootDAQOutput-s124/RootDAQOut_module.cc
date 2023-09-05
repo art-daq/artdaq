@@ -283,7 +283,7 @@ RootDAQOut::RootDAQOut(Parameters const& config)
     , fileProperties_{config().fileProperties()}
     , rpm_{config.get_PSet()}
 {
-	TLOG(TLVL_INFO) << "RootDAQOut_module (s81 version) CONSTRUCTOR Start";
+	TLOG(TLVL_INFO) << "RootDAQOut_module (s124 version) CONSTRUCTOR Start";
 	bool const check_filename = config.get_PSet().has_key("fileProperties") and
 	                            config().safeFileName().checkFileName();
 	detail::validateFileNamePattern(check_filename, filePattern_);
