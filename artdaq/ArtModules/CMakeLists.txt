@@ -1,4 +1,9 @@
+
+if(${ART_HEX_VERSION} LESS 0x31200)
 	add_subdirectory(RootDAQOutput-s81)
+else()
+	add_subdirectory(RootDAQOutput-s124)
+endif()
 
 cet_register_export_set(SET_NAME AMPluginTypes NAMESPACE artdaq_plugin_types)
 

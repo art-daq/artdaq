@@ -26,6 +26,10 @@
                "type" : "STRING",
                "value" : "bin"
             },
+            "artdaq_DEFINE_PYTHONPATH_INIT" : {
+               "type" : "BOOL",
+               "value" : true
+            },
             "artdaq_FHICL_DIR_INIT" : {
                "type" : "STRING",
                "value" : "fcl"
