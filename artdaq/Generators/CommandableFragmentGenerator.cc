@@ -77,12 +77,8 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 		fragment_ids.emplace_back(fragment_id);
 	}
 
-	auto generated_fragments_per_event = ps.get<size_t>("generated_fragments_per_event", 1);
-	if (generated_fragments_per_event != fragment_ids.size())
-	{
-		latest_exception_report_ = R"(Error in CommandableFragmentGenerator: "generated_fragments_per_event" disagrees with size of "fragment_ids" list!)";
-		TLOG(TLVL_ERROR) << latest_exception_report_;
-		throw cet::exception(latest_exception_report_);
+	if(ps.has_key("generated_fragments_per_event")) {
+		TLOG(TLVL_WARNING) << "Ignoring deprecated configuration parameter \"generated_fragments_per_event\"";
 	}
 
 	int first_fragment_id = std::numeric_limits<int>::max();
