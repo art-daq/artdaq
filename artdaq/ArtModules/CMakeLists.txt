@@ -238,6 +238,10 @@ cet_build_plugin(TransferOutput art::module
   TRACE::MF
 )
 
+cet_build_plugin(OffsetPrescale art::EDFilter
+  LIBRARIES PRIVATE
+  artdaq_plugin_types::ArtdaqSharedMemoryService
+)
 
 include(mfPlugin)
 mfPlugin( ArtdaqMetric LIBRARIES REG artdaq::DAQdata )
