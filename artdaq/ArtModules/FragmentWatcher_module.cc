@@ -137,8 +137,10 @@ void artdaq::FragmentWatcher::analyze(art::Event const& evt)
 		for (auto const& fragment : *hndl)
 		{
 			int fragID = fragment.fragmentID();
-			TLOG(TLVL_EXPECTED_FRAGIDS) << "Inserting fragment ID " << fragID << " into the list of expected_fragmentIDs.";
-			expected_fragmentID_list_.insert(fragID);
+      if(!expected_fragmentID_list_.count(fragID)) {
+  			TLOG(TLVL_EXPECTED_FRAGIDS) << "Inserting fragment ID " << fragID << " into the list of expected_fragmentIDs.";
+	  		expected_fragmentID_list_.insert(fragID);
+      }
 			missing_fragmentID_list_this_event.erase(fragID);
 		}
 	}
