@@ -18,26 +18,25 @@ ArtdaqGlobalsService::ArtdaqGlobalsService(fhicl::ParameterSet const& pset, art:
 	TLOG(TLVL_DEBUG + 33) << "ArtdaqGlobalsService CONSTRUCTOR";
 
 	char const* artapp_env = getenv("ARTDAQ_APPLICATION_NAME");
-	std::string artapp_str;
+	std::string artapp_str = "art";
 	if (artapp_env != nullptr)
 	{
-		artapp_str = std::string(artapp_env) + "_";
+		artapp_str = std::string(artapp_env) + "_art";
 	}
 
-	TLOG(TLVL_DEBUG + 33) << "Setting app_name";
+	TLOG(TLVL_DEBUG + 33) << "Setting app_name to " << artapp_str;
+		app_name = artapp_str;
 
 	artapp_env = getenv("ARTDAQ_RANK");
 	if (artapp_env != nullptr && my_rank < 0)
 	{
 		TLOG(TLVL_DEBUG + 33) << "Setting rank from envrionment";
 		my_rank = strtol(artapp_env, nullptr, 10);
-		app_name = artapp_str + "art" + std::string(artapp_env);
 	}
 	else
 	{
-		TLOG(TLVL_DEBUG + 33) << "Setting default rank and name";
+		TLOG(TLVL_DEBUG + 33) << "Setting default rank";
 		my_rank = -1;
-		app_name = artapp_str + "art";
 	}
 
 	try

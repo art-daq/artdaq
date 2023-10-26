@@ -76,6 +76,12 @@ public:
 	 */
 	std::shared_ptr<artdaq::detail::RawEventHeader> GetEventHeader() override { return evtHeader_; }
 
+	/**
+	 * \brief Get the ID of this art process
+	 * \return The ID of this art process from the shared memory segment
+	*/
+	size_t GetMyId() override { return incoming_events_->GetMyId(); }
+
 private:
 	ArtdaqSharedMemoryService(ArtdaqSharedMemoryService const&) = delete;
 	ArtdaqSharedMemoryService(ArtdaqSharedMemoryService&&) = delete;
