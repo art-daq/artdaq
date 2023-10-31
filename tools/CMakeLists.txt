@@ -50,7 +50,6 @@ cet_test(genToArt_outToBinaryFileOutput_t HANDBUILT
 )
 
 # Make Modules
-#include(NodeJSAddon)
 include(PythonAddon)
 
 cet_make_library(LIBRARY_NAME swig_artdaq
@@ -63,7 +62,6 @@ cet_make_library(LIBRARY_NAME swig_artdaq
   artdaq::DAQdata
 )
 
-#create_nodejs_addon (ADDON_NAME "node_artdaq" LIBRARIES swig_artdaq)
 create_python_addon (ADDON_NAME "python_artdaq" LIBRARIES swig_artdaq)
 
 #cet_test(genToArt_outToBinaryNetOutput_t HANDBUILT
