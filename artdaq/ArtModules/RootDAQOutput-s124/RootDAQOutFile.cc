@@ -396,10 +396,17 @@ RootDAQOutFile::RootDAQOutFile(OutputModule* om,
 	                                splitLevel,
 	                                treeMaxVirtualSize,
 	                                saveMemoryObjectThreshold);
+#if ART_HEX_VERSION > 0x31400
+	rootFileDB_ = ServiceHandle<DatabaseConnection> {
+	} -> get<TKeyVFSOpenPolicy>("RootFileDB",
+	                            filePtr_.get(),
+	                            SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE);
+#else
 	rootFileDB_.reset(ServiceHandle<DatabaseConnection> {
 	} -> get<TKeyVFSOpenPolicy>("RootFileDB",
 	                            filePtr_.get(),
 	                            SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE));
+#endif
 	beginTime_ = std::chrono::steady_clock::now();
 	// Check that dictionaries for the auxiliaries exist
 	root::DictionaryChecker checker;
