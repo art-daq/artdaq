@@ -43,6 +43,12 @@ public:
 	 */
 	virtual std::shared_ptr<artdaq::detail::RawEventHeader> GetEventHeader() = 0;
 
+	/**
+	 * \brief Get the ID of this art process
+	 * \return The ID of this art process (from shm->GetMyId())
+	*/
+	virtual size_t GetMyId() = 0;
+
 private:
 	ArtdaqSharedMemoryServiceInterface(ArtdaqSharedMemoryServiceInterface const&) = delete;
 	ArtdaqSharedMemoryServiceInterface(ArtdaqSharedMemoryServiceInterface&&) = delete;

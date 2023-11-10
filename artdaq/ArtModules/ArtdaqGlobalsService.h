@@ -61,6 +61,12 @@ public:
 	 */
 	std::shared_ptr<artdaq::detail::RawEventHeader> GetEventHeader() override { return nullptr; }
 
+	/**
+	 * \brief Get the ID of this art process. Always 0 since ArtdaqGlobalsService does not connect to shared memory
+	 * \return 0
+	*/
+	size_t GetMyId() override { return 0; }
+
 private:
 	ArtdaqGlobalsService(ArtdaqGlobalsService const&) = delete;
 	ArtdaqGlobalsService(ArtdaqGlobalsService&&) = delete;
