@@ -219,9 +219,9 @@ private:
 
 artdaq::BundleTransfer::BundleTransfer(const fhicl::ParameterSet& pset, Role role)
     : TransferInterface(pset, role)
-    , send_threshold_bytes_(pset.get<size_t>("send_threshold_bytes", 100 * 0x100000))  // 100 MB
+    , send_threshold_bytes_(pset.get<size_t>("send_threshold_bytes", 10 * 0x100000))  // 10 MB
     , max_hold_size_bytes_(pset.get<size_t>("max_hold_size_bytes", 1000 * 0x100000))  // 1000 MB
-    , max_hold_time_us_(pset.get<int>("max_hold_time_us", 5000000))                  // 5 s
+    , max_hold_time_us_(pset.get<int>("max_hold_time_us", 100000))                  // 0.1 s
 {
 	TLOG(TLVL_INFO) << GetTraceName() << "Begin BundleTransfer constructor";
 	TLOG(TLVL_INFO) << GetTraceName() << "Constructing TCPSocketTransfer";
