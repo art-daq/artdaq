@@ -113,7 +113,10 @@ public:
 		last_send_timeout_usec_ = send_timeout_usec;
 		{
 			std::unique_lock<std::mutex> lk(fragment_mutex_);
-			fragment_cv_.wait_for(lk, std::chrono::microseconds(send_timeout_usec), [&] { return current_buffer_size_bytes_ < max_hold_size_bytes_; });
+			if (current_buffer_size_bytes_ > max_hold_size_bytes_)
+			{
+				fragment_cv_.wait_for(lk, std::chrono::microseconds(send_timeout_usec), [&] { return current_buffer_size_bytes_ < max_hold_size_bytes_; });
+			}
 
 			if (current_buffer_size_bytes_ > max_hold_size_bytes_)
 			{
@@ -147,7 +150,10 @@ public:
 		last_send_call_reliable_ = true;
 		{
 			std::unique_lock<std::mutex> lk(fragment_mutex_);
-			fragment_cv_.wait(lk, [&] { return current_buffer_size_bytes_ < max_hold_size_bytes_; });
+			if (current_buffer_size_bytes_ > max_hold_size_bytes_)
+			{
+				fragment_cv_.wait(lk, [&] { return current_buffer_size_bytes_ < max_hold_size_bytes_; });
+			}
 
 			TLOG(TLVL_DEBUG + 36) << GetTraceName() << "transfer_fragment_reliable_mode after wait for buffer";
 
@@ -184,6 +190,7 @@ private:
 
 private:
 	std::unique_ptr<TransferInterface> theTransfer_;
+	size_t send_threshold_bytes_;
 	size_t max_hold_size_bytes_;
 	int max_hold_time_us_;
 	FragmentPtr bundle_fragment_{nullptr};
@@ -212,7 +219,8 @@ private:
 
 artdaq::BundleTransfer::BundleTransfer(const fhicl::ParameterSet& pset, Role role)
     : TransferInterface(pset, role)
-    , max_hold_size_bytes_(pset.get<size_t>("max_hold_size_bytes", 100 * 0x100000))  // 100 MB
+    , send_threshold_bytes_(pset.get<size_t>("send_threshold_bytes", 100 * 0x100000))  // 100 MB
+    , max_hold_size_bytes_(pset.get<size_t>("max_hold_size_bytes", 1000 * 0x100000))  // 1000 MB
     , max_hold_time_us_(pset.get<int>("max_hold_time_us", 5000000))                  // 5 s
 {
 	TLOG(TLVL_INFO) << GetTraceName() << "Begin BundleTransfer constructor";
@@ -296,7 +304,7 @@ bool artdaq::BundleTransfer::check_send_(bool force)
 		return true;
 	}
 
-	if (current_buffer_size_bytes_ >= max_hold_size_bytes_)
+	if (current_buffer_size_bytes_ >= send_threshold_bytes_)
 	{
 		TLOG(TLVL_DEBUG + 37) << GetTraceName() << "check_send_: Buffer is full, returning true";
 		return true;
