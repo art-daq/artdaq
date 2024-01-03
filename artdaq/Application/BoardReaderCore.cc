@@ -587,9 +587,18 @@ std::string artdaq::BoardReaderCore::report(std::string const& which) const
 
 	tmpString.append(", Sent Fragment count = ");
 	tmpString.append(boost::lexical_cast<std::string>(fragment_count_));
-
-	if (!which.empty() && which != "core")
-	{
+  if (which == "core") {
+                                        // do nothing
+  }
+//-----------------------------------------------------------------------------
+// P.Murat: add statistics report, the const/non const confusion to be cleaned up 
+//          by the maintainers
+//-----------------------------------------------------------------------------
+  else if (which == "stats") {
+    auto non_const_this = (artdaq::BoardReaderCore*) this;
+    tmpString          += ", "+non_const_this->buildStatisticsString_();
+  }
+  else {
 		tmpString.append(". Command=\"" + which + "\" is not currently supported.");
 	}
 	return tmpString;

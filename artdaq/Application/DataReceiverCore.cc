@@ -272,6 +272,10 @@ std::string artdaq::DataReceiverCore::report(std::string const& which) const
 
 		return "0";
 	}
+  else if (which == "stats") {
+    if (event_store_ptr_ != nullptr) return event_store_ptr_->BuildStatisticsString();
+    else                             return "-1";
+  }
 
 	// lots of cool stuff that we can do here
 	// - report on the number of fragments received and the number
