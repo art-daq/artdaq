@@ -282,6 +282,11 @@ public:
 	}
 
 	/**
+	 * \brief report statistics as a string
+	 */
+  void getStatReport(std::string& Report);
+
+	/**
 	 * \brief Perform data buffer pruning operations for the given buffer. If the RequestMode is Single, removes all but the latest Fragment from the data buffer.
 	 * \param id Fragment ID of buffer
 	 * In Window and Buffer RequestModes, this function discards the oldest Fragment objects until the data buffer is below its size constraints,

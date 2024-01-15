@@ -1574,5 +1574,31 @@ std::string artdaq::SharedMemoryEventManager::buildStatisticsString_() const
 	oss << "  Event counts: Run -- " << run_event_count_ << " Total, " << run_incomplete_event_count_ << " Incomplete."
 	    << "  Subrun -- " << subrun_event_count_ << " Total, " << subrun_incomplete_event_count_ << " Incomplete. "
 	    << std::endl;
+//-----------------------------------------------------------------------------
+// P.Murat: add statistics on the SHM buffers
+// there are 4 different flags: 0:empty, 1:writing; 2:full 3:reading
+// want statistics on all of them
+//-----------------------------------------------------------------------------
+  // auto = std::vector<std::pair<int, artdaq::SharedMemoryManager::BufferSemaphoreFlags>>  
+  artdaq::SharedMemoryEventManager* nc_this = (artdaq::SharedMemoryEventManager*) this;
+
+  int bsize = nc_this->BufferSize();
+
+  auto v = nc_this->GetBufferReport();
+
+  int nbb[4] = {0,0,0,0};
+
+  int nbuff = v.size();
+  for (int i=0; i<nbuff; i++) {
+    auto x = v[i];
+    int flag = (int) x.second;
+    nbb[flag]++;
+  }
+  
+  oss << "shm_nbb :" 
+      << nbuff  << ":" << bsize  << ":" 
+      << nbb[0] << ":" << nbb[1] << ":" << nbb[2] << ":" << nbb[3] 
+      << std::endl;
+
 	return oss.str();
 }
