@@ -378,7 +378,7 @@ void artdaq::FragmentBuffer::getDataBufferStats(Fragment::fragment_id_t id)
 //-----------------------------------------------------------------------------
 // P.Murat: return stat reports as a string
 //-----------------------------------------------------------------------------
-void artdaq::FragmentBuffer::getStatReport(std::string& Report) {
+std::string artdaq::FragmentBuffer::getStatReport() {
   std::ostringstream oss;
 
   for (auto& it : dataBuffers_) { 
@@ -404,7 +404,7 @@ void artdaq::FragmentBuffer::getStatReport(std::string& Report) {
                               << ", sz=" << dataBuffer->DataBufferDepthBytes.load() << "/" << maxDataBufferDepthBytes_;
   }
 
-  Report = oss.str();
+  return oss.str();
 }
 
 void artdaq::FragmentBuffer::checkDataBuffer(Fragment::fragment_id_t id)

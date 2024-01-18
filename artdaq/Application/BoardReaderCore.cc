@@ -703,9 +703,7 @@ std::string artdaq::BoardReaderCore::buildStatisticsString_()
 //-----------------------------------------------------------------------------
 // 2024-01-13 P.Murat: add SHM data 
 //-----------------------------------------------------------------------------
-  std::string report;
-  fragment_buffer_ptr_->getStatReport(report);
-  oss << report;
+  oss << fragment_buffer_ptr_->getStatReport();
 
   return oss.str();
 }
