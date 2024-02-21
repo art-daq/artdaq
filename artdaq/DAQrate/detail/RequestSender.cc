@@ -32,6 +32,7 @@ RequestSender::RequestSender(const fhicl::ParameterSet& pset)
     , request_mode_(detail::RequestMessageMode::Normal)
     , min_request_interval_ms_(pset.get<size_t>("min_request_interval_ms", 100))
     , request_sending_(0)
+    , requests_sent_(0)
     , run_number_(0)
 {
 	TLOG(TLVL_DEBUG) << "RequestSender CONSTRUCTOR pset=" << pset.to_string();
@@ -43,7 +44,7 @@ RequestSender::RequestSender(const fhicl::ParameterSet& pset)
 
 RequestSender::~RequestSender()
 {
-	TLOG(TLVL_INFO) << "Shutting down RequestSender: Waiting for " << request_sending_.load() << " requests to be sent";
+	TLOG(TLVL_INFO) << "Shutting down RequestSender: Waiting for " << request_sending_.load() << " requests to be sent (total sent: " << requests_sent_ << ")";
 
 	auto start_time = std::chrono::steady_clock::now();
 
@@ -193,6 +194,7 @@ void RequestSender::do_send_request_()
 	}
 	TLOG(TLVL_DEBUG + 33) << "Done sending request sts=" << sts;
 	request_sending_--;
+	requests_sent_++;
 }
 
 void RequestSender::SendRequest(bool endOfRunOnly)
