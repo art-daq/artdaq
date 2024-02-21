@@ -587,9 +587,18 @@ std::string artdaq::BoardReaderCore::report(std::string const& which) const
 
 	tmpString.append(", Sent Fragment count = ");
 	tmpString.append(boost::lexical_cast<std::string>(fragment_count_));
-
-	if (!which.empty() && which != "core")
-	{
+  if (which == "core") {
+                                        // do nothing
+  }
+//-----------------------------------------------------------------------------
+// P.Murat: add statistics report, the const/non const confusion to be cleaned up 
+//          by the maintainers
+//-----------------------------------------------------------------------------
+  else if (which == "stats") {
+    auto non_const_this = (artdaq::BoardReaderCore*) this;
+    tmpString          += ", "+non_const_this->buildStatisticsString_();
+  }
+  else {
 		tmpString.append(". Command=\"" + which + "\" is not currently supported.");
 	}
 	return tmpString;
@@ -612,87 +621,91 @@ bool artdaq::BoardReaderCore::metaCommand(std::string const& command, std::strin
 
 std::string artdaq::BoardReaderCore::buildStatisticsString_()
 {
-	std::ostringstream oss;
-	double fragmentsGeneratedCount = 1.0;
-	double fragmentsOutputCount = 1.0;
-	oss << app_name << " statistics:" << std::endl;
+  std::ostringstream oss;
+  double fragmentsGeneratedCount = 1.0;
+  double fragmentsOutputCount = 1.0;
+  oss << app_name << " statistics:" << std::endl;
 
-	oss << "  Fragments read: ";
-	artdaq::MonitoredQuantityPtr mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(FRAGMENTS_PER_READ_STAT_KEY);
-	if (mqPtr.get() != nullptr)
-	{
-		artdaq::MonitoredQuantityStats stats;
-		mqPtr->getStats(stats);
-		oss << stats.recentValueSum << " fragments generated at "
-		    << stats.recentSampleRate << " getNext calls/sec, fragment rate = "
-		    << stats.recentValueRate << " fragments/sec, monitor window = "
-		    << stats.recentDuration << " sec, min::max read size = "
-		    << stats.recentValueMin
-		    << "::"
-		    << stats.recentValueMax
-		    << " fragments";
-		fragmentsGeneratedCount = std::max(double(stats.recentSampleCount), 1.0);
-		oss << "  Average times per fragment: ";
-		if (stats.recentSampleRate > 0.0)
-		{
-			oss << " elapsed time = "
-			    << (1.0 / stats.recentSampleRate) << " sec";
-		}
-	}
+  oss << "  Fragments read: ";
+  artdaq::MonitoredQuantityPtr mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(FRAGMENTS_PER_READ_STAT_KEY);
+  if (mqPtr.get() != nullptr)
+  {
+    artdaq::MonitoredQuantityStats stats;
+    mqPtr->getStats(stats);
+    oss << stats.recentValueSum << " fragments generated at "
+        << stats.recentSampleRate << " getNext calls/sec, fragment rate = "
+        << stats.recentValueRate << " fragments/sec, monitor window = "
+        << stats.recentDuration << " sec, min::max read size = "
+        << stats.recentValueMin
+        << "::"
+        << stats.recentValueMax
+        << " fragments";
+    fragmentsGeneratedCount = std::max(double(stats.recentSampleCount), 1.0);
+    oss << " Average times per fragment: ";
+    if (stats.recentSampleRate > 0.0)
+    {
+      oss << " elapsed time = "
+          << (1.0 / stats.recentSampleRate) << " sec";
+    }
+  }
 
-	oss << std::endl;
-	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(FRAGMENTS_PROCESSED_STAT_KEY);
-	if (mqPtr.get() != nullptr)
-	{
-		artdaq::MonitoredQuantityStats stats;
-		mqPtr->getStats(stats);
-		oss << "  Fragment output statistics: "
-		    << stats.recentSampleCount << " fragments sent at "
-		    << stats.recentSampleRate << " fragments/sec, effective data rate = "
-		    << (stats.recentValueRate / 1024.0 / 1024.0) << " MB/sec, monitor window = "
-		    << stats.recentDuration << " sec, min::max event size = "
-		    << (stats.recentValueMin / 1024.0 / 1024.0)
-		    << "::"
-		    << (stats.recentValueMax / 1024.0 / 1024.0)
-		    << " MB" << std::endl;
-		fragmentsOutputCount = std::max(double(stats.recentSampleCount), 1.0);
-	}
+  oss << std::endl;
+  mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(FRAGMENTS_PROCESSED_STAT_KEY);
+  if (mqPtr.get() != nullptr)
+  {
+    artdaq::MonitoredQuantityStats stats;
+    mqPtr->getStats(stats);
+    oss << "  Fragment output statistics: "
+        << stats.recentSampleCount << " fragments sent at "
+        << stats.recentSampleRate << " fragments/sec, effective data rate = "
+        << (stats.recentValueRate / 1024.0 / 1024.0) << " MB/sec, monitor window = "
+        << stats.recentDuration << " sec, min::max event size = "
+        << (stats.recentValueMin / 1024.0 / 1024.0)
+        << "::"
+        << (stats.recentValueMax / 1024.0 / 1024.0)
+        << " MB" << std::endl;
+    fragmentsOutputCount = std::max(double(stats.recentSampleCount), 1.0);
+  }
 
-	// 31-Dec-2014, KAB - Just a reminder that using "fragmentCount" in the
-	// denominator of the calculations below is important because the way that
-	// the accumulation of these statistics is done is not fragment-by-fragment
-	// but read-by-read (where each read can contain multiple fragments).
-	// 29-Aug-2016, KAB - BRSYNC_WAIT and OUTPUT_WAIT are now done fragment-by-
-	// fragment, but we'll leave the calculation the same. (The alternative
-	// would be to use recentValueAverage().)
+  // 31-Dec-2014, KAB - Just a reminder that using "fragmentCount" in the
+  // denominator of the calculations below is important because the way that
+  // the accumulation of these statistics is done is not fragment-by-fragment
+  // but read-by-read (where each read can contain multiple fragments).
+  // 29-Aug-2016, KAB - BRSYNC_WAIT and OUTPUT_WAIT are now done fragment-by-
+  // fragment, but we'll leave the calculation the same. (The alternative
+  // would be to use recentValueAverage().)
 
-	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(INPUT_WAIT_STAT_KEY);
-	if (mqPtr.get() != nullptr)
-	{
-		oss << "  Input wait time = "
-		    << (mqPtr->getRecentValueSum() / fragmentsGeneratedCount) << " s/fragment";
-	}
-	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(BUFFER_WAIT_STAT_KEY);
-	if (mqPtr.get() != 0)
-	{
-		oss << ", buffer wait time = "
-		    << (mqPtr->getRecentValueSum() / fragmentsGeneratedCount) << " s/fragment";
-	}
-	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(REQUEST_WAIT_STAT_KEY);
-	if (mqPtr.get() != 0)
-	{
-		oss << ", request wait time = "
-		    << (mqPtr->getRecentValueSum() / fragmentsOutputCount) << " s/fragment";
-	}
+  mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(INPUT_WAIT_STAT_KEY);
+  if (mqPtr.get() != nullptr)
+  {
+    oss << "  Input wait time = "
+        << (mqPtr->getRecentValueSum() / fragmentsGeneratedCount) << " s/fragment";
+  }
+  mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(BUFFER_WAIT_STAT_KEY);
+  if (mqPtr.get() != 0)
+  {
+    oss << ", buffer wait time = "
+        << (mqPtr->getRecentValueSum() / fragmentsGeneratedCount) << " s/fragment";
+  }
+  mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(REQUEST_WAIT_STAT_KEY);
+  if (mqPtr.get() != 0)
+  {
+    oss << ", request wait time = "
+        << (mqPtr->getRecentValueSum() / fragmentsOutputCount) << " s/fragment";
+  }
 
-	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(OUTPUT_WAIT_STAT_KEY);
-	if (mqPtr.get() != nullptr)
-	{
-		oss << ", output wait time = "
-		    << (mqPtr->getRecentValueSum() / fragmentsOutputCount) << " s/fragment";
-	}
+  mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(OUTPUT_WAIT_STAT_KEY);
+  if (mqPtr.get() != nullptr)
+  {
+    oss << ", output wait time = "
+        << (mqPtr->getRecentValueSum() / fragmentsOutputCount) << " s/fragment";
+  }
+//-----------------------------------------------------------------------------
+// 2024-01-13 P.Murat: add SHM data 
+//-----------------------------------------------------------------------------
+  oss << fragment_buffer_ptr_->getStatReport();
 
-	return oss.str();
+  return oss.str();
 }
 
 void artdaq::BoardReaderCore::sendMetrics_()

@@ -417,6 +417,8 @@ public:
 	 */
 	subrun_id_t GetCurrentSubrun() { return GetSubrunForSequenceID(Fragment::InvalidSequenceID); }
 
+	std::string BuildStatisticsString() const { return buildStatisticsString_(); };
+
 private:
 	SharedMemoryEventManager(SharedMemoryEventManager const&) = delete;
 	SharedMemoryEventManager(SharedMemoryEventManager&&) = delete;
