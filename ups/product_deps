@@ -1,7 +1,7 @@
 # The parent line must be the first non-comment line in the file
 # This line defines the product name and version
 parent artdaq  
-defaultqual    e20:s117
+defaultqual    e20:s128
 
 # These optional lines define the installed directories where
 # headers, libraries, and executables will be found
@@ -21,45 +21,40 @@ old_style_config_vars
 
 #
 product					version		qual	flags			<table_format=2>
-art_root_io				v1_13_01	s126
-art_root_io				v1_12_04	s124
-art_root_io				v1_12_03	s123
+art_root_io				v1_13_04	s129
+art_root_io				v1_13_03	s128
 art_root_io				v1_11_03	s120a
-art_root_io				v1_11_02	s120
-art_root_io				v1_08_03	s112
-artdaq_core             v3_09_15
-artdaq_utilities		v1_08_06
-artdaq_mfextensions		v1_08_06
+artdaq_core             v3_10_00
+artdaq_utilities		v1_09_00
+artdaq_mfextensions		v1_09_00
 xmlrpc_c				v1_54_06b
 swig					v4_1_1		-		optional
-artdaq_epics_plugin		v1_05_06	-		optional
-artdaq_pcp_mmv_plugin	v1_03_06	-		optional
-cetmodules				v3_22_02	-		only_for_build
+artdaq_epics_plugin		v1_06_00	-		optional
+artdaq_pcp_mmv_plugin	v1_04_00	-		optional
+cetmodules				v3_24_00	-		only_for_build
 end_product_list
 
 # See https://cdcvs.fnal.gov/redmine/projects/cet-is-public/wiki/AboutQualifiers for information about the qualifiers used
 # -nq- means there is no qualifier
 # a "-" means the dependent product is not required by the parent and will not be setup
 qualifier		art_root_io	artdaq_core		artdaq_utilities	xmlrpc_c	artdaq_mfextensions	artdaq_epics_plugin	artdaq_pcp_mmv_plugin	swig
-c14:s126:debug	c14:debug	c14:s126:debug	c14:s126:debug		c14:debug	c14:s126:debug		c14:s126:debug		c14:s126:debug			c14:debug
-c14:s126:prof	c14:prof	c14:s126:prof	c14:s126:prof		c14:prof	c14:s126:prof		c14:s126:prof		c14:s126:prof			c14:prof
-e20:s126:debug	e20:debug	e20:s126:debug	e20:s126:debug		e20:debug	e20:s126:debug		e20:s126:debug		e20:s126:debug			e20:debug
-e20:s126:prof	e20:prof	e20:s126:prof	e20:s126:prof		e20:prof	e20:s126:prof		e20:s126:prof		e20:s126:prof			e20:prof
-e26:s126:debug	e26:debug	e26:s126:debug	e26:s126:debug		e26:debug	e26:s126:debug		e26:s126:debug		e26:s126:debug			e26:debug
-e26:s126:prof	e26:prof	e26:s126:prof	e26:s126:prof		e26:prof	e26:s126:prof		e26:s126:prof		e26:s126:prof			e26:prof
-e28:s126:debug	e28:debug	e28:s126:debug	e28:s126:debug		e28:debug	e28:s126:debug		e28:s126:debug		e28:s126:debug			e28:debug
-e28:s126:prof	e28:prof	e28:s126:prof	e28:s126:prof		e28:prof	e28:s126:prof		e28:s126:prof		e28:s126:prof			e28:prof
+c14:s129:debug	c14:debug	c14:s129:debug	c14:s129:debug		c14:debug	c14:s129:debug		c14:s129:debug		c14:s129:debug			c14:debug
+c14:s129:prof	c14:prof	c14:s129:prof	c14:s129:prof		c14:prof	c14:s129:prof		c14:s129:prof		c14:s129:prof			c14:prof
+e20:s129:debug	e20:debug	e20:s129:debug	e20:s129:debug		e20:debug	e20:s129:debug		e20:s129:debug		e20:s129:debug			e20:debug
+e20:s129:prof	e20:prof	e20:s129:prof	e20:s129:prof		e20:prof	e20:s129:prof		e20:s129:prof		e20:s129:prof			e20:prof
+e26:s129:debug	e26:debug	e26:s129:debug	e26:s129:debug		e26:debug	e26:s129:debug		e26:s129:debug		e26:s129:debug			e26:debug
+e26:s129:prof	e26:prof	e26:s129:prof	e26:s129:prof		e26:prof	e26:s129:prof		e26:s129:prof		e26:s129:prof			e26:prof
+e28:s129:debug	e28:debug	e28:s129:debug	e28:s129:debug		e28:debug	e28:s129:debug		e28:s129:debug		e28:s129:debug			e28:debug
+e28:s129:prof	e28:prof	e28:s129:prof	e28:s129:prof		e28:prof	e28:s129:prof		e28:s129:prof		e28:s129:prof			e28:prof
 
-c14:s124:debug	c14:debug	c14:s124:debug	c14:s124:debug		c14:debug	c14:s124:debug		c14:s124:debug		c14:s124:debug			c14:debug
-c14:s124:prof	c14:prof	c14:s124:prof	c14:s124:prof		c14:prof	c14:s124:prof		c14:s124:prof		c14:s124:prof			c14:prof
-c15:s124:debug	c15:debug	c15:s124:debug	c15:s124:debug		c15:debug	c15:s124:debug		c15:s124:debug		c15:s124:debug			c15:debug
-c15:s124:prof	c15:prof	c15:s124:prof	c15:s124:prof		c15:prof	c15:s124:prof		c15:s124:prof		c15:s124:prof			c15:prof
-e20:s124:debug	e20:debug	e20:s124:debug	e20:s124:debug		e20:debug	e20:s124:debug		e20:s124:debug		e20:s124:debug			e20:debug
-e20:s124:prof	e20:prof	e20:s124:prof	e20:s124:prof		e20:prof	e20:s124:prof		e20:s124:prof		e20:s124:prof			e20:prof
-e26:s124:debug	e26:debug	e26:s124:debug	e26:s124:debug		e26:debug	e26:s124:debug		e26:s124:debug		e26:s124:debug			e26:debug
-e26:s124:prof	e26:prof	e26:s124:prof	e26:s124:prof		e26:prof	e26:s124:prof		e26:s124:prof		e26:s124:prof			e26:prof
-e28:s124:debug	e28:debug	e28:s124:debug	e28:s124:debug		e28:debug	e28:s124:debug		e28:s124:debug		e28:s124:debug			e28:debug
-e28:s124:prof	e28:prof	e28:s124:prof	e28:s124:prof		e28:prof	e28:s124:prof		e28:s124:prof		e28:s124:prof			e28:prof
+c14:s128:debug	c14:debug	c14:s128:debug	c14:s128:debug		c14:debug	c14:s128:debug		c14:s128:debug		c14:s128:debug			c14:debug
+c14:s128:prof	c14:prof	c14:s128:prof	c14:s128:prof		c14:prof	c14:s128:prof		c14:s128:prof		c14:s128:prof			c14:prof
+e20:s128:debug	e20:debug	e20:s128:debug	e20:s128:debug		e20:debug	e20:s128:debug		e20:s128:debug		e20:s128:debug			e20:debug
+e20:s128:prof	e20:prof	e20:s128:prof	e20:s128:prof		e20:prof	e20:s128:prof		e20:s128:prof		e20:s128:prof			e20:prof
+e26:s128:debug	e26:debug	e26:s128:debug	e26:s128:debug		e26:debug	e26:s128:debug		e26:s128:debug		e26:s128:debug			e26:debug
+e26:s128:prof	e26:prof	e26:s128:prof	e26:s128:prof		e26:prof	e26:s128:prof		e26:s128:prof		e26:s128:prof			e26:prof
+e28:s128:debug	e28:debug	e28:s128:debug	e28:s128:debug		e28:debug	e28:s128:debug		e28:s128:debug		e28:s128:debug			e28:debug
+e28:s128:prof	e28:prof	e28:s128:prof	e28:s128:prof		e28:prof	e28:s128:prof		e28:s128:prof		e28:s128:prof			e28:prof
 
 c7:s120a:debug	c7:debug	c7:s120a:debug	c7:s120a:debug		c7:debug	c7:s120a:debug		c7:s120a:debug		c7:s120a:debug			c7:debug
 c7:s120a:prof	c7:prof		c7:s120a:prof	c7:s120a:prof		c7:prof		c7:s120a:prof		c7:s120a:prof		c7:s120a:prof			c7:prof
@@ -69,13 +64,6 @@ e20:s120a:debug	e20:debug	e20:s120a:debug	e20:s120a:debug		e20:debug	e20:s120a:d
 e20:s120a:prof	e20:prof	e20:s120a:prof	e20:s120a:prof		e20:prof	e20:s120a:prof		e20:s120a:prof		e20:s120a:prof			e20:prof
 e26:s120a:debug	e26:debug	e26:s120a:debug	e26:s120a:debug		e26:debug	e26:s120a:debug		e26:s120a:debug		e26:s120a:debug			e26:debug
 e26:s120a:prof	e26:prof	e26:s120a:prof	e26:s120a:prof		e26:prof	e26:s120a:prof		e26:s120a:prof		e26:s120a:prof			e26:prof
-
-c7:s112:debug	c7:debug	c7:s112:debug	c7:s112:debug		c7:debug	c7:s112:debug		c7:s112:debug		c7:s112:debug			c7:debug
-c7:s112:prof	c7:prof		c7:s112:prof	c7:s112:prof		c7:prof		c7:s112:prof		c7:s112:prof		c7:s112:prof			c7:prof
-e20:s112:debug	e20:debug	e20:s112:debug	e20:s112:debug		e20:debug	e20:s112:debug		e20:s112:debug		e20:s112:debug			e20:debug
-e20:s112:prof	e20:prof	e20:s112:prof	e20:s112:prof		e20:prof	e20:s112:prof		e20:s112:prof		e20:s112:prof			e20:prof
-e19:s112:debug	e19:debug	e19:s112:debug	e19:s112:debug		e19:debug	e19:s112:debug		e19:s112:debug		e19:s112:debug			e19:debug
-e19:s112:prof	e19:prof	e19:s112:prof	e19:s112:prof		e19:prof	e19:s112:prof		e19:s112:prof		e19:s112:prof			e19:prof
 
 end_qualifier_list
 
