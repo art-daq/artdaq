@@ -60,7 +60,7 @@ try
 	std::unique_ptr<artdaq::RequestReceiver> receiver(nullptr);
 	std::shared_ptr<artdaq::RequestBuffer> request_buffer(nullptr);
 	int num_requests = tempPset.get<int>("num_requests", 1);
-	if (num_requests == 0) num_requets = std::numeric_limits<int>::max();
+	if (num_requests == 0) num_requests = std::numeric_limits<int>::max();
 	if (tempPset.get<bool>("use_receiver", false))
 	{
 		auto receiver_pset = tempPset.get<fhicl::ParameterSet>("request_receiver", fhicl::ParameterSet());
@@ -113,7 +113,7 @@ try
 
 		seq += seq_scale;
 		ts += ts_scale;
-		auto target = sending_start + std::chrono::microseconds((ii+1) * 1000000 / rate);
+		auto target = sending_start + std::chrono::microseconds(static_cast<int>((ii+1) * 1000000 / rate));
 		auto now = std::chrono::steady_clock::now();
 		if (now < target)
 		{
