@@ -2,6 +2,7 @@
 
 #include <boost/program_options.hpp>
 #include <memory>
+#include <thread>
 
 #include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
