@@ -75,6 +75,7 @@ try
 	auto ts_scale = tempPset.get<artdaq::Fragment::timestamp_t>("timestamp_scale", 1);
 	auto tmo = tempPset.get<size_t>("recevier_timeout_ms", 1000);
 	auto rate = tempPset.get<double>("request_rate", 1.0);
+	if(rate <= 0) rate = std::numeric_limits<double>::max();
 
 	auto sending_start = std::chrono::steady_clock::now();
 
