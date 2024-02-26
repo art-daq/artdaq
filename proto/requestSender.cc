@@ -25,7 +25,8 @@ try
 		fhicl::Atom<bool> use_receiver{fhicl::Name{"use_receiver"}, fhicl::Comment{"Whether to setup a RequestReceiver to verify that requests are being sent"}, false};
 		fhicl::Atom<size_t> receiver_timeout_ms{fhicl::Name{"recevier_timeout_ms"}, fhicl::Comment{"Amount of time to wait for the receiver to receive a request message"}, 1000};
 		fhicl::Table<artdaq::RequestReceiver::Config> receiver_config{fhicl::Name{"receiver_config"}, fhicl::Comment{"Configuration for RequestReceiver, if used"}};
-		fhicl::Atom<int> num_requests{fhicl::Name{"num_requests"}, fhicl::Comment{"Number of requests to send"}};
+		fhicl::Atom<int> num_requests{fhicl::Name{"num_requests"}, fhicl::Comment{"Number of requests to send, 0 sends until interrupted"}, 1};
+		fhicl::Atom<double> request_rate{fhicl::Name{"request_rate"}, fhicl::Comment{"Rate at which to send requests, in Hz"}, 1.0};
 		fhicl::Atom<artdaq::Fragment::sequence_id_t> starting_sequence_id{fhicl::Name{"starting_sequence_id"}, fhicl::Comment{"Sequence ID of first request"}, 1};
 		fhicl::Atom<artdaq::Fragment::sequence_id_t> sequence_id_scale{fhicl::Name{"sequence_id_scale"}, fhicl::Comment{"Amount to increment Sequence ID for each request"}, 1};
 		fhicl::Atom<artdaq::Fragment::timestamp_t> starting_timestamp{fhicl::Name{"starting_timestamp"}, fhicl::Comment{"Timestamp of first request"}, 1};
@@ -59,6 +60,7 @@ try
 	std::unique_ptr<artdaq::RequestReceiver> receiver(nullptr);
 	std::shared_ptr<artdaq::RequestBuffer> request_buffer(nullptr);
 	int num_requests = tempPset.get<int>("num_requests", 1);
+	if (num_requests == 0) num_requests = std::numeric_limits<int>::max();
 	if (tempPset.get<bool>("use_receiver", false))
 	{
 		auto receiver_pset = tempPset.get<fhicl::ParameterSet>("request_receiver", fhicl::ParameterSet());
@@ -72,6 +74,9 @@ try
 	auto ts = tempPset.get<artdaq::Fragment::timestamp_t>("starting_timestamp", 1);
 	auto ts_scale = tempPset.get<artdaq::Fragment::timestamp_t>("timestamp_scale", 1);
 	auto tmo = tempPset.get<size_t>("recevier_timeout_ms", 1000);
+	auto rate = tempPset.get<double>("request_rate", 1.0);
+
+	auto sending_start = std::chrono::steady_clock::now();
 
 	for (auto ii = 0; ii < num_requests; ++ii)
 	{
@@ -108,6 +113,12 @@ try
 
 		seq += seq_scale;
 		ts += ts_scale;
+		auto target = sending_start + std::chrono::microseconds(static_cast<int>((ii+1) * 1000000 / rate));
+		auto now = std::chrono::steady_clock::now();
+		if (now < target)
+		{
+			std::this_thread::sleep_until(target);
+		}
 	}
 
 	if (request_buffer)
