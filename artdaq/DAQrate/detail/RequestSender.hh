@@ -123,6 +123,12 @@ public:
 	 */
 	bool RequestsInFlight() { return request_sending_.load() != 0; }
 
+	/**
+	 * @brief Get the number of requests sent by this RequestSender
+	 * @return The number of requests sent
+	 */
+	size_t GetSentMessageCount() { return requests_sent_.load(); }
+
 private:
 private:
 	// Request stuff

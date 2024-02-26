@@ -47,6 +47,9 @@ request_receiver: {
 ## Number of requests to send
 num_requests: 50
 
+## Request rate, in Hz
+request_rate: 10.0
+
 ## Sequence ID of first request
 starting_sequence_id: 1  # default
 
