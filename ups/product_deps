@@ -25,7 +25,7 @@ art_root_io				v1_13_05	s130
 art_root_io				v1_13_03	s128
 art_root_io				v1_11_04	s120b
 art_root_io				v1_11_03	s120a
-artdaq_core             v3_10_00
+artdaq_core             v3_10_01
 artdaq_utilities		v1_09_00
 artdaq_mfextensions		v1_09_00
 xmlrpc_c				v1_54_06b
