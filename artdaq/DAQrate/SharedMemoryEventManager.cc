@@ -1221,7 +1221,7 @@ bool artdaq::SharedMemoryEventManager::hasFragments_(int buffer)
 void artdaq::SharedMemoryEventManager::complete_buffer_(int buffer)
 {
 	auto hdr = getEventHeader_(buffer);
-	if (hdr->is_complete)
+	if (hdr != nullptr && hdr->is_complete)
 	{
 		TLOG(TLVL_DEBUG + 32) << "complete_buffer_: This fragment completes event " << hdr->sequence_id << ".";
 
