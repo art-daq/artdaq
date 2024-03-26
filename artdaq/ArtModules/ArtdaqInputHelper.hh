@@ -965,18 +965,21 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 		if (eventMap.count(artdaq::Fragment::DataFragmentType))
 			for (auto& dataFrag : *(eventMap[artdaq::Fragment::DataFragmentType]))
 			{
+				if (!dataFrag.hasMetadata()) continue;
 				auto header = dataFrag.metadata<artdaq::NetMonHeader>();
 				msgs.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, dataFrag.dataBegin(), kFALSE, nullptr));
 			}
 		if (eventMap.count(artdaq::Fragment::EndOfRunFragmentType))
 			for (auto& dataFrag : *(eventMap[artdaq::Fragment::EndOfRunFragmentType]))
 			{
+				if (!dataFrag.hasMetadata()) continue;
 				auto header = dataFrag.metadata<artdaq::NetMonHeader>();
 				msgs.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, dataFrag.dataBegin(), kFALSE, nullptr));
 			}
 		if (eventMap.count(artdaq::Fragment::EndOfSubrunFragmentType))
 			for (auto& dataFrag : *(eventMap[artdaq::Fragment::EndOfSubrunFragmentType]))
 			{
+				if (!dataFrag.hasMetadata()) continue;
 				auto header = dataFrag.metadata<artdaq::NetMonHeader>();
 				msgs.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, dataFrag.dataBegin(), kFALSE, nullptr));
 			}
@@ -1066,6 +1069,10 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 
 			TLOG(TLVL_DEBUG + 47, "ArtdaqInputHelper") << "readNext: returning true on Event message.";
 			ret = true;
+		}
+		else {
+			// Did not have a valid message, try again
+			return false;
 		}
 	}
 
