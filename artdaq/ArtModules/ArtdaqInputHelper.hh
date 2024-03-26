@@ -144,7 +144,7 @@ private:
 	ArtdaqInputHelper(ArtdaqInputHelper&&) = delete;
 	ArtdaqInputHelper& operator=(ArtdaqInputHelper&&) = delete;
 
-	void readAndConstructPrincipal(std::unique_ptr<TBufferFile>&, ULong_t, art::RunPrincipal* const,
+	void readAndConstructPrincipal(std::unique_ptr<TBufferFile>&, artdaq::NetMonHeader::MessageType, art::RunPrincipal* const,
 	                               art::SubRunPrincipal* const, art::RunPrincipal*&, art::SubRunPrincipal*&,
 	                               art::EventPrincipal*&);
 
@@ -455,7 +455,7 @@ bool art::ArtdaqInputHelper<U>::hasMoreData() const
 }
 
 template<typename U>
-void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBufferFile>& msg, ULong_t msg_type_code,
+void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBufferFile>& msg, artdaq::NetMonHeader::MessageType msg_type_code,
                                                           art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR,
                                                           art::RunPrincipal*& outR, art::SubRunPrincipal*& outSR,
                                                           art::EventPrincipal*& outE)
@@ -472,7 +472,7 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 	outSR = nullptr;
 	outE = nullptr;
 
-	if (msg_type_code == 2)
+	if (msg_type_code == artdaq::NetMonHeader::MessageType::Run)
 	{  // EndRun message.
 
 		TLOG(TLVL_DEBUG + 37, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
@@ -496,7 +496,7 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 		TLOG(TLVL_DEBUG + 37, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
 		                                           << "finished processing EndRun message.";
 	}
-	else if (msg_type_code == 3)
+	else if (msg_type_code == artdaq::NetMonHeader::MessageType::Subrun)
 	{  // EndSubRun message.
 
 		TLOG(TLVL_DEBUG + 38, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
@@ -549,7 +549,7 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 		TLOG(TLVL_DEBUG + 38, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
 		                                           << "finished processing EndSubRun message.";
 	}
-	else if (msg_type_code == 4)
+	else if (msg_type_code == artdaq::NetMonHeader::MessageType::Event)
 	{  // Event message.
 
 		TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
@@ -560,6 +560,10 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 
 		subrun_aux.reset(
 		    ReadObjectAny<art::SubRunAuxiliary>(msg, "art::SubRunAuxiliary", "ArtdaqInputHelper::readAndConstructPrincipal"));
+		
+		// HACK! Make the SR PHID match!
+		printProcessHistoryID("readAndConstructPrincipal", subrun_aux.get());
+		subrun_aux->setProcessHistoryID(run_aux->processHistoryID());
 		printProcessHistoryID("readAndConstructPrincipal", subrun_aux.get());
 
 		event_aux.reset(
@@ -929,9 +933,8 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 		return false;
 	}
 
-	if (!fragmentsOnlyMode_ && !eventMap.count(artdaq::Fragment::DataFragmentType))
-	{
-		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "ArtdaqInputHelper::readNext got a message without a DataFragment";
+	if (eventMap.count(artdaq::Fragment::EndOfDataFragmentType)) {
+		TLOG(TLVL_ERROR, "ArtdaqInputHelper") << "Shutdown message received!";
 		shutdownMsgReceived_ = true;
 		TLOG(TLVL_DEBUG + 45, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::readNext";
 		return false;
@@ -959,16 +962,29 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 	else
 	{
 		std::list<std::unique_ptr<TBufferFile>> msgs;
-		for (auto& dataFrag : *(eventMap[artdaq::Fragment::DataFragmentType]))
-		{
-			auto header = dataFrag.metadata<artdaq::NetMonHeader>();
-			msgs.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, dataFrag.dataBegin(), kFALSE, nullptr));
-		}
+		if (eventMap.count(artdaq::Fragment::DataFragmentType))
+			for (auto& dataFrag : *(eventMap[artdaq::Fragment::DataFragmentType]))
+			{
+				auto header = dataFrag.metadata<artdaq::NetMonHeader>();
+				msgs.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, dataFrag.dataBegin(), kFALSE, nullptr));
+			}
+		if (eventMap.count(artdaq::Fragment::EndOfRunFragmentType))
+			for (auto& dataFrag : *(eventMap[artdaq::Fragment::EndOfRunFragmentType]))
+			{
+				auto header = dataFrag.metadata<artdaq::NetMonHeader>();
+				msgs.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, dataFrag.dataBegin(), kFALSE, nullptr));
+			}
+		if (eventMap.count(artdaq::Fragment::EndOfSubrunFragmentType))
+			for (auto& dataFrag : *(eventMap[artdaq::Fragment::EndOfSubrunFragmentType]))
+			{
+				auto header = dataFrag.metadata<artdaq::NetMonHeader>();
+				msgs.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, dataFrag.dataBegin(), kFALSE, nullptr));
+			}
 
 		//
 		//  Read message type code.
 		//
-		ULong_t msg_type_code = 0;
+		artdaq::NetMonHeader::MessageType msg_type_code = artdaq::NetMonHeader::MessageType::Invalid;
 		ULong_t msg_type_code_tmp = 0;
 		for (auto& msg : msgs)
 		{
@@ -978,9 +994,9 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 			TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "ArtdaqInputHelper::readNext: "
 			                                           << "message type: " << msg_type_code_tmp;
 
-			if (msg_type_code == 0)
-				msg_type_code = msg_type_code_tmp;
-			else if (msg_type_code != msg_type_code_tmp)
+			if (msg_type_code == artdaq::NetMonHeader::MessageType::Invalid)
+				msg_type_code = static_cast<artdaq::NetMonHeader::MessageType>(msg_type_code_tmp);
+			else if (msg_type_code != static_cast<artdaq::NetMonHeader::MessageType>(msg_type_code_tmp))
 			{
 				TLOG(TLVL_ERROR, "ArtdaqInputHelper") << "ArtdaqInputHelper::readNext: Received conflicting message type codes! Aborting...";
 
@@ -988,15 +1004,6 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 				TLOG(TLVL_DEBUG + 45, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::readNext";
 				return false;
 			}
-		}
-		if (msg_type_code == 5)
-		{
-			// Shutdown message.
-			shutdownMsgReceived_ = true;
-			TLOG(TLVL_DEBUG + 44, "ArtdaqInputHelper") << "ArtdaqInputHelper::readNext: "
-			                                           << "returning false on Shutdown message.";
-			TLOG(TLVL_DEBUG + 44, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::readNext";
-			return false;
 		}
 
 		for (auto& msg : msgs)
@@ -1006,7 +1013,7 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 		//
 		//  Read per-event metadata needed to construct principal.
 		//
-		if (msg_type_code == 2)
+		if (msg_type_code == artdaq::NetMonHeader::MessageType::Run)
 		{
 			// EndRun message.
 			// FIXME: We need to merge these into the input RunPrincipal.
@@ -1017,7 +1024,7 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 			TLOG(TLVL_DEBUG + 45, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::readNext";
 			return false;
 		}
-		else if (msg_type_code == 3)
+		else if (msg_type_code == artdaq::NetMonHeader::MessageType::Subrun)
 		{
 			// EndSubRun message.
 			// From the code above, EndRun and EndSubRun messages cause
@@ -1047,7 +1054,7 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 			TLOG(TLVL_DEBUG + 46, "ArtdaqInputHelper") << "readNext: returning true on EndSubRun message.";
 			ret = true;
 		}
-		else if (msg_type_code == 4)
+		else if (msg_type_code == artdaq::NetMonHeader::MessageType::Event)
 		{
 			// Event message.
 			readDataProducts(msgs, outE);

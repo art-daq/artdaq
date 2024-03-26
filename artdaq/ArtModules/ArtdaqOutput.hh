@@ -583,7 +583,7 @@ inline void art::ArtdaqOutput::write(EventPrincipal& ep)
 	//  Write message type code.
 	//
 	TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Streaming message type code ...";
-	msg->WriteULong(4);
+	msg->WriteULong(static_cast<ULong_t>(artdaq::NetMonHeader::MessageType::Event));
 	TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Finished streaming message type code.";
 
 	//
@@ -657,7 +657,7 @@ inline void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 	//
 	{
 		TLOG(TLVL_WRITERUN) << "ArtdaqOutput::writeRun: streaming message type code ...";
-		msg->WriteULong(2);
+		msg->WriteULong(static_cast<ULong_t>(artdaq::NetMonHeader::MessageType::Run));
 		TLOG(TLVL_WRITERUN) << "ArtdaqOutput::writeRun: finished streaming message type code.";
 	}
 	//
@@ -715,7 +715,7 @@ inline void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 	//
 	{
 		TLOG(TLVL_WRITESUBRUN) << "ArtdaqOutput::writeSubRun: streaming message type code ...";
-		msg->WriteULong(3);
+		msg->WriteULong(static_cast<ULong_t>(artdaq::NetMonHeader::MessageType::Subrun));
 		TLOG(TLVL_WRITESUBRUN) << "ArtdaqOutput::writeSubRun: finished streaming message type code.";
 	}
 	//
