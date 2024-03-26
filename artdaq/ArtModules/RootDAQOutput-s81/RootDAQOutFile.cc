@@ -372,13 +372,15 @@ bool RootDAQOutFile::shouldFastClone(bool const fastCloningSet,
 	if (fastCloning && !wantAllEvents)
 	{
 		result = false;
-		// mf::LogWarning("FastCloning")		    << "Fast cloning deactivated due to presence of\n"		    << "event selection configuration.";
+		mf::LogInfo("FastCloning") << "Fast cloning deactivated due to presence of\n"
+		                           << "event selection configuration.";
 	}
 	if (fastCloning && maxCriterionSpecified(cc) &&
 	    cc.granularity() < Granularity::InputFile)
 	{
 		result = false;
-		// mf::LogWarning("FastCloning")		    << "Fast cloning deactivated due to request to allow\n"		    << "output file switching at an Event, SubRun, or Run boundary.";
+		mf::LogInfo("FastCloning") << "Fast cloning deactivated due to request to allow\n"
+		                           << "output file switching at an Event, SubRun, or Run boundary.";
 	}
 	return result;
 }

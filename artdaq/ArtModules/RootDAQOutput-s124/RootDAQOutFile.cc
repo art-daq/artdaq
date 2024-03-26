@@ -550,7 +550,7 @@ void RootDAQOutFile::beginInputFile(RootFileBlock const* rfb,
 
 	if (not fastCloningEnabled)
 	{
-		//mf::LogWarning("FastCloning") << fastCloningEnabled.disabledBecause();
+		mf::LogInfo("FastCloning") << fastCloningEnabled.disabledBecause();
 		return;
 	}
 
