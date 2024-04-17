@@ -9,7 +9,7 @@ cet_build_plugin(FragmentSniffer art::EDAnalyzer
 #    message(STATUS "${_variableName}=${${_variableName}}")
 #endforeach()
 
-cet_test(daq_flow_t
+cet_test(daq_flow_t INSTALL_BIN
   LIBRARIES PRIVATE
   artdaq::ArtConfig
   artdaq::Application
@@ -23,7 +23,7 @@ cet_test(daq_flow_t
   DATAFILES daq_flow_t.fcl
 )
 
-cet_test(reconfigure_t
+cet_test(reconfigure_t INSTALL_BIN
   LIBRARIES
   artdaq::ArtConfig
   artdaq::Application

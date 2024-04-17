@@ -1,5 +1,5 @@
 
-cet_test(GenericFragmentSimulator_t USE_BOOST_UNIT
+cet_test(GenericFragmentSimulator_t USE_BOOST_UNIT INSTALL_BIN
   LIBRARIES PRIVATE
   artdaq_core::artdaq-core_Plugins
   artdaq_core::artdaq-core_Data

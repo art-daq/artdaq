@@ -1,4 +1,4 @@
-cet_test(CommandableFragmentGenerator_t USE_BOOST_UNIT
+cet_test(CommandableFragmentGenerator_t USE_BOOST_UNIT INSTALL_BIN
   LIBRARIES PRIVATE
   artdaq_plugin_types::CommandableFragmentGenerator
   artdaq::DAQdata
