@@ -22,20 +22,20 @@ cet_test(FragCounter_t USE_BOOST_UNIT
 
 # DataSenderManager is tested as part of the TransferTest
 
-cet_test(DataReceiverManager_t USE_BOOST_UNIT
+cet_test(DataReceiverManager_t USE_BOOST_UNIT INSTALL_BIN
   LIBRARIES PRIVATE
   artdaq::DAQrate
   artdaq::TransferPlugins
   artdaq::TransferPlugins_Shmem_transfer
 )
 
-cet_test(RequestSender_t USE_BOOST_UNIT
+cet_test(RequestSender_t USE_BOOST_UNIT INSTALL_BIN
   LIBRARIES PRIVATE
   artdaq::DAQrate
   artdaq_core::artdaq-core_Utilities
 )
 
-cet_test(SharedMemoryEventManager_t USE_BOOST_UNIT
+cet_test(SharedMemoryEventManager_t USE_BOOST_UNIT INSTALL_BIN
   LIBRARIES PRIVATE
   artdaq::DAQrate
   Threads::Threads
@@ -48,7 +48,7 @@ cet_test(requestsender HANDBUILT
   DATAFILES requestsender.fcl
 )
 
-cet_test(FragmentBuffer_t USE_BOOST_UNIT
+cet_test(FragmentBuffer_t USE_BOOST_UNIT INSTALL_BIN
   LIBRARIES PRIVATE
   artdaq::DAQrate
   artdaq_core::artdaq-core_Data
