@@ -87,7 +87,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 		if (id < first_fragment_id) first_fragment_id = id;
 		expectedTypes_[id] = artdaq::Fragment::EmptyFragmentType;
 	}
-	instance_name_for_metrics_ = "BoardReader." + boost::lexical_cast<std::string>(first_fragment_id);
+	instance_name_for_metrics_ = app_name + "." + boost::lexical_cast<std::string>(first_fragment_id);
 
 	sleep_on_stop_us_ = ps.get<int>("sleep_on_stop_us", 0);
 }
