@@ -37,11 +37,6 @@ public:
 	virtual ~ShmemWrapper() = default;
 
 	/**
-	 * \brief Receive a message from the ArtdaqSharedMemoryService
-	 * \return A list of unique_ptrs to received Fragments
-	 */
-	artdaq::FragmentPtrs receiveMessage();
-	/**
 	 * \brief Receive all messsages for an event from ArtdaqSharedMemoryService
 	 * \return A map of Fragment::type_t to a unique_ptr to Fragments containing all Fragments in an event
 	 */

@@ -6,6 +6,7 @@
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/ArtModules/InputUtilities.hh"
 
+#include "artdaq-core/Data/MetadataFragment.hh"
 #include "artdaq-core/Data/detail/ParentageMap.hh"
 #include "artdaq-core/Utilities/TimeUtils.hh"
 #include "artdaq/ArtModules/ArtdaqFragmentNamingService.h"
@@ -164,7 +165,7 @@ private:
 	void putInPrincipal(EventPrincipal*&, std::unique_ptr<EDProduct>&&, const BranchDescription&,
 	                    std::unique_ptr<const ProductProvenance>&&);
 
-	void readFragments(std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> const& eventMap, art::EventPrincipal*& outE);
+	void readFragments(std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> const& eventMap, art::RunPrincipal*& outR, art::SubRunPrincipal*& outSR, art::EventPrincipal*& outE);
 
 	bool shutdownMsgReceived_;
 	bool outputFileCloseNeeded_;
@@ -560,7 +561,7 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 
 		subrun_aux.reset(
 		    ReadObjectAny<art::SubRunAuxiliary>(msg, "art::SubRunAuxiliary", "ArtdaqInputHelper::readAndConstructPrincipal"));
-		
+
 		// HACK! Make the SR PHID match!
 		printProcessHistoryID("readAndConstructPrincipal", subrun_aux.get());
 		subrun_aux->setProcessHistoryID(run_aux->processHistoryID());
@@ -668,7 +669,7 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 		outR = pm_.makeRunPrincipal(evtHeader->run_id, currentTime);
 	}
 
-	if (firstFragmentType == artdaq::Fragment::EndOfRunFragmentType)
+	if (firstFragmentType == artdaq::Fragment::EndOfRunFragmentType || firstFragmentType == artdaq::Fragment::EndOfRunDataFragmentType)
 	{
 		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "EndOfRunFragment received, returning Flush event";
 		art::EventID const evid(art::EventID::flushEvent());
@@ -677,7 +678,7 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 		outE = pm_.makeEventPrincipal(evid, currentTime);
 		return true;
 	}
-	else if (firstFragmentType == artdaq::Fragment::EndOfSubrunFragmentType)
+	else if (firstFragmentType == artdaq::Fragment::EndOfSubrunFragmentType || firstFragmentType == artdaq::Fragment::EndOfSubrunDataFragmentType)
 	{
 		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "EndOfSubrunFragment received, creating new Subrun Principal";
 		// Check if inR == 0 or is a new run
@@ -838,7 +839,7 @@ void art::ArtdaqInputHelper<U>::putInPrincipal(EventPrincipal*& ep, std::unique_
 }
 
 template<typename U>
-void art::ArtdaqInputHelper<U>::readFragments(std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> const& eventMap, art::EventPrincipal*& outE)
+void art::ArtdaqInputHelper<U>::readFragments(std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> const& eventMap, art::RunPrincipal*& outR, art::SubRunPrincipal*& outSR, art::EventPrincipal*& outE)
 {
 	// Now read in Fragments
 	double fragmentLatency = 0;
@@ -851,9 +852,76 @@ void art::ArtdaqInputHelper<U>::readFragments(std::unordered_map<artdaq::Fragmen
 	for (auto& fragmentTypePair : eventMap)
 	{
 		auto type_code = fragmentTypePair.first;
-		if (type_code == artdaq::Fragment::DataFragmentType || type_code == artdaq::Fragment::EndOfDataFragmentType || type_code == artdaq::Fragment::InitFragmentType || type_code == artdaq::Fragment::EndOfRunFragmentType || type_code == artdaq::Fragment::EndOfSubrunFragmentType || type_code == artdaq::Fragment::ShutdownFragmentType)
+		if (artdaq::Fragment::isSystemFragmentType(type_code) && type_code != artdaq::Fragment::ContainerFragmentType)
 		{
-			TLOG(TLVL_DEBUG + 33, "ArtdaqInputHelper") << "Skipping system Fragment with type " << static_cast<int>(type_code) << " ( " << translator->GetInstanceNameForType(type_code) << " )";
+			if (type_code == artdaq::Fragment::EndOfRunFragmentType || type_code == artdaq::Fragment::StartOfRunFragmentType)
+			{
+				std::unordered_map<std::string, std::unique_ptr<std::vector<artdaq::ArtdaqMetadata>>> metadata_coll;
+				for (auto& frag : *fragmentTypePair.second)
+				{
+					artdaq::MetadataFragment mf(frag);
+					auto md = mf.get_metadata();
+
+					std::pair<bool, std::string> instance_name_result =
+					    translator->GetInstanceNameForFragment(frag);
+					std::string label = instance_name_result.second;
+					if (!instance_name_result.first)
+					{
+						TLOG_WARNING("ArtdaqInputHelper")
+						    << "UnknownFragmentType: The product instance name mapping for fragment type \"" << static_cast<int>(type_code)
+						    << "\" is not known. Fragments of this "
+						    << "type will be stored in the event with an instance name of \"" << label << "\".";
+					}
+					if (!metadata_coll.count(label))
+					{
+						TLOG(TLVL_DEBUG + 44, "ArtdaqInputHelper") << "Creating output ArtdaqMetadata storage for label " << label;
+						metadata_coll[label] = std::make_unique<std::vector<artdaq::ArtdaqMetadata>>();
+					}
+					TLOG(TLVL_DEBUG + 44, "ArtdaqInputHelper") << "Adding Fragment " << frag.fragmentID() << " to storage with label " << label << " (sz=" << metadata_coll[label]->size() + 1 << ")";
+					metadata_coll[label]->push_back(md);
+				}
+				for (auto& type : metadata_coll)
+				{
+					TLOG(TLVL_DEBUG + 44, "ArtdaqInputHelper") << "Adding " << type.second->size() << " ArtdaqMetadatas with label " << type.first << " to Run.";
+					put_product_in_principal(std::move(type.second), *outR, pretend_module_name, type.first);
+				}
+			}
+			else if (type_code == artdaq::Fragment::EndOfSubrunFragmentType || type_code == artdaq::Fragment::StartOfSubrunFragmentType)
+			{
+				std::unordered_map<std::string, std::unique_ptr<std::vector<artdaq::ArtdaqMetadata>>> metadata_coll;
+				for (auto& frag : *fragmentTypePair.second)
+				{
+					artdaq::MetadataFragment mf(frag);
+					auto md = mf.get_metadata();
+
+					std::pair<bool, std::string> instance_name_result =
+					    translator->GetInstanceNameForFragment(frag);
+					std::string label = instance_name_result.second;
+					if (!instance_name_result.first)
+					{
+						TLOG_WARNING("ArtdaqInputHelper")
+						    << "UnknownFragmentType: The product instance name mapping for fragment type \"" << static_cast<int>(type_code)
+						    << "\" is not known. Fragments of this "
+						    << "type will be stored in the event with an instance name of \"" << label << "\".";
+					}
+					if (!metadata_coll.count(label))
+					{
+						TLOG(TLVL_DEBUG + 44, "ArtdaqInputHelper") << "Creating output ArtdaqMetadata storage for label " << label;
+						metadata_coll[label] = std::make_unique<std::vector<artdaq::ArtdaqMetadata>>();
+					}
+					TLOG(TLVL_DEBUG + 44, "ArtdaqInputHelper") << "Adding Fragment " << frag.fragmentID() << " to storage with label " << label << " (sz=" << metadata_coll[label]->size() + 1 << ")";
+					metadata_coll[label]->push_back(md);
+				}
+				for (auto& type : metadata_coll)
+				{
+					TLOG(TLVL_DEBUG + 44, "ArtdaqInputHelper") << "Adding " << type.second->size() << " ArtdaqMetadatas with label " << type.first << " to SubRun.";
+					put_product_in_principal(std::move(type.second), *outSR, pretend_module_name, type.first);
+				}
+			}
+			else
+			{
+				TLOG(TLVL_DEBUG + 33, "ArtdaqInputHelper") << "Skipping system Fragment with type " << static_cast<int>(type_code) << " ( " << translator->GetInstanceNameForType(type_code) << " )";
+			}
 			continue;
 		}
 		TLOG(TLVL_DEBUG + 33, "ArtdaqInputHelper") << "type is " << static_cast<int>(type_code) << ", number of fragments is " << fragmentTypePair.second->size();
@@ -933,7 +1001,8 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 		return false;
 	}
 
-	if (eventMap.count(artdaq::Fragment::EndOfDataFragmentType)) {
+	if (eventMap.count(artdaq::Fragment::EndOfDataFragmentType))
+	{
 		TLOG(TLVL_ERROR, "ArtdaqInputHelper") << "Shutdown message received!";
 		shutdownMsgReceived_ = true;
 		TLOG(TLVL_DEBUG + 45, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::readNext";
@@ -951,7 +1020,7 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 		TLOG(TLVL_DEBUG + 32, "ArtdaqInputHelper") << "First Fragment type is " << static_cast<int>(firstFragmentType);
 		if (constructPrincipal(firstFragmentType, inR, inSR, outR, outSR, outE))
 		{
-			readFragments(eventMap, outE);
+			readFragments(eventMap, outR, outSR, outE);
 			ret = true;
 		}
 		else
@@ -969,15 +1038,15 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 				auto header = dataFrag.metadata<artdaq::NetMonHeader>();
 				msgs.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, dataFrag.dataBegin(), kFALSE, nullptr));
 			}
-		if (eventMap.count(artdaq::Fragment::EndOfRunFragmentType))
-			for (auto& dataFrag : *(eventMap[artdaq::Fragment::EndOfRunFragmentType]))
+		if (eventMap.count(artdaq::Fragment::EndOfRunDataFragmentType))
+			for (auto& dataFrag : *(eventMap[artdaq::Fragment::EndOfRunDataFragmentType]))
 			{
 				if (!dataFrag.hasMetadata()) continue;
 				auto header = dataFrag.metadata<artdaq::NetMonHeader>();
 				msgs.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, dataFrag.dataBegin(), kFALSE, nullptr));
 			}
-		if (eventMap.count(artdaq::Fragment::EndOfSubrunFragmentType))
-			for (auto& dataFrag : *(eventMap[artdaq::Fragment::EndOfSubrunFragmentType]))
+		if (eventMap.count(artdaq::Fragment::EndOfSubrunDataFragmentType))
+			for (auto& dataFrag : *(eventMap[artdaq::Fragment::EndOfSubrunDataFragmentType]))
 			{
 				if (!dataFrag.hasMetadata()) continue;
 				auto header = dataFrag.metadata<artdaq::NetMonHeader>();
@@ -1064,13 +1133,14 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 
 			if (eventMap.size() > 1)
 			{
-				readFragments(eventMap, outE);
+				readFragments(eventMap, outR, outSR, outE);
 			}
 
 			TLOG(TLVL_DEBUG + 47, "ArtdaqInputHelper") << "readNext: returning true on Event message.";
 			ret = true;
 		}
-		else {
+		else
+		{
 			// Did not have a valid message, try again
 			return false;
 		}
