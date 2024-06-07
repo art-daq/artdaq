@@ -468,7 +468,10 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 					break;
 			}
 			
-			shm_manager_->BroadcastFragment(frag);
+			if (header.type != Fragment::InitFragmentType)
+			{
+				shm_manager_->BroadcastFragment(frag);
+			}
 		}
 	}
 

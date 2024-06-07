@@ -402,10 +402,20 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 			helper.reconstitutes<artdaq::Fragments, art::InRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
 			helper.reconstitutes<artdaq::Fragments, art::InSubRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
 
+			helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
+			helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InSubRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
+
 			std::set<std::string> instance_names = translator->GetAllProductInstanceNames();
 			for (const auto& set_iter : instance_names)
 			{
 				helper.reconstitutes<artdaq::Fragments, art::InEvent>(pretend_module_name, set_iter);
+
+				if (set_iter.find("EndOf") == 0 || set_iter.find("StartOf") == 0)
+				{
+					helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InRun>(pretend_module_name,set_iter);
+					helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InSubRun>(pretend_module_name, set_iter);
+
+				}
 			}
 		}
 		//
@@ -668,8 +678,22 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Making run principal with run_id " << evtHeader->run_id;
 		outR = pm_.makeRunPrincipal(evtHeader->run_id, currentTime);
 	}
+	else {
+		outR = inR;
+	}
 
-	if (firstFragmentType == artdaq::Fragment::EndOfRunFragmentType || firstFragmentType == artdaq::Fragment::EndOfRunDataFragmentType)
+	// make new subrun if inSR is 0 or if the subrun has changed
+	art::SubRunID subrun_check(evtHeader->run_id, evtHeader->subrun_id);
+	if (inSR == nullptr || subrun_check != inSR->subRunID())
+	{
+		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Making subrun principal with subrun_id " << evtHeader->subrun_id;
+		outSR = pm_.makeSubRunPrincipal(evtHeader->run_id, evtHeader->subrun_id, currentTime);
+	}
+	else {
+		outSR = inSR;
+	}
+
+	if (firstFragmentType == artdaq::Fragment::EndOfRunFragmentType || firstFragmentType == artdaq::Fragment::EndOfRunDataFragmentType || firstFragmentType == artdaq::Fragment::StartOfRunFragmentType)
 	{
 		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "EndOfRunFragment received, returning Flush event";
 		art::EventID const evid(art::EventID::flushEvent());
@@ -678,7 +702,7 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 		outE = pm_.makeEventPrincipal(evid, currentTime);
 		return true;
 	}
-	else if (firstFragmentType == artdaq::Fragment::EndOfSubrunFragmentType || firstFragmentType == artdaq::Fragment::EndOfSubrunDataFragmentType)
+	else if (firstFragmentType == artdaq::Fragment::EndOfSubrunFragmentType || firstFragmentType == artdaq::Fragment::EndOfSubrunDataFragmentType || firstFragmentType == artdaq::Fragment::StartOfSubrunFragmentType)
 	{
 		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "EndOfSubrunFragment received, creating new Subrun Principal";
 		// Check if inR == 0 or is a new run
@@ -720,13 +744,6 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 		return true;
 	}
 
-	// make new subrun if inSR is 0 or if the subrun has changed
-	art::SubRunID subrun_check(evtHeader->run_id, evtHeader->subrun_id);
-	if (inSR == nullptr || subrun_check != inSR->subRunID())
-	{
-		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Making subrun principal with subrun_id " << evtHeader->subrun_id;
-		outSR = pm_.makeSubRunPrincipal(evtHeader->run_id, evtHeader->subrun_id, currentTime);
-	}
 	TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Making event principal with event_id " << evtHeader->event_id;
 	outE = pm_.makeEventPrincipal(evtHeader->run_id, evtHeader->subrun_id, evtHeader->event_id, currentTime);
 	return true;
@@ -962,6 +979,7 @@ void art::ArtdaqInputHelper<U>::readFragments(std::unordered_map<artdaq::Fragmen
 			put_product_in_principal(std::move(type.second), *outE, pretend_module_name, type.first);
 		}
 	}
+	
 	if (metricMan)
 	{
 		metricMan->sendMetric("bytesRead", bytesRead, "B", 3, artdaq::MetricMode::LastPoint);

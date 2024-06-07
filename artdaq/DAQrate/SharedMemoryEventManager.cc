@@ -213,7 +213,7 @@ bool artdaq::SharedMemoryEventManager::AddFragment(FragmentPtr frag, size_t time
 artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detail::RawFragmentHeader frag, bool dropIfNoBuffersAvailable)
 {
 	if (!running_) return nullptr;
-	TLOG(TLVL_DEBUG + 34) << "WriteFragmentHeader BEGIN";
+	TLOG(TLVL_DEBUG + 34) << "WriteFragmentHeader BEGIN, seqID=" << frag.sequence_id;
 	auto buffer = getBufferForSequenceID_(frag.sequence_id, true, frag.timestamp);
 
 	if (buffer < 0)
@@ -230,6 +230,7 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 			{
 				metricMan->sendMetric("Back-pressure wait time", TimeUtils::GetElapsedTime(last_fragment_header_write_time_), "s", 1, MetricMode::LastPoint);
 			}
+			TLOG(TLVL_DEBUG + 35) << "No shared memory buffers available, seqID=" << frag.sequence_id;
 			return nullptr;
 		}
 		if (buffer == -2)
@@ -259,11 +260,11 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 		metricMan->sendMetric("Input Fragment Rate", 1, "Fragments/s", 1, MetricMode::Rate);
 	}
 
-	TLOG(TLVL_BUFLCK) << "WriteFragmentHeader: obtaining buffer_mutexes lock for buffer " << buffer;
+	TLOG(TLVL_BUFLCK) << "WriteFragmentHeader: obtaining buffer_mutexes lock for buffer " << buffer << ", seqID=" << frag.sequence_id;;
 
 	std::unique_lock<std::mutex> lk(buffer_mutexes_.at(buffer));
 
-	TLOG(TLVL_BUFLCK) << "WriteFragmentHeader: obtained buffer_mutexes lock for buffer " << buffer;
+	TLOG(TLVL_BUFLCK) << "WriteFragmentHeader: obtained buffer_mutexes lock for buffer " << buffer << ", seqID=" << frag.sequence_id;
 
 	auto hdrpos = reinterpret_cast<RawDataType*>(GetWritePos(buffer));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 	Write(buffer, &frag, frag.num_words() * sizeof(RawDataType));
@@ -293,7 +294,7 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 			return it->second->dataBegin();
 		}
 	}
-	TLOG(TLVL_DEBUG + 34) << "WriteFragmentHeader END";
+	TLOG(TLVL_DEBUG + 34) << "WriteFragmentHeader END, seqID=" << frag.sequence_id;
 	return pos;
 }
 
@@ -400,9 +401,9 @@ size_t artdaq::SharedMemoryEventManager::GetFragmentCountInBuffer(int buffer, Fr
 	{
 		auto fragHdr = reinterpret_cast<artdaq::detail::RawFragmentHeader*>(GetReadPos(buffer));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 		IncrementReadPos(buffer, fragHdr->word_count * sizeof(RawDataType));
-		if (type != Fragment::ErrorFragmentType && fragHdr->type != type)
+		if (type != Fragment::InvalidFragmentType && fragHdr->type != type)
 		{
-			// Skip fragments with the ErrorFragmentType, as they were over-size and truncated to the header
+			// Skip fragments with the wrong type, as they were over-size and truncated to the header
 			continue;
 		}
 		TLOG(TLVL_DEBUG + 33) << "Adding Fragment with size=" << fragHdr->word_count << " to Fragment count";
@@ -1455,6 +1456,12 @@ void artdaq::SharedMemoryEventManager::BroadcastFragment(FragmentPtr& frag, std:
 	{
 		std::lock_guard<std::mutex> lk(broadcast_mutex_);
 		broadcast_fragments_.push_back(std::move(frag));
+
+		if (broadcast_fragments_.size() >= num_fragments_per_event_) {
+			broadcastFragments_(broadcast_fragments_);
+			broadcast_fragments_.clear();
+			next_scheduled_broadcast_ = std::chrono::steady_clock::now() + std::chrono::seconds(3600);
+		}
 
 		auto then = std::chrono::steady_clock::now() + max_delay;
 		if (then < next_scheduled_broadcast_)
