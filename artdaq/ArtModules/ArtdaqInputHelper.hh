@@ -165,7 +165,7 @@ private:
 	void putInPrincipal(EventPrincipal*&, std::unique_ptr<EDProduct>&&, const BranchDescription&,
 	                    std::unique_ptr<const ProductProvenance>&&);
 
-	void readFragments(std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> const& eventMap, art::RunPrincipal*& outR, art::SubRunPrincipal*& outSR, art::EventPrincipal*& outE);
+	std::pair<bool, bool> readFragments(std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> const& eventMap, art::RunPrincipal* const theRun, art::SubRunPrincipal* const theSubRun, art::EventPrincipal* const theEvent);
 
 	bool shutdownMsgReceived_;
 	bool outputFileCloseNeeded_;
@@ -404,18 +404,15 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 
 			helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
 			helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InSubRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
+			helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InRun>(pretend_module_name, "StartOfRun");
+			helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InRun>(pretend_module_name, "EndOfRun");
+			helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InSubRun>(pretend_module_name, "StartOfSubrun");
+			helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InSubRun>(pretend_module_name, "EndOfSubrun");
 
 			std::set<std::string> instance_names = translator->GetAllProductInstanceNames();
 			for (const auto& set_iter : instance_names)
 			{
 				helper.reconstitutes<artdaq::Fragments, art::InEvent>(pretend_module_name, set_iter);
-
-				if (set_iter.find("EndOf") == 0 || set_iter.find("StartOf") == 0)
-				{
-					helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InRun>(pretend_module_name,set_iter);
-					helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InSubRun>(pretend_module_name, set_iter);
-
-				}
 			}
 		}
 		//
@@ -678,9 +675,6 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Making run principal with run_id " << evtHeader->run_id;
 		outR = pm_.makeRunPrincipal(evtHeader->run_id, currentTime);
 	}
-	else {
-		outR = inR;
-	}
 
 	// make new subrun if inSR is 0 or if the subrun has changed
 	art::SubRunID subrun_check(evtHeader->run_id, evtHeader->subrun_id);
@@ -689,11 +683,8 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Making subrun principal with subrun_id " << evtHeader->subrun_id;
 		outSR = pm_.makeSubRunPrincipal(evtHeader->run_id, evtHeader->subrun_id, currentTime);
 	}
-	else {
-		outSR = inSR;
-	}
 
-	if (firstFragmentType == artdaq::Fragment::EndOfRunFragmentType || firstFragmentType == artdaq::Fragment::EndOfRunDataFragmentType || firstFragmentType == artdaq::Fragment::StartOfRunFragmentType)
+	if (firstFragmentType == artdaq::Fragment::EndOfRunFragmentType || firstFragmentType == artdaq::Fragment::EndOfRunDataFragmentType)
 	{
 		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "EndOfRunFragment received, returning Flush event";
 		art::EventID const evid(art::EventID::flushEvent());
@@ -702,7 +693,7 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 		outE = pm_.makeEventPrincipal(evid, currentTime);
 		return true;
 	}
-	else if (firstFragmentType == artdaq::Fragment::EndOfSubrunFragmentType || firstFragmentType == artdaq::Fragment::EndOfSubrunDataFragmentType || firstFragmentType == artdaq::Fragment::StartOfSubrunFragmentType)
+	else if (firstFragmentType == artdaq::Fragment::EndOfSubrunFragmentType || firstFragmentType == artdaq::Fragment::EndOfSubrunDataFragmentType)
 	{
 		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "EndOfSubrunFragment received, creating new Subrun Principal";
 		// Check if inR == 0 or is a new run
@@ -856,12 +847,15 @@ void art::ArtdaqInputHelper<U>::putInPrincipal(EventPrincipal*& ep, std::unique_
 }
 
 template<typename U>
-void art::ArtdaqInputHelper<U>::readFragments(std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> const& eventMap, art::RunPrincipal*& outR, art::SubRunPrincipal*& outSR, art::EventPrincipal*& outE)
+std::pair<bool, bool> art::ArtdaqInputHelper<U>::readFragments(std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> const& eventMap, art::RunPrincipal* const theRun, art::SubRunPrincipal* const theSubRun, art::EventPrincipal* const theEvent)
 {
 	// Now read in Fragments
 	double fragmentLatency = 0;
 	double fragmentLatencyMax = 0.0;
 	size_t fragmentCount = 0;
+
+	bool eventProductsRead = false;
+	bool subrunProductsRead = false;
 
 	art::ServiceHandle<ArtdaqFragmentNamingServiceInterface> translator;
 
@@ -900,7 +894,7 @@ void art::ArtdaqInputHelper<U>::readFragments(std::unordered_map<artdaq::Fragmen
 				for (auto& type : metadata_coll)
 				{
 					TLOG(TLVL_DEBUG + 44, "ArtdaqInputHelper") << "Adding " << type.second->size() << " ArtdaqMetadatas with label " << type.first << " to Run.";
-					put_product_in_principal(std::move(type.second), *outR, pretend_module_name, type.first);
+					put_product_in_principal(std::move(type.second), *theRun, pretend_module_name, type.first);
 				}
 			}
 			else if (type_code == artdaq::Fragment::EndOfSubrunFragmentType || type_code == artdaq::Fragment::StartOfSubrunFragmentType)
@@ -932,7 +926,8 @@ void art::ArtdaqInputHelper<U>::readFragments(std::unordered_map<artdaq::Fragmen
 				for (auto& type : metadata_coll)
 				{
 					TLOG(TLVL_DEBUG + 44, "ArtdaqInputHelper") << "Adding " << type.second->size() << " ArtdaqMetadatas with label " << type.first << " to SubRun.";
-					put_product_in_principal(std::move(type.second), *outSR, pretend_module_name, type.first);
+					put_product_in_principal(std::move(type.second), *theSubRun, pretend_module_name, type.first);
+					subrunProductsRead = true;
 				}
 			}
 			else
@@ -976,7 +971,8 @@ void art::ArtdaqInputHelper<U>::readFragments(std::unordered_map<artdaq::Fragmen
 		for (auto& type : derived_fragments)
 		{
 			TLOG(TLVL_DEBUG + 44, "ArtdaqInputHelper") << "Adding " << type.second->size() << " Fragments with label " << type.first << " to event.";
-			put_product_in_principal(std::move(type.second), *outE, pretend_module_name, type.first);
+			put_product_in_principal(std::move(type.second), *theEvent, pretend_module_name, type.first);
+			eventProductsRead = true;
 		}
 	}
 	
@@ -987,6 +983,8 @@ void art::ArtdaqInputHelper<U>::readFragments(std::unordered_map<artdaq::Fragmen
 		metricMan->sendMetric("ArtdaqInputHelper Latency", fragmentLatency / fragmentCount, "s", 4, artdaq::MetricMode::Average);
 		metricMan->sendMetric("ArtdaqInputHelper Maximum Latency", fragmentLatencyMax, "s", 4, artdaq::MetricMode::Maximum);
 	}
+
+	return std::make_pair(subrunProductsRead, eventProductsRead);
 }
 
 template<typename U>
@@ -1038,8 +1036,26 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 		TLOG(TLVL_DEBUG + 32, "ArtdaqInputHelper") << "First Fragment type is " << static_cast<int>(firstFragmentType);
 		if (constructPrincipal(firstFragmentType, inR, inSR, outR, outSR, outE))
 		{
-			readFragments(eventMap, outR, outSR, outE);
-			ret = true;
+			auto rfret = readFragments(eventMap, outR ? outR : inR, outSR ? outSR : inSR, outE);
+			if (!rfret.second) {
+				delete outE;
+				outE = nullptr;
+
+				if (!rfret.first && outSR != nullptr && inSR != nullptr) {
+					delete outSR;
+					outSR = nullptr;
+
+					ret = inR != outR;
+				}
+				else
+				{
+					ret = inSR != outSR;
+				}
+			}
+			else
+			{
+				ret = true;
+			}
 		}
 		else
 		{
@@ -1151,7 +1167,7 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 
 			if (eventMap.size() > 1)
 			{
-				readFragments(eventMap, outR, outSR, outE);
+				readFragments(eventMap, outR ? outR : inR, outSR ? outSR : inSR, outE);
 			}
 
 			TLOG(TLVL_DEBUG + 47, "ArtdaqInputHelper") << "readNext: returning true on Event message.";
