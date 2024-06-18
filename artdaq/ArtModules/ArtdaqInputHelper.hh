@@ -975,7 +975,7 @@ std::pair<bool, bool> art::ArtdaqInputHelper<U>::readFragments(std::unordered_ma
 			eventProductsRead = true;
 		}
 	}
-	
+
 	if (metricMan)
 	{
 		metricMan->sendMetric("bytesRead", bytesRead, "B", 3, artdaq::MetricMode::LastPoint);
@@ -992,7 +992,6 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
                                          art::RunPrincipal*& outR, art::SubRunPrincipal*& outSR, art::EventPrincipal*& outE)
 {
 	TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Begin: ArtdaqInputHelper::readNext";
-	bool ret = false;
 
 	if (outputFileCloseNeeded_)
 	{
@@ -1037,29 +1036,27 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 		if (constructPrincipal(firstFragmentType, inR, inSR, outR, outSR, outE))
 		{
 			auto rfret = readFragments(eventMap, outR ? outR : inR, outSR ? outSR : inSR, outE);
-			if (!rfret.second) {
+
+			// No event data
+			if (!rfret.second)
+			{
 				delete outE;
 				outE = nullptr;
 
-				if (!rfret.first && outSR != nullptr && inSR != nullptr) {
-					delete outSR;
-					outSR = nullptr;
-
-					ret = inR != outR;
-				}
-				else
+				if (inSR != nullptr && outSR != nullptr)
 				{
-					ret = inSR != outSR;
+					// No products added to subrun
+					if (!rfret.first)
+					{
+						// New subrun is identical to old
+						if (inSR->subRunID() == outSR->subRunID())
+						{
+							delete outSR;
+							outSR = nullptr;
+						}
+					}
 				}
 			}
-			else
-			{
-				ret = true;
-			}
-		}
-		else
-		{
-			ret = false;
 		}
 	}
 	else
@@ -1158,7 +1155,6 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 			// we are called.
 			outputFileCloseNeeded_ = true;
 			TLOG(TLVL_DEBUG + 46, "ArtdaqInputHelper") << "readNext: returning true on EndSubRun message.";
-			ret = true;
 		}
 		else if (msg_type_code == artdaq::NetMonHeader::MessageType::Event)
 		{
@@ -1171,7 +1167,6 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 			}
 
 			TLOG(TLVL_DEBUG + 47, "ArtdaqInputHelper") << "readNext: returning true on Event message.";
-			ret = true;
 		}
 		else
 		{
@@ -1205,9 +1200,9 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 		                      3, artdaq::MetricMode::Average);
 	}
 
-	TLOG(TLVL_DEBUG + 48, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::readNext ret=" << std::boolalpha << ret;
+	TLOG(TLVL_DEBUG + 48, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::readNext ret=" << std::boolalpha << (outR || outSR || outE);
 	last_read_time = std::chrono::steady_clock::now();
-	return ret;
+	return outR || outSR || outE;
 }
 
 #endif  // ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQINPUTHELPER_HH_
