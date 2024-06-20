@@ -443,12 +443,10 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 					shm_manager_->AddInitFragment(frag);
 					break;
 				case Fragment::EndOfRunFragmentType:
-				case Fragment::EndOfRunDataFragmentType:
 					shm_manager_->setRequestMode(detail::RequestMessageMode::EndOfRun);
 					// shm_manager_->endRun();
 					break;
 				case Fragment::EndOfSubrunFragmentType:
-				case Fragment::EndOfSubrunDataFragmentType:
 					// shm_manager_->setRequestMode(detail::RequestMessageMode::EndOfRun);
 					TLOG(TLVL_DEBUG + 32) << "Received EndOfSubrun Fragment from rank " << source_rank
 					                      << " with sequence_id " << header.sequence_id << ".";

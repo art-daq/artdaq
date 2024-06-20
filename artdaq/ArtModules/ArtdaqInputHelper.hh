@@ -480,127 +480,92 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 	outSR = nullptr;
 	outE = nullptr;
 
-	if (msg_type_code == artdaq::NetMonHeader::MessageType::Run)
-	{  // EndRun message.
+	// Process Run Aux
+	TLOG(TLVL_DEBUG + 37, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
+	                                           << "processing Run auxiliary ...";
 
-		TLOG(TLVL_DEBUG + 37, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
-		                                           << "processing EndRun message ...";
+	run_aux.reset(ReadObjectAny<art::RunAuxiliary>(msg, "art::RunAuxiliary", "ArtdaqInputHelper::readAndConstructPrincipal"));
+	printProcessHistoryID("readAndConstructPrincipal", run_aux.get());
 
-		run_aux.reset(ReadObjectAny<art::RunAuxiliary>(msg, "art::RunAuxiliary", "ArtdaqInputHelper::readAndConstructPrincipal"));
-		printProcessHistoryID("readAndConstructPrincipal", run_aux.get());
+	TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
+	                                           << "inR: " << static_cast<void*>(inR) << " run/expected "
+	                                           << (inR ? std::to_string(inR->run()) : "invalid") << "/" << run_aux->run();
 
-		TLOG(TLVL_DEBUG + 37, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
-		                                           << "making flush RunPrincipal ...";
-		outR = pm_.makeRunPrincipal(RunID::flushRun(), run_aux->beginTime());
-
-		TLOG(TLVL_DEBUG + 37, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
-		                                           << "making flush SubRunPrincipal ...";
-		outSR = pm_.makeSubRunPrincipal(SubRunID::flushSubRun(), run_aux->beginTime());
-
-		TLOG(TLVL_DEBUG + 37, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
-		                                           << "making flush EventPrincipal ...";
-		outE = pm_.makeEventPrincipal(EventID::flushEvent(), run_aux->endTime(), true, EventAuxiliary::Any);
-
-		TLOG(TLVL_DEBUG + 37, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
-		                                           << "finished processing EndRun message.";
+	if ((inR == nullptr) || !inR->runID().isValid() || (inR->run() != run_aux->run()))
+	{
+		// New run, either we have no input RunPrincipal, or the
+		// input run number does not match the run number.
+		TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: making RunPrincipal ...";
+		outR = pm_.makeRunPrincipal(*run_aux);
 	}
-	else if (msg_type_code == artdaq::NetMonHeader::MessageType::Subrun)
-	{  // EndSubRun message.
 
+	TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
+	                                           << "finished processing Run auxiliary.";
+
+	if (msg_type_code != artdaq::NetMonHeader::MessageType::Run)
+	{
 		TLOG(TLVL_DEBUG + 38, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
-		                                           << "processing EndSubRun message ...";
+		                                           << "processing SubRun auxiliary ...";
 
 		subrun_aux.reset(
 		    ReadObjectAny<art::SubRunAuxiliary>(msg, "art::SubRunAuxiliary", "ArtdaqInputHelper::readAndConstructPrincipal"));
 		printProcessHistoryID("readAndConstructPrincipal", subrun_aux.get());
-
-		TLOG(TLVL_DEBUG + 38, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
-		                                           << "making flush RunPrincipal ...";
-		outR = pm_.makeRunPrincipal(RunID::flushRun(), subrun_aux->beginTime());
-
-		// 28-Feb-2014, KAB: added the setting of the end time in the *current*
-		// run and subrun.  This is how we set the endTime in the RunPrincipal
-		// and SubRunPrincipal objects that are written to the disk file.
-		// This needs to happen here because:
-		// A) setting them in every event doesn't work because the RunPrincipal
-		//    only allows us to set an end time value once
-		// B) setting them in the "outputFileCloseNeeded_" block in the readNext()
-		//    method below doesn't work because that is too late.  When this
-		//    method returns an outR with a different run number (flushRun),
-		//    the art output system closes the current file then.
-		// C) setting them in the EndRun message block immediately above this
-		//    block wouldn't work because a) we're not currently sending endRun
-		//    events from the EBs to the AG, and b) because presumably that would
-		//    be too late, also.
-
-#if ART_HEX_VERSION < 0x31100
-		// 9-Mar-2022, KJK: Setting times of input principals is suspect.
-		art::Timestamp currentTime = time(nullptr);
-		if (inR != nullptr)
-		{
-			inR->endTime(currentTime);
-		}
-		if (inSR != nullptr)
-		{
-			inSR->endTime(currentTime);
-		}
-#endif
-
-		TLOG(TLVL_DEBUG + 38, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
-		                                           << "making flush SubRunPrincipal ...";
-		outSR = pm_.makeSubRunPrincipal(SubRunID::flushSubRun(), subrun_aux->beginTime());
-
-		TLOG(TLVL_DEBUG + 38, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
-		                                           << "making flush EventPrincipal ...";
-		outE = pm_.makeEventPrincipal(EventID::flushEvent(), subrun_aux->endTime(), true, EventAuxiliary::Any);
-
-		TLOG(TLVL_DEBUG + 38, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
-		                                           << "finished processing EndSubRun message.";
-	}
-	else if (msg_type_code == artdaq::NetMonHeader::MessageType::Event)
-	{  // Event message.
-
-		TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
-		                                           << "processing Event message ...";
-
-		run_aux.reset(ReadObjectAny<art::RunAuxiliary>(msg, "art::RunAuxiliary", "ArtdaqInputHelper::readAndConstructPrincipal"));
-		printProcessHistoryID("readAndConstructPrincipal", run_aux.get());
-
-		subrun_aux.reset(
-		    ReadObjectAny<art::SubRunAuxiliary>(msg, "art::SubRunAuxiliary", "ArtdaqInputHelper::readAndConstructPrincipal"));
 
 		// HACK! Make the SR PHID match!
 		printProcessHistoryID("readAndConstructPrincipal", subrun_aux.get());
 		subrun_aux->setProcessHistoryID(run_aux->processHistoryID());
 		printProcessHistoryID("readAndConstructPrincipal", subrun_aux.get());
 
-		event_aux.reset(
-		    ReadObjectAny<art::EventAuxiliary>(msg, "art::EventAuxiliary", "ArtdaqInputHelper::readAndConstructPrincipal"));
-
-		TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
-		                                           << "inR: " << static_cast<void*>(inR) << " run/expected "
-		                                           << (inR ? std::to_string(inR->run()) : "invalid") << "/" << event_aux->run();
 		TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
 		                                           << "inSR: " << static_cast<void*>(inSR) << " run/expected "
-		                                           << (inSR ? std::to_string(inSR->run()) : "invalid") << "/" << event_aux->run()
+		                                           << (inSR ? std::to_string(inSR->run()) : "invalid") << "/" << subrun_aux->run()
 		                                           << ", subrun/expected " << (inSR ? std::to_string(inSR->subRun()) : "invalid") << "/"
-		                                           << event_aux->subRun();
-		if ((inR == nullptr) || !inR->runID().isValid() || (inR->run() != event_aux->run()))
-		{
-			// New run, either we have no input RunPrincipal, or the
-			// input run number does not match the event run number.
-			TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: making RunPrincipal ...";
-			outR = pm_.makeRunPrincipal(*run_aux);
-		}
-		art::SubRunID subrun_check(event_aux->run(), event_aux->subRun());
+		                                           << subrun_aux->subRun();
+
+		art::SubRunID subrun_check(subrun_aux->run(), subrun_aux->subRun());
 		if (inSR == nullptr || subrun_check != inSR->subRunID())
 		{
 			// New SubRun, either we have no input SubRunPrincipal, or the
-			// input subRun number does not match the event subRun number.
+			// input subRun number does not match the subRun number.
 			TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
 			                                           << "making SubRunPrincipal ...";
 			outSR = pm_.makeSubRunPrincipal(*subrun_aux);
 		}
+
+		TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
+		                                           << "finished processing SubRun auxiliary.";
+	}
+	//else if (inSR == nullptr || !inSR->subRunID().isValid())
+	//{
+	//	art::Timestamp currentTime = 0;
+	//	timespec hi_res_time;
+	//	int retcode = clock_gettime(CLOCK_REALTIME, &hi_res_time);
+	//	TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "hi_res_time tv_sec = " << hi_res_time.tv_sec
+	//	                                           << " tv_nsec = " << hi_res_time.tv_nsec << " (retcode = " << retcode << ")";
+	//	if (retcode == 0)
+	//	{
+	//		currentTime = ((hi_res_time.tv_sec & 0xffffffff) << 32) | (hi_res_time.tv_nsec & 0xffffffff);
+	//	}
+	//	else
+	//	{
+	//		TLOG_ERROR("ArtdaqInputHelper")
+	//		    << "Unable to fetch a high-resolution time with clock_gettime for art::SubRun Timestamp. ";
+	//	}
+	//	art::EventID const evid(art::EventID::flushEvent(outR->runID()));
+	//	outSR = pm_.makeSubRunPrincipal(evid.subRunID(), currentTime);
+	//}
+	//
+	if (msg_type_code == artdaq::NetMonHeader::MessageType::Event)
+	{  // Event message.
+
+		TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
+		                                           << "processing Event auxiliary ...";
+
+		event_aux.reset(
+		    ReadObjectAny<art::EventAuxiliary>(msg, "art::EventAuxiliary", "ArtdaqInputHelper::readAndConstructPrincipal"));
+
+	
+		
 		TLOG(TLVL_DEBUG + 34, "ArtdaqInputHelper") << "readAndConstructPrincipal: making EventPrincipal ...";
 #if ART_HEX_VERSION < 0x31100
 		auto historyPtr = std::unique_ptr<art::History>(new History(*(history_to_use_.get())));
@@ -618,7 +583,7 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 		outE = pm_.makeEventPrincipal(*event_aux);
 #endif
 		TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
-		                                           << "finished processing Event message.";
+		                                           << "finished processing Event auxiliary.";
 	}
 }
 
@@ -684,7 +649,7 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 		outSR = pm_.makeSubRunPrincipal(evtHeader->run_id, evtHeader->subrun_id, currentTime);
 	}
 
-	if (firstFragmentType == artdaq::Fragment::EndOfRunFragmentType || firstFragmentType == artdaq::Fragment::EndOfRunDataFragmentType)
+	if (firstFragmentType == artdaq::Fragment::EndOfRunFragmentType)
 	{
 		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "EndOfRunFragment received, returning Flush event";
 		art::EventID const evid(art::EventID::flushEvent());
@@ -693,7 +658,7 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 		outE = pm_.makeEventPrincipal(evid, currentTime);
 		return true;
 	}
-	else if (firstFragmentType == artdaq::Fragment::EndOfSubrunFragmentType || firstFragmentType == artdaq::Fragment::EndOfSubrunDataFragmentType)
+	else if (firstFragmentType == artdaq::Fragment::EndOfSubrunFragmentType)
 	{
 		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "EndOfSubrunFragment received, creating new Subrun Principal";
 		// Check if inR == 0 or is a new run
@@ -1069,15 +1034,15 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 				auto header = dataFrag.metadata<artdaq::NetMonHeader>();
 				msgs.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, dataFrag.dataBegin(), kFALSE, nullptr));
 			}
-		if (eventMap.count(artdaq::Fragment::EndOfRunDataFragmentType))
-			for (auto& dataFrag : *(eventMap[artdaq::Fragment::EndOfRunDataFragmentType]))
+		if (eventMap.count(artdaq::Fragment::RunDataFragmentType))
+			for (auto& dataFrag : *(eventMap[artdaq::Fragment::RunDataFragmentType]))
 			{
 				if (!dataFrag.hasMetadata()) continue;
 				auto header = dataFrag.metadata<artdaq::NetMonHeader>();
 				msgs.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, dataFrag.dataBegin(), kFALSE, nullptr));
 			}
-		if (eventMap.count(artdaq::Fragment::EndOfSubrunDataFragmentType))
-			for (auto& dataFrag : *(eventMap[artdaq::Fragment::EndOfSubrunDataFragmentType]))
+		if (eventMap.count(artdaq::Fragment::SubrunDataFragmentType))
+			for (auto& dataFrag : *(eventMap[artdaq::Fragment::SubrunDataFragmentType]))
 			{
 				if (!dataFrag.hasMetadata()) continue;
 				auto header = dataFrag.metadata<artdaq::NetMonHeader>();
@@ -1125,7 +1090,7 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 			TLOG(TLVL_DEBUG + 45, "ArtdaqInputHelper") << "ArtdaqInputHelper::readNext: "
 			                                           << "returning false on EndRun message.";
 			TLOG(TLVL_DEBUG + 45, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::readNext";
-			return false;
+			outputFileCloseNeeded_ = true;
 		}
 		else if (msg_type_code == artdaq::NetMonHeader::MessageType::Subrun)
 		{

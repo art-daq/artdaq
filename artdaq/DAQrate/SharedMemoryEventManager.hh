@@ -520,6 +520,7 @@ private:
 	std::vector<char*> parse_art_command_line_(const std::shared_ptr<art_config_file>& config_file, size_t process_index);
 
 	void send_init_frags_();
+	bool init_frags_sent_{false};
 	SharedMemoryManager broadcasts_;
 };
 }  // namespace artdaq
