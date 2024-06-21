@@ -504,8 +504,13 @@ private:
 	std::list<std::pair<detail::RawFragmentHeader, FragmentPtr>> dropped_data_;
 
 	mutable std::mutex broadcast_mutex_;
-	FragmentPtrs broadcast_fragments_;
-	std::chrono::steady_clock::time_point next_scheduled_broadcast_;
+	struct BroadcastEntry
+	{
+		Fragment::type_t type;
+		FragmentPtrs fragments;
+		std::chrono::steady_clock::time_point deadline;
+	};
+	std::vector<BroadcastEntry> pending_broadcasts_;
 	void check_pending_broadcasts_();
 
 	bool broadcastFragments_(FragmentPtrs& frags);

@@ -535,26 +535,28 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 		TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
 		                                           << "finished processing SubRun auxiliary.";
 	}
-	//else if (inSR == nullptr || !inSR->subRunID().isValid())
-	//{
-	//	art::Timestamp currentTime = 0;
-	//	timespec hi_res_time;
-	//	int retcode = clock_gettime(CLOCK_REALTIME, &hi_res_time);
-	//	TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "hi_res_time tv_sec = " << hi_res_time.tv_sec
-	//	                                           << " tv_nsec = " << hi_res_time.tv_nsec << " (retcode = " << retcode << ")";
-	//	if (retcode == 0)
-	//	{
-	//		currentTime = ((hi_res_time.tv_sec & 0xffffffff) << 32) | (hi_res_time.tv_nsec & 0xffffffff);
-	//	}
-	//	else
-	//	{
-	//		TLOG_ERROR("ArtdaqInputHelper")
-	//		    << "Unable to fetch a high-resolution time with clock_gettime for art::SubRun Timestamp. ";
-	//	}
-	//	art::EventID const evid(art::EventID::flushEvent(outR->runID()));
-	//	outSR = pm_.makeSubRunPrincipal(evid.subRunID(), currentTime);
-	//}
-	//
+	else if (inSR == nullptr || !inSR->subRunID().isValid())
+	{
+		TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: Faking Subrun 1 because there was no input Subrun for Run message";
+		art::Timestamp currentTime = 0;
+		timespec hi_res_time;
+		int retcode = clock_gettime(CLOCK_REALTIME, &hi_res_time);
+		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "hi_res_time tv_sec = " << hi_res_time.tv_sec
+		                                           << " tv_nsec = " << hi_res_time.tv_nsec << " (retcode = " << retcode << ")";
+		if (retcode == 0)
+		{
+			currentTime = ((hi_res_time.tv_sec & 0xffffffff) << 32) | (hi_res_time.tv_nsec & 0xffffffff);
+		}
+		else
+		{
+			TLOG_ERROR("ArtdaqInputHelper")
+			    << "Unable to fetch a high-resolution time with clock_gettime for art::SubRun Timestamp. ";
+		}
+
+		art::SubRunID subrun_guess(outR->runID(),1);
+		outSR = pm_.makeSubRunPrincipal(subrun_guess, currentTime);
+	}
+
 	if (msg_type_code == artdaq::NetMonHeader::MessageType::Event)
 	{  // Event message.
 
@@ -564,8 +566,6 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 		event_aux.reset(
 		    ReadObjectAny<art::EventAuxiliary>(msg, "art::EventAuxiliary", "ArtdaqInputHelper::readAndConstructPrincipal"));
 
-	
-		
 		TLOG(TLVL_DEBUG + 34, "ArtdaqInputHelper") << "readAndConstructPrincipal: making EventPrincipal ...";
 #if ART_HEX_VERSION < 0x31100
 		auto historyPtr = std::unique_ptr<art::History>(new History(*(history_to_use_.get())));
@@ -991,7 +991,7 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 
 	if (fragmentsOnlyMode_)
 	{
-		if (eventMap.count(artdaq::Fragment::DataFragmentType))
+		if (eventMap.count(artdaq::Fragment::DataFragmentType) || eventMap.count(artdaq::Fragment::RunDataFragmentType) || eventMap.count(artdaq::Fragment::SubrunDataFragmentType))
 		{
 			TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "ArtdaqInputHelper::readNext unexpectedly got a message with a DataFragment. This art Event will NOT be reconstructed!";
 		}
@@ -1021,6 +1021,11 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 						}
 					}
 				}
+			}
+
+			// Nasty hack here. Don't return a new Run/Subrun Principal without an associated Event Principal
+			if (outE == nullptr && ((outR != nullptr && !outR->runID().isFlush()) || (outSR != nullptr && !outSR->subRunID().isFlush()))) {
+				return readNext(outR ? outR : inR, outSR ? outSR : inSR, outR, outSR, outE);
 			}
 		}
 	}

@@ -1055,7 +1055,7 @@ bool artdaq::SharedMemoryEventManager::broadcastFragments_(FragmentPtrs& frags)
 		TLOG(TLVL_ERROR) << "Broadcast attempted but broadcast shared memory is unavailable!";
 		return false;
 	}
-	TLOG(TLVL_DEBUG + 32) << "Broadcasting Fragments with seqID=" << frags.front()->sequenceID()
+	TLOG(TLVL_DEBUG + 32) << "Broadcasting " << frags.size() << " Fragments with lead seqID=" << frags.front()->sequenceID()
 	                      << ", type " << detail::RawFragmentHeader::SystemTypeToString(frags.front()->type())
 	                      << ", size=" << frags.front()->sizeBytes() << "B.";
 	auto buffer = broadcasts_.GetBufferForWriting(false);
@@ -1439,36 +1439,39 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 void artdaq::SharedMemoryEventManager::check_pending_broadcasts_()
 {
 	std::lock_guard<std::mutex> lk(broadcast_mutex_);
-	if (broadcast_fragments_.size() == 0)
-	{
-		return;
-	}
 
-	if (broadcast_fragments_.size() < num_fragments_per_event_ && std::chrono::steady_clock::now() < next_scheduled_broadcast_)
-	{
-		return;
-	}
+	auto entry = pending_broadcasts_.begin();
+	while(entry != pending_broadcasts_.end()) {
+		if (!init_frags_sent_ || entry->fragments.size() == 0 || entry->fragments.size() < num_fragments_per_event_ && std::chrono::steady_clock::now() < entry->deadline)
+		{
+			entry++;
+			continue;
+		}
 
-	if (!init_frags_sent_)
-	{
-		return;
+		broadcastFragments_(entry->fragments);
+		entry = pending_broadcasts_.erase(entry);
+		
 	}
-
-	broadcastFragments_(broadcast_fragments_);
-	broadcast_fragments_.clear();
-	next_scheduled_broadcast_ = std::chrono::steady_clock::now() + std::chrono::seconds(3600);
 }
 
 void artdaq::SharedMemoryEventManager::BroadcastFragment(FragmentPtr& frag, std::chrono::microseconds max_delay)
 {
 	{
 		std::lock_guard<std::mutex> lk(broadcast_mutex_);
-		broadcast_fragments_.push_back(std::move(frag));
 
-		auto then = std::chrono::steady_clock::now() + max_delay;
-		if (then < next_scheduled_broadcast_)
-		{
-			next_scheduled_broadcast_ = then;
+		bool entry_found = false;
+		for (auto& entry : pending_broadcasts_) {
+			if (entry.type == frag->type()) {
+				entry.fragments.push_back(std::move(frag));
+				entry_found = true;
+				break;
+			}
+		}
+		if (!entry_found) {
+			pending_broadcasts_.emplace_back();
+			pending_broadcasts_.back().deadline = std::chrono::steady_clock::now() + max_delay;
+			pending_broadcasts_.back().type = frag->type();
+			pending_broadcasts_.back().fragments.push_back(std::move(frag));
 		}
 	}
 	check_pending_broadcasts_();
