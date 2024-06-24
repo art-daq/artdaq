@@ -154,21 +154,20 @@ private:
 	                        art::EventPrincipal*&);
 
 	template<class T>
-	void readDataProducts(std::list<std::unique_ptr<TBufferFile>>&, T*&);
+	void readDataProducts(std::list<std::unique_ptr<TBufferFile>>&, T* const&);
 
-	void putInPrincipal(RunPrincipal*&, std::unique_ptr<EDProduct>&&, const BranchDescription&,
+	void putInPrincipal(RunPrincipal* const&, std::unique_ptr<EDProduct>&&, const BranchDescription&,
 	                    std::unique_ptr<const ProductProvenance>&&);
 
-	void putInPrincipal(SubRunPrincipal*&, std::unique_ptr<EDProduct>&&, const BranchDescription&,
+	void putInPrincipal(SubRunPrincipal* const&, std::unique_ptr<EDProduct>&&, const BranchDescription&,
 	                    std::unique_ptr<const ProductProvenance>&&);
 
-	void putInPrincipal(EventPrincipal*&, std::unique_ptr<EDProduct>&&, const BranchDescription&,
+	void putInPrincipal(EventPrincipal* const&, std::unique_ptr<EDProduct>&&, const BranchDescription&,
 	                    std::unique_ptr<const ProductProvenance>&&);
 
 	std::pair<bool, bool> readFragments(std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> const& eventMap, art::RunPrincipal* const theRun, art::SubRunPrincipal* const theSubRun, art::EventPrincipal* const theEvent);
 
 	bool shutdownMsgReceived_;
-	bool outputFileCloseNeeded_;
 	art::SourceHelper const& pm_;
 	U communicationWrapper_;
 	ProductList* productList_;
@@ -183,7 +182,6 @@ template<typename U>
 art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art::ProductRegistryHelper& helper,
                                              art::SourceHelper const& pm)
     : shutdownMsgReceived_(false)
-    , outputFileCloseNeeded_(false)
     , pm_(pm)
     , communicationWrapper_(ps)
     , productList_()
@@ -223,7 +221,6 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 	{
 		TLOG_ERROR("ArtdaqInputHelper") << "Received EndOfData as first broadcast! This process neveer received any data!";
 		shutdownMsgReceived_ = true;
-		outputFileCloseNeeded_ = true;
 	}
 	else
 	{
@@ -480,11 +477,27 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 	outSR = nullptr;
 	outE = nullptr;
 
+	art::Timestamp currentTime = 0;
+	timespec hi_res_time;
+	int retcode = clock_gettime(CLOCK_REALTIME, &hi_res_time);
+	TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "hi_res_time tv_sec = " << hi_res_time.tv_sec
+	                                           << " tv_nsec = " << hi_res_time.tv_nsec << " (retcode = " << retcode << ")";
+	if (retcode == 0)
+	{
+		currentTime = ((hi_res_time.tv_sec & 0xffffffff) << 32) | (hi_res_time.tv_nsec & 0xffffffff);
+	}
+	else
+	{
+		TLOG_ERROR("ArtdaqInputHelper")
+		    << "Unable to fetch a high-resolution time with clock_gettime for art::SubRun Timestamp. ";
+	}
+
 	// Process Run Aux
 	TLOG(TLVL_DEBUG + 37, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
 	                                           << "processing Run auxiliary ...";
 
 	run_aux.reset(ReadObjectAny<art::RunAuxiliary>(msg, "art::RunAuxiliary", "ArtdaqInputHelper::readAndConstructPrincipal"));
+	run_aux->setProcessHistoryID(history_to_use_->processHistoryID());
 	printProcessHistoryID("readAndConstructPrincipal", run_aux.get());
 
 	TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
@@ -538,22 +551,8 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 	else if (inSR == nullptr || !inSR->subRunID().isValid())
 	{
 		TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: Faking Subrun 1 because there was no input Subrun for Run message";
-		art::Timestamp currentTime = 0;
-		timespec hi_res_time;
-		int retcode = clock_gettime(CLOCK_REALTIME, &hi_res_time);
-		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "hi_res_time tv_sec = " << hi_res_time.tv_sec
-		                                           << " tv_nsec = " << hi_res_time.tv_nsec << " (retcode = " << retcode << ")";
-		if (retcode == 0)
-		{
-			currentTime = ((hi_res_time.tv_sec & 0xffffffff) << 32) | (hi_res_time.tv_nsec & 0xffffffff);
-		}
-		else
-		{
-			TLOG_ERROR("ArtdaqInputHelper")
-			    << "Unable to fetch a high-resolution time with clock_gettime for art::SubRun Timestamp. ";
-		}
 
-		art::SubRunID subrun_guess(outR->runID(),1);
+		art::SubRunID subrun_guess(outR->runID(), 1);
 		outSR = pm_.makeSubRunPrincipal(subrun_guess, currentTime);
 	}
 
@@ -584,6 +583,24 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 #endif
 		TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
 		                                           << "finished processing Event auxiliary.";
+	}
+
+	if (!outR && !outSR && !outE)
+	{
+		TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "No principals created, making Flush Event based on whether there was an existing SubRun";
+
+		if (!inSR || !inSR->subRunID().isValid()) {
+			TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: Making run flush event";
+			art::EventID const flush_evid(art::EventID::flushEvent(inR->runID()));
+			outSR = pm_.makeSubRunPrincipal(flush_evid.subRunID(), currentTime);
+			outE = pm_.makeEventPrincipal(flush_evid, currentTime);
+		}
+		else
+		{
+			TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: Making subrun flush event";
+			art::EventID const flush_evid(art::EventID::flushEvent(inSR->subRunID()));
+			outE = pm_.makeEventPrincipal(flush_evid, currentTime);
+		}
 	}
 }
 
@@ -696,7 +713,6 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 			}
 			outR = nullptr;
 		}
-		// outputFileCloseNeeded = true;
 		return true;
 	}
 
@@ -707,7 +723,7 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 
 template<typename U>
 template<class T>
-void art::ArtdaqInputHelper<U>::readDataProducts(std::list<std::unique_ptr<TBufferFile>>& msgs, T*& outPrincipal)
+void art::ArtdaqInputHelper<U>::readDataProducts(std::list<std::unique_ptr<TBufferFile>>& msgs, T* const& outPrincipal)
 {
 	for (auto& msg : msgs)
 	{
@@ -784,7 +800,7 @@ void art::ArtdaqInputHelper<U>::readDataProducts(std::list<std::unique_ptr<TBuff
 }
 
 template<typename U>
-void art::ArtdaqInputHelper<U>::putInPrincipal(RunPrincipal*& rp, std::unique_ptr<EDProduct>&& prd,
+void art::ArtdaqInputHelper<U>::putInPrincipal(RunPrincipal* const& rp, std::unique_ptr<EDProduct>&& prd,
                                                const BranchDescription& bd,
                                                std::unique_ptr<const ProductProvenance>&& prdprov)
 {
@@ -792,7 +808,7 @@ void art::ArtdaqInputHelper<U>::putInPrincipal(RunPrincipal*& rp, std::unique_pt
 }
 
 template<typename U>
-void art::ArtdaqInputHelper<U>::putInPrincipal(SubRunPrincipal*& srp, std::unique_ptr<EDProduct>&& prd,
+void art::ArtdaqInputHelper<U>::putInPrincipal(SubRunPrincipal* const& srp, std::unique_ptr<EDProduct>&& prd,
                                                const BranchDescription& bd,
                                                std::unique_ptr<const ProductProvenance>&& prdprov)
 {
@@ -800,7 +816,7 @@ void art::ArtdaqInputHelper<U>::putInPrincipal(SubRunPrincipal*& srp, std::uniqu
 }
 
 template<typename U>
-void art::ArtdaqInputHelper<U>::putInPrincipal(EventPrincipal*& ep, std::unique_ptr<EDProduct>&& prd,
+void art::ArtdaqInputHelper<U>::putInPrincipal(EventPrincipal* const& ep, std::unique_ptr<EDProduct>&& prd,
                                                const BranchDescription& bd,
                                                std::unique_ptr<const ProductProvenance>&& prdprov)
 {
@@ -958,16 +974,6 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 {
 	TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Begin: ArtdaqInputHelper::readNext";
 
-	if (outputFileCloseNeeded_)
-	{
-		outputFileCloseNeeded_ = false;
-		// Signal that we need the output file closed by returning false,
-		// but answering true to the hasMoreData() query.
-		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "ArtdaqInputHelper::readNext: "
-		                                           << "returning false on outputFileCloseNeeded_";
-		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::readNext";
-		return false;
-	}
 	auto read_start_time = std::chrono::steady_clock::now();
 
 	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> eventMap = communicationWrapper_.receiveMessages();
@@ -1024,7 +1030,8 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 			}
 
 			// Nasty hack here. Don't return a new Run/Subrun Principal without an associated Event Principal
-			if (outE == nullptr && ((outR != nullptr && !outR->runID().isFlush()) || (outSR != nullptr && !outSR->subRunID().isFlush()))) {
+			if (outE == nullptr && ((outR != nullptr && !outR->runID().isFlush()) || (outSR != nullptr && !outSR->subRunID().isFlush())))
+			{
 				return readNext(outR ? outR : inR, outSR ? outSR : inSR, outR, outSR, outE);
 			}
 		}
@@ -1090,12 +1097,7 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 		{
 			// EndRun message.
 			// FIXME: We need to merge these into the input RunPrincipal.
-			readDataProducts(msgs, outR);
-			// Signal that we should close the input and output file.
-			TLOG(TLVL_DEBUG + 45, "ArtdaqInputHelper") << "ArtdaqInputHelper::readNext: "
-			                                           << "returning false on EndRun message.";
-			TLOG(TLVL_DEBUG + 45, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::readNext";
-			outputFileCloseNeeded_ = true;
+			readDataProducts(msgs, outR ? outR : inR);
 		}
 		else if (msg_type_code == artdaq::NetMonHeader::MessageType::Subrun)
 		{
@@ -1115,16 +1117,11 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 				{
 					outR = nullptr;
 					outSR = nullptr;
-					outputFileCloseNeeded_ = true;
-					return true;
+					return outE ? true : false;
 				}
 			}
 			// FIXME: We need to merge these into the input SubRunPrincipal.
-			readDataProducts(msgs, outSR);
-			// Remember that we should ask for file close next time
-			// we are called.
-			outputFileCloseNeeded_ = true;
-			TLOG(TLVL_DEBUG + 46, "ArtdaqInputHelper") << "readNext: returning true on EndSubRun message.";
+			readDataProducts(msgs, outSR ? outSR : inSR);
 		}
 		else if (msg_type_code == artdaq::NetMonHeader::MessageType::Event)
 		{
