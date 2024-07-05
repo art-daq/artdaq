@@ -366,6 +366,13 @@ public:
 	void AddInitFragment(FragmentPtr& frag);
 
 	/**
+	 * @brief Add a Fragment for broadcast. May be collected with other Fragments before sending
+	 * @param frag Fragment to broadcast
+	 * @param max_delay Length of time to wait for more Fragments to broadcast
+	 */
+	void BroadcastFragment(FragmentPtr& frag, std::chrono::microseconds max_delay = std::chrono::microseconds(100000));
+
+	/**
 	 * \brief Gets the shared memory key of the broadcast SharedMemoryManager
 	 * \return The shared memory key of the broadcast SharedMemoryManager
 	 */
@@ -496,6 +503,16 @@ private:
 	std::set<Fragment::fragment_id_t> received_init_frags_;
 	std::list<std::pair<detail::RawFragmentHeader, FragmentPtr>> dropped_data_;
 
+	mutable std::mutex broadcast_mutex_;
+	struct BroadcastEntry
+	{
+		Fragment::type_t type;
+		FragmentPtrs fragments;
+		std::chrono::steady_clock::time_point deadline;
+	};
+	std::vector<BroadcastEntry> pending_broadcasts_;
+	void check_pending_broadcasts_();
+
 	bool broadcastFragments_(FragmentPtrs& frags);
 
 	detail::RawEventHeader* getEventHeader_(int buffer);
@@ -508,6 +525,7 @@ private:
 	std::vector<char*> parse_art_command_line_(const std::shared_ptr<art_config_file>& config_file, size_t process_index);
 
 	void send_init_frags_();
+	bool init_frags_sent_{false};
 	SharedMemoryManager broadcasts_;
 };
 }  // namespace artdaq

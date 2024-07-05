@@ -109,20 +109,20 @@ protected:
 	/// </summary>
 	virtual void openFile(FileBlock const&)
 	{
-		TLOG(TLVL_OPENFILE) << "Begin/End: ArtdaqOutput::openFile(const FileBlock&)";
+		TLOG(TLVL_OPENFILE, "ArtdaqOutput") << "Begin/End: ArtdaqOutput::openFile(const FileBlock&)";
 	}
 
 	/// <summary>
 	/// Perform actions necessary for closing files. No-op, but derived classes may override
 	/// </summary>
-	virtual void closeFile() { TLOG(TLVL_CLOSEFILE) << "Begin/End: ArtdaqOutput::closeFile()"; }
+	virtual void closeFile() { TLOG(TLVL_CLOSEFILE, "ArtdaqOutput") << "Begin/End: ArtdaqOutput::closeFile()"; }
 
 	/// <summary>
 	/// Perform actions nesessary after closing the input file. No-op, but derived classes may override
 	/// </summary>
 	virtual void respondToCloseInputFile(FileBlock const&)
 	{
-		TLOG(TLVL_RESPONDTOCLOSEINPUTFILE) << "Begin/End: ArtdaqOutput::"
+		TLOG(TLVL_RESPONDTOCLOSEINPUTFILE, "ArtdaqOutput") << "Begin/End: ArtdaqOutput::"
 		                                      "respondToCloseOutputFiles(FileBlock const&)";
 	}
 
@@ -131,7 +131,7 @@ protected:
 	/// </summary>
 	virtual void respondToCloseOutputFiles(FileBlock const&)
 	{
-		TLOG(TLVL_RESPONDTOCLOSEOUTPUTFILE) << "Begin/End: ArtdaqOutput::"
+		TLOG(TLVL_RESPONDTOCLOSEOUTPUTFILE, "ArtdaqOutput") << "Begin/End: ArtdaqOutput::"
 		                                       "respondToCloseOutputFiles(FileBlock const&)";
 	}
 
@@ -140,7 +140,7 @@ protected:
 	/// </summary>
 	virtual void endJob()
 	{
-		TLOG(TLVL_ENDJOB) << "Begin/End: ArtdaqOutput::endJob()";
+		TLOG(TLVL_ENDJOB, "ArtdaqOutput") << "Begin/End: ArtdaqOutput::endJob()";
 	}
 
 	/// <summary>
@@ -267,7 +267,7 @@ private:
 
 inline void art::ArtdaqOutput::send_init_message()
 {
-	TLOG(TLVL_SENDINIT) << "Begin: ArtdaqOutput::send_init_message()";
+	TLOG(TLVL_SENDINIT, "ArtdaqOutput") << "Begin: ArtdaqOutput::send_init_message()";
 	//
 	//  Get the classes we will need.
 	//
@@ -303,7 +303,7 @@ inline void art::ArtdaqOutput::send_init_message()
 		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::send_init_message(): "  // NOLINT(cert-err60-cpp)
 		                                                         "Could not get class for ParentageMap.";
 	}
-	TLOG(TLVL_SENDINIT) << "parentage_map_class: " << static_cast<void*>(parentage_map_class);
+	TLOG(TLVL_SENDINIT, "ArtdaqOutput") << "parentage_map_class: " << static_cast<void*>(parentage_map_class);
 
 	//
 	//  Construct and send the init message.
@@ -312,9 +312,9 @@ inline void art::ArtdaqOutput::send_init_message()
 	//
 	//  Stream the message type code.
 	//
-	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Streaming message type code ...";
+	TLOG(TLVL_SENDINIT, "ArtdaqOutput") << "ArtdaqOutput::send_init_message(): Streaming message type code ...";
 	msg->WriteULong(1);
-	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Finished streaming message type code.";
+	TLOG(TLVL_SENDINIT, "ArtdaqOutput") << "ArtdaqOutput::send_init_message(): Finished streaming message type code.";
 
 	//
 	// Stream Class info
@@ -338,25 +338,25 @@ inline void art::ArtdaqOutput::send_init_message()
 	//  Stream the ParameterSetRegistry.
 	//
 	ULong_t ps_cnt = fhicl::ParameterSetRegistry::size();
-	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): parameter set count: " << ps_cnt;
+	TLOG(TLVL_SENDINIT, "ArtdaqOutput") << "ArtdaqOutput::send_init_message(): parameter set count: " << ps_cnt;
 	msg->WriteULong(ps_cnt);
-	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Streaming parameter sets ...";
+	TLOG(TLVL_SENDINIT, "ArtdaqOutput") << "ArtdaqOutput::send_init_message(): Streaming parameter sets ...";
 	for (auto I = std::begin(fhicl::ParameterSetRegistry::get()), E = std::end(fhicl::ParameterSetRegistry::get());
 	     I != E; ++I)
 	{
-		TLOG(TLVL_SENDINIT) << "Pset ID " << I->first << ": " << I->second.to_string();
+		TLOG(TLVL_SENDINIT, "ArtdaqOutput") << "Pset ID " << I->first << ": " << I->second.to_string();
 		std::string pset_str = I->second.to_string();
 		// msg->WriteObjectAny(&pset_str, string_class);
 		msg->WriteStdString(pset_str);
 	}
-	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Finished streaming parameter sets.";
+	TLOG(TLVL_SENDINIT, "ArtdaqOutput") << "ArtdaqOutput::send_init_message(): Finished streaming parameter sets.";
 
 	//
 	//  Stream the MasterProductRegistry.
 	//
-	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Streaming Product List sz=" << productList_.size() << "...";
+	TLOG(TLVL_SENDINIT, "ArtdaqOutput") << "ArtdaqOutput::send_init_message(): Streaming Product List sz=" << productList_.size() << "...";
 	msg->WriteObjectAny(&productList_, product_list_class);
-	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Finished streaming Product List.";
+	TLOG(TLVL_SENDINIT, "ArtdaqOutput") << "ArtdaqOutput::send_init_message(): Finished streaming Product List.";
 
 	art::ProcessHistoryMap phr;
 	for (auto const& pr : art::ProcessHistoryRegistry::get())
@@ -366,31 +366,31 @@ inline void art::ArtdaqOutput::send_init_message()
 	//
 	//  Dump the ProcessHistoryRegistry.
 	//
-	TLOG(TLVL_SENDINIT_VERBOSE2) << "ArtdaqOutput::send_init_message(): Dumping ProcessHistoryRegistry ...";
+	TLOG(TLVL_SENDINIT_VERBOSE2, "ArtdaqOutput") << "ArtdaqOutput::send_init_message(): Dumping ProcessHistoryRegistry ...";
 	// typedef std::map<const ProcessHistoryID,ProcessHistory>
 	//    ProcessHistoryMap;
-	TLOG(TLVL_SENDINIT_VERBOSE2) << "ArtdaqOutput::send_init_message(): phr: size: " << phr.size();
+	TLOG(TLVL_SENDINIT_VERBOSE2, "ArtdaqOutput") << "ArtdaqOutput::send_init_message(): phr: size: " << phr.size();
 	for (auto I = phr.begin(), E = phr.end(); I != E; ++I)
 	{
 		std::ostringstream OS;
 		I->first.print(OS);
-		TLOG(TLVL_SENDINIT_VERBOSE2) << "ArtdaqOutput::send_init_message(): phr: id: '" << OS.str() << "'";
+		TLOG(TLVL_SENDINIT_VERBOSE2, "ArtdaqOutput") << "ArtdaqOutput::send_init_message(): phr: id: '" << OS.str() << "'";
 	}
 	//
 	//  Stream the ProcessHistoryRegistry.
 	//
-	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Streaming ProcessHistoryRegistry ...";
+	TLOG(TLVL_SENDINIT, "ArtdaqOutput") << "ArtdaqOutput::send_init_message(): Streaming ProcessHistoryRegistry ...";
 	// typedef std::map<const ProcessHistoryID,ProcessHistory>
 	//    ProcessHistoryMap;
 	const art::ProcessHistoryMap& phm = phr;
-	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): phm: size: " << phm.size();
+	TLOG(TLVL_SENDINIT, "ArtdaqOutput") << "ArtdaqOutput::send_init_message(): phm: size: " << phm.size();
 	msg->WriteObjectAny(&phm, process_history_map_class);
-	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Finished streaming ProcessHistoryRegistry.";
+	TLOG(TLVL_SENDINIT, "ArtdaqOutput") << "ArtdaqOutput::send_init_message(): Finished streaming ProcessHistoryRegistry.";
 
 	//
 	//  Stream the ParentageRegistry.
 	//
-	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Streaming ParentageRegistry ..." << static_cast<void*>(parentage_map_class);
+	TLOG(TLVL_SENDINIT, "ArtdaqOutput") << "ArtdaqOutput::send_init_message(): Streaming ParentageRegistry ..." << static_cast<void*>(parentage_map_class);
 	art::ParentageMap parentageMap{};
 	for (auto const& pr : art::ParentageRegistry::get())
 	{
@@ -399,18 +399,18 @@ inline void art::ArtdaqOutput::send_init_message()
 
 	msg->WriteObjectAny(&parentageMap, parentage_map_class);
 
-	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Finished streaming ParentageRegistry.";
+	TLOG(TLVL_SENDINIT, "ArtdaqOutput") << "ArtdaqOutput::send_init_message(): Finished streaming ParentageRegistry.";
 
-	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Sending init message";
+	TLOG(TLVL_SENDINIT, "ArtdaqOutput") << "ArtdaqOutput::send_init_message(): Sending init message";
 	sendMessage(msg);
-	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Done sending init message";
+	TLOG(TLVL_SENDINIT, "ArtdaqOutput") << "ArtdaqOutput::send_init_message(): Done sending init message";
 
-	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): END";
+	TLOG(TLVL_SENDINIT, "ArtdaqOutput") << "ArtdaqOutput::send_init_message(): END";
 }
 
 inline void art::ArtdaqOutput::writeDataProducts(std::unique_ptr<TBufferFile>& msg, const Principal& principal, std::vector<BranchKey*>& bkv)
 {
-	TLOG(TLVL_WRITEDATAPRODUCTS) << "Begin: ArtdaqOutput::writeDataProducts(...)";
+	TLOG(TLVL_WRITEDATAPRODUCTS, "ArtdaqOutput") << "Begin: ArtdaqOutput::writeDataProducts(...)";
 	//
 	//  Fetch the class dictionaries we need for
 	//  writing out the data products.
@@ -455,10 +455,10 @@ inline void art::ArtdaqOutput::writeDataProducts(std::unique_ptr<TBufferFile>& m
 	//
 	//  Write the data product count.
 	//
-	TLOG(TLVL_WRITEDATAPRODUCTS) << "ArtdaqOutput::writeDataProducts(...): Streaming product count: " +
+	TLOG(TLVL_WRITEDATAPRODUCTS, "ArtdaqOutput") << "ArtdaqOutput::writeDataProducts(...): Streaming product count: " +
 	                                    std::to_string(prd_cnt);
 	msg->WriteULong(prd_cnt);
-	TLOG(TLVL_WRITEDATAPRODUCTS) << "ArtdaqOutput::writeDataProducts(...): Finished streaming product count.";
+	TLOG(TLVL_WRITEDATAPRODUCTS, "ArtdaqOutput") << "ArtdaqOutput::writeDataProducts(...): Finished streaming product count.";
 
 	//
 	//  Loop over the groups in the RunPrincipal and
@@ -491,27 +491,27 @@ inline void art::ArtdaqOutput::writeDataProducts(std::unique_ptr<TBufferFile>& m
 		}
 		const BranchDescription& bd(I->second->productDescription());
 		bkv.push_back(new BranchKey(bd));
-		TLOG(TLVL_WRITEDATAPRODUCTS_VERBOSE)
+		TLOG(TLVL_WRITEDATAPRODUCTS_VERBOSE, "ArtdaqOutput")
 		    << "ArtdaqOutput::writeDataProducts(...): Dumping branch key           of class: '"
 		    << bkv.back()->friendlyClassName_ << "' modlbl: '" << bkv.back()->moduleLabel_ << "' instnm: '"
 		    << bkv.back()->productInstanceName_ << "' procnm: '" << bkv.back()->processName_ << "'";
-		TLOG(TLVL_WRITEDATAPRODUCTS) << "ArtdaqOutput::writeDataProducts(...): "
+		TLOG(TLVL_WRITEDATAPRODUCTS, "ArtdaqOutput") << "ArtdaqOutput::writeDataProducts(...): "
 		                                "Streaming branch key         of class: '"
 		                             << bd.producedClassName() << "' modlbl: '" << bd.moduleLabel() << "' instnm: '"
 		                             << bd.productInstanceName() << "' procnm: '" << bd.processName() << "'";
 		msg->WriteObjectAny(bkv.back(), branch_key_class);
 
-		TLOG(TLVL_WRITEDATAPRODUCTS) << "ArtdaqOutput::writeDataProducts(...): "
+		TLOG(TLVL_WRITEDATAPRODUCTS, "ArtdaqOutput") << "ArtdaqOutput::writeDataProducts(...): "
 		                                "Streaming product            of class: '"
 		                             << bd.producedClassName() << "' modlbl: '" << bd.moduleLabel() << "' instnm: '"
 		                             << bd.productInstanceName() << "' procnm: '" << bd.processName() << "'";
 
 		OutputHandle oh = principal.getForOutput(bd.productID(), true);
 		const EDProduct* prd = oh.wrapper();
-		TLOG(TLVL_WRITEDATAPRODUCTS) << "Class for branch " << bd.wrappedName() << " is "
+		TLOG(TLVL_WRITEDATAPRODUCTS, "ArtdaqOutput") << "Class for branch " << bd.wrappedName() << " is "
 		                             << static_cast<void*>(TClass::GetClass(bd.wrappedName().c_str()));
 		msg->WriteObjectAny(prd, TClass::GetClass(bd.wrappedName().c_str()));
-		TLOG(TLVL_WRITEDATAPRODUCTS) << "ArtdaqOutput::writeDataProducts(...): "
+		TLOG(TLVL_WRITEDATAPRODUCTS, "ArtdaqOutput") << "ArtdaqOutput::writeDataProducts(...): "
 		                                "Streaming product provenance of class: '"
 		                             << bd.producedClassName() << "' modlbl: '" << bd.moduleLabel() << "' instnm: '"
 		                             << bd.productInstanceName() << "' procnm: '" << bd.processName() << "'";
@@ -520,7 +520,7 @@ inline void art::ArtdaqOutput::writeDataProducts(std::unique_ptr<TBufferFile>& m
 
 		msg->WriteObjectAny(prdprov, prdprov_class);
 	}
-	TLOG(TLVL_WRITEDATAPRODUCTS) << "End:   ArtdaqOutput::writeDataProducts(...)";
+	TLOG(TLVL_WRITEDATAPRODUCTS, "ArtdaqOutput") << "End:   ArtdaqOutput::writeDataProducts(...)";
 }
 
 inline void art::ArtdaqOutput::write(EventPrincipal& ep)
@@ -528,7 +528,7 @@ inline void art::ArtdaqOutput::write(EventPrincipal& ep)
 	//
 	//  Write an Event message.
 	//
-	TLOG(TLVL_WRITE) << "Begin: ArtdaqOutput::write(const EventPrincipal& ep)";
+	TLOG(TLVL_WRITE, "ArtdaqOutput") << "Begin: ArtdaqOutput::write(EventPrincipal& ep)";
 	if (!initMsgSent_)
 	{
 		send_init_message();
@@ -540,24 +540,24 @@ inline void art::ArtdaqOutput::write(EventPrincipal& ep)
 	static TClass* run_aux_class = TClass::GetClass("art::RunAuxiliary");
 	if (run_aux_class == nullptr)
 	{
-		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::write(const EventPrincipal& ep): "  // NOLINT(cert-err60-cpp)
+		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::write: "  // NOLINT(cert-err60-cpp)
 		                                                         "Could not get TClass for art::RunAuxiliary!";
 	}
 	static TClass* subrun_aux_class = TClass::GetClass("art::SubRunAuxiliary");
 	if (subrun_aux_class == nullptr)
 	{
-		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::write(const EventPrincipal& ep): "  // NOLINT(cert-err60-cpp)
+		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::write: "  // NOLINT(cert-err60-cpp)
 		                                                         "Could not get TClass for art::SubRunAuxiliary!";
 	}
 	static TClass* event_aux_class = TClass::GetClass("art::EventAuxiliary");
 	if (event_aux_class == nullptr)
 	{
-		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::write(const EventPrincipal& ep): "  // NOLINT(cert-err60-cpp)
+		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::write: "  // NOLINT(cert-err60-cpp)
 		                                                         "Could not get TClass for art::EventAuxiliary!";
 	}
 
 	// Subrun number starts at 1
-	TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Setting Output Fragment Header Fields";
+	TLOG(TLVL_WRITE, "ArtdaqOutput") << "ArtdaqOutput::write: Setting Output Fragment Header Fields";
 	auto seqID = (static_cast<uint64_t>(ep.eventID().subRun() - 1) << 32) + ep.eventID().event();
 
 	art::ProcessTag tag("", processName());
@@ -573,7 +573,7 @@ inline void art::ArtdaqOutput::write(EventPrincipal& ep)
 			if (handle->timestamp > ts) ts = handle->timestamp;
 		}
 	}
-	TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Data Fragment Header Fields: SeqID: " << seqID << ", timestamp: " << ts;
+	TLOG(TLVL_WRITE, "ArtdaqOutput") << "ArtdaqOutput::write: Data Fragment Header Fields: SeqID: " << seqID << ", timestamp: " << ts;
 
 	//
 	//  Setup message buffer.
@@ -582,31 +582,31 @@ inline void art::ArtdaqOutput::write(EventPrincipal& ep)
 	//
 	//  Write message type code.
 	//
-	TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Streaming message type code ...";
+	TLOG(TLVL_WRITE, "ArtdaqOutput") << "ArtdaqOutput::write: Streaming message type code ...";
 	msg->WriteULong(static_cast<ULong_t>(artdaq::NetMonHeader::MessageType::Event));
-	TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Finished streaming message type code.";
+	TLOG(TLVL_WRITE, "ArtdaqOutput") << "ArtdaqOutput::write: Finished streaming message type code.";
 
 	//
 	//  Write RunAuxiliary.
 	//
-	TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Streaming RunAuxiliary ...";
+	TLOG(TLVL_WRITE, "ArtdaqOutput") << "ArtdaqOutput::write: Streaming RunAuxiliary ...";
 	msg->WriteObjectAny(&ep.subRunPrincipal().runPrincipal().runAux(), run_aux_class);
-	TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Finished streaming RunAuxiliary.";
+	TLOG(TLVL_WRITE, "ArtdaqOutput") << "ArtdaqOutput::write: Finished streaming RunAuxiliary.";
 
 	//
 	//  Write SubRunAuxiliary.
 	//
-	TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Streaming SubRunAuxiliary ...";
+	TLOG(TLVL_WRITE, "ArtdaqOutput") << "ArtdaqOutput::write: Streaming SubRunAuxiliary ...";
 	msg->WriteObjectAny(&ep.subRunPrincipal().subRunAux(), subrun_aux_class);
-	TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Finished streaming SubRunAuxiliary.";
+	TLOG(TLVL_WRITE, "ArtdaqOutput") << "ArtdaqOutput::write: Finished streaming SubRunAuxiliary.";
 
 	//
 	//  Write EventAuxiliary.
 	//
 	{
-		TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Streaming EventAuxiliary ...";
+		TLOG(TLVL_WRITE, "ArtdaqOutput") << "ArtdaqOutput::write: Streaming EventAuxiliary ...";
 		msg->WriteObjectAny(&ep.eventAux(), event_aux_class);
-		TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Finished streaming EventAuxiliary.";
+		TLOG(TLVL_WRITE, "ArtdaqOutput") << "ArtdaqOutput::write: Finished streaming EventAuxiliary.";
 	}
 
 	//
@@ -615,9 +615,9 @@ inline void art::ArtdaqOutput::write(EventPrincipal& ep)
 	std::vector<BranchKey*> bkv;
 	writeDataProducts(msg, ep, bkv);
 
-	TLOG(TLVL_WRITE) << "ArtdaqOutput::write: Sending message";
+	TLOG(TLVL_WRITE, "ArtdaqOutput") << "ArtdaqOutput::write: Sending message";
 	sendMessage(msg);
-	TLOG(TLVL_WRITE) << "ArtdaqOutput::write: Done sending message";
+	TLOG(TLVL_WRITE, "ArtdaqOutput") << "ArtdaqOutput::write: Done sending message";
 
 	//
 	//  Delete the branch keys we created for the message.
@@ -627,79 +627,29 @@ inline void art::ArtdaqOutput::write(EventPrincipal& ep)
 		delete *I;
 		*I = 0;
 	}
-	TLOG(TLVL_WRITE) << "End: ArtdaqOutput::write(const EventPrincipal& ep)";
+	TLOG(TLVL_WRITE, "ArtdaqOutput") << "End: ArtdaqOutput::write(EventPrincipal& ep)";
 }
 
-inline void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
-{  //
-	//  Write an EndRun message.
-	//
-	TLOG(TLVL_WRITERUN) << "Begin: ArtdaqOutput::writeRun(const RunPrincipal& rp)";
-	(void)rp;
-	if (!initMsgSent_)
-	{
-		send_init_message();
-		initMsgSent_ = true;
-	}
-#if 0
-	//
-	//  Fetch the class dictionaries we need for
-	//  writing out the auxiliary information.
-	//
-	static TClass* run_aux_class = TClass::GetClass("art::RunAuxiliary");
-	assert(run_aux_class != nullptr && "writeRun: Could not get TClass for art::RunAuxiliary!");
-	//
-	//  Begin preparing message.
-	//
-	auto msg = prepareMessage(last_sequence_id_ + 1,rp.run() + 1, artdaq::Fragment::EndOfRunFragmentType);
-	//
-	//  Write message type code.
-	//
-	{
-		TLOG(TLVL_WRITERUN) << "ArtdaqOutput::writeRun: streaming message type code ...";
-		msg->WriteULong(static_cast<ULong_t>(artdaq::NetMonHeader::MessageType::Run));
-		TLOG(TLVL_WRITERUN) << "ArtdaqOutput::writeRun: finished streaming message type code.";
-	}
-	//
-	//  Write RunAuxiliary.
-	//
-	{
-		TLOG(TLVL_WRITERUN) << "ArtdaqOutput::writeRun: streaming RunAuxiliary ...";
-		msg->WriteObjectAny(&rp.runAux(), run_aux_class);
-		TLOG(TLVL_WRITERUN) << "ArtdaqOutput::writeRun: streamed RunAuxiliary.";
-	}
-	//
-	//  Write data products.
-	//
-	std::vector<BranchKey*> bkv;
-	writeDataProducts(msg, rp, bkv);
-
-	TLOG(TLVL_WRITERUN) << "ArtdaqOutput::writeRun: Sending message";
-	sendMessage(msg);
-	TLOG(TLVL_WRITERUN) << "ArtdaqOutput::writeRun: Done sending message";
-
-	for (auto I = bkv.begin(), E = bkv.end(); I != E; ++I)
-	{
-		delete *I;
-		*I = 0;
-	}
-#endif
-	TLOG(TLVL_WRITERUN) << "End: ArtdaqOutput::writeRun(RunPrincipal& rp)";
-}
 inline void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 {  //
-	//  Write an EndSubRun message.
+	//  Write an SubRun message.
 	//
-	TLOG(TLVL_WRITESUBRUN) << "Begin: ArtdaqOutput::writeSubRun(const SubRunPrincipal& srp)";
+	TLOG(TLVL_WRITESUBRUN, "ArtdaqOutput") << "Begin: ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)";
 	if (!initMsgSent_)
 	{
 		send_init_message();
 		initMsgSent_ = true;
 	}
+
 	//
-	//  Fetch the class dictionaries we need for
-	//  writing out the auxiliary information.
+	//  Get root classes needed for I/O.
 	//
+	static TClass* run_aux_class = TClass::GetClass("art::RunAuxiliary");
+	if (run_aux_class == nullptr)
+	{
+		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::writeSubRun: "  // NOLINT(cert-err60-cpp)
+		                                                         "Could not get TClass for art::RunAuxiliary!";
+	}
 	static TClass* subrun_aux_class = TClass::GetClass("art::SubRunAuxiliary");
 	if (subrun_aux_class == nullptr)
 	{
@@ -709,22 +659,29 @@ inline void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 	//
 	//  Begin preparing message.
 	//
-	auto msg = prepareMessage(last_sequence_id_ + 1, srp.subRun() + 1, artdaq::Fragment::EndOfSubrunFragmentType);
+	auto msg = prepareMessage(last_sequence_id_ + 1, srp.subRun() + 1, artdaq::Fragment::SubrunDataFragmentType);
 	//
 	//  Write message type code.
 	//
 	{
-		TLOG(TLVL_WRITESUBRUN) << "ArtdaqOutput::writeSubRun: streaming message type code ...";
+		TLOG(TLVL_WRITESUBRUN, "ArtdaqOutput") << "ArtdaqOutput::writeSubRun: streaming message type code ...";
 		msg->WriteULong(static_cast<ULong_t>(artdaq::NetMonHeader::MessageType::Subrun));
-		TLOG(TLVL_WRITESUBRUN) << "ArtdaqOutput::writeSubRun: finished streaming message type code.";
+		TLOG(TLVL_WRITESUBRUN, "ArtdaqOutput") << "ArtdaqOutput::writeSubRun: finished streaming message type code.";
 	}
+	//
+	//  Write RunAuxiliary.
+	//
+	TLOG(TLVL_WRITESUBRUN, "ArtdaqOutput") << "ArtdaqOutput::writeSubRun: Streaming RunAuxiliary ...";
+	msg->WriteObjectAny(&srp.runPrincipal().runAux(), run_aux_class);
+	TLOG(TLVL_WRITESUBRUN, "ArtdaqOutput") << "ArtdaqOutput::writeSubRun: Finished streaming RunAuxiliary.";
+
 	//
 	//  Write SubRunAuxiliary.
 	//
 	{
-		TLOG(TLVL_WRITESUBRUN) << "ArtdaqOutput::writeSubRun: streaming SubRunAuxiliary ...";
+		TLOG(TLVL_WRITESUBRUN, "ArtdaqOutput") << "ArtdaqOutput::writeSubRun: streaming SubRunAuxiliary ...";
 
-		TLOG(TLVL_WRITESUBRUN_VERBOSE) << "ArtdaqOutput::writeSubRun: dumping ProcessHistoryRegistry ...";
+		TLOG(TLVL_WRITESUBRUN_VERBOSE, "ArtdaqOutput") << "ArtdaqOutput::writeSubRun: dumping ProcessHistoryRegistry ...";
 		// typedef std::map<const ProcessHistoryID,ProcessHistory>
 		//    ProcessHistoryMap;
 		for (auto I = std::begin(art::ProcessHistoryRegistry::get()), E = std::end(art::ProcessHistoryRegistry::get());
@@ -732,24 +689,24 @@ inline void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 		{
 			std::ostringstream OS;
 			I->first.print(OS);
-			TLOG(TLVL_WRITESUBRUN_VERBOSE) << "ArtdaqOutput::writeSubRun: phr: id: '" << OS.str() << "'";
+			TLOG(TLVL_WRITESUBRUN_VERBOSE, "ArtdaqOutput") << "ArtdaqOutput::writeSubRun: phr: id: '" << OS.str() << "'";
 			OS.str("");
-			TLOG(TLVL_WRITESUBRUN_VERBOSE) << "ArtdaqOutput::writeSubRun: phr: data.size():  " << I->second.data().size();
+			TLOG(TLVL_WRITESUBRUN_VERBOSE, "ArtdaqOutput") << "ArtdaqOutput::writeSubRun: phr: data.size():  " << I->second.data().size();
 			if (!I->second.data().empty())
 			{
 				I->second.data().back().id().print(OS);
-				TLOG(TLVL_WRITESUBRUN_VERBOSE) << "ArtdaqOutput::writeSubRun: phr: data.back().id(): '" << OS.str() << "'";
+				TLOG(TLVL_WRITESUBRUN_VERBOSE, "ArtdaqOutput") << "ArtdaqOutput::writeSubRun: phr: data.back().id(): '" << OS.str() << "'";
 			}
 		}
 		if (!srp.subRunAux().processHistoryID().isValid())
 		{
-			TLOG(TLVL_WRITESUBRUN_VERBOSE) << "ArtdaqOutput::writeSubRun: ProcessHistoryID: 'INVALID'";
+			TLOG(TLVL_WRITESUBRUN_VERBOSE, "ArtdaqOutput") << "ArtdaqOutput::writeSubRun: ProcessHistoryID: 'INVALID'";
 		}
 		else
 		{
 			std::ostringstream OS;
 			srp.subRunAux().processHistoryID().print(OS);
-			TLOG(TLVL_WRITESUBRUN_VERBOSE) << "ArtdaqOutput::writeSubRun: ProcessHistoryID: '" << OS.str() << "'";
+			TLOG(TLVL_WRITESUBRUN_VERBOSE, "ArtdaqOutput") << "ArtdaqOutput::writeSubRun: ProcessHistoryID: '" << OS.str() << "'";
 			OS.str("");
 			ProcessHistory processHistory;
 			ProcessHistoryRegistry::get(srp.subRunAux().processHistoryID(), processHistory);
@@ -757,14 +714,14 @@ inline void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 			{
 				// FIXME: Print something special on invalid id() here!
 				processHistory.data().back().id().print(OS);
-				TLOG(TLVL_WRITESUBRUN_VERBOSE) << "ArtdaqOutput::writeSubRun: ProcessConfigurationID: '" << OS.str() << "'";
+				TLOG(TLVL_WRITESUBRUN_VERBOSE, "ArtdaqOutput") << "ArtdaqOutput::writeSubRun: ProcessConfigurationID: '" << OS.str() << "'";
 				OS.str("");
 				OS << processHistory.data().back();
-				TLOG(TLVL_WRITESUBRUN_VERBOSE) << "ArtdaqOutput::writeSubRun: ProcessConfiguration: '" << OS.str();
+				TLOG(TLVL_WRITESUBRUN_VERBOSE, "ArtdaqOutput") << "ArtdaqOutput::writeSubRun: ProcessConfiguration: '" << OS.str();
 			}
 		}
 		msg->WriteObjectAny(&srp.subRunAux(), subrun_aux_class);
-		TLOG(TLVL_WRITESUBRUN) << "ArtdaqOutput::writeSubRun: streamed SubRunAuxiliary.";
+		TLOG(TLVL_WRITESUBRUN, "ArtdaqOutput") << "ArtdaqOutput::writeSubRun: streamed SubRunAuxiliary.";
 	}
 	//
 	//  Write data products.
@@ -772,9 +729,9 @@ inline void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 	std::vector<BranchKey*> bkv;
 	writeDataProducts(msg, srp, bkv);
 
-	TLOG(TLVL_WRITESUBRUN) << "ArtdaqOutput::writeSubRun: Sending message";
+	TLOG(TLVL_WRITESUBRUN, "ArtdaqOutput") << "ArtdaqOutput::writeSubRun: Sending message";
 	sendMessage(msg);
-	TLOG(TLVL_WRITESUBRUN) << "ArtdaqOutput::writeSubRun: Done sending message";
+	TLOG(TLVL_WRITESUBRUN, "ArtdaqOutput") << "ArtdaqOutput::writeSubRun: Done sending message";
 
 	//
 	//  Delete the branch keys we created for the message.
@@ -784,12 +741,68 @@ inline void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 		delete *I;
 		*I = 0;
 	}
-	TLOG(TLVL_WRITESUBRUN) << "End: ArtdaqOutput::writeSubRun(const SubRunPrincipal& srp)";
+	TLOG(TLVL_WRITESUBRUN, "ArtdaqOutput") << "End: ArtdaqOutput::writeSubRun(const SubRunPrincipal& srp)";
+}
+
+inline void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
+{  //
+	//  Write an Run message.
+	//
+	TLOG(TLVL_WRITERUN, "ArtdaqOutput") << "Begin: ArtdaqOutput::writeRun(const RunPrincipal& rp)";
+	(void)rp;
+	if (!initMsgSent_)
+	{
+		send_init_message();
+		initMsgSent_ = true;
+	}
+
+	//
+	//  Fetch the class dictionaries we need for
+	//  writing out the auxiliary information.
+	//
+	static TClass* run_aux_class = TClass::GetClass("art::RunAuxiliary");
+	assert(run_aux_class != nullptr && "writeRun: Could not get TClass for art::RunAuxiliary!");
+	//
+	//  Begin preparing message.
+	//
+	auto msg = prepareMessage(last_sequence_id_ + 1,rp.run() + 1, artdaq::Fragment::RunDataFragmentType);
+	//
+	//  Write message type code.
+	//
+	{
+		TLOG(TLVL_WRITERUN, "ArtdaqOutput") << "ArtdaqOutput::writeRun: streaming message type code ...";
+		msg->WriteULong(static_cast<ULong_t>(artdaq::NetMonHeader::MessageType::Run));
+		TLOG(TLVL_WRITERUN, "ArtdaqOutput") << "ArtdaqOutput::writeRun: finished streaming message type code.";
+	}
+	//
+	//  Write RunAuxiliary.
+	//
+	{
+		TLOG(TLVL_WRITERUN, "ArtdaqOutput") << "ArtdaqOutput::writeRun: streaming RunAuxiliary ...";
+		msg->WriteObjectAny(&rp.runAux(), run_aux_class);
+		TLOG(TLVL_WRITERUN, "ArtdaqOutput") << "ArtdaqOutput::writeRun: streamed RunAuxiliary.";
+	}
+	//
+	//  Write data products.
+	//
+	std::vector<BranchKey*> bkv;
+	writeDataProducts(msg, rp, bkv);
+
+	TLOG(TLVL_WRITERUN, "ArtdaqOutput") << "ArtdaqOutput::writeRun: Sending message";
+	sendMessage(msg);
+	TLOG(TLVL_WRITERUN, "ArtdaqOutput") << "ArtdaqOutput::writeRun: Done sending message";
+
+	for (auto I = bkv.begin(), E = bkv.end(); I != E; ++I)
+	{
+		delete *I;
+		*I = 0;
+	}
+	TLOG(TLVL_WRITERUN, "ArtdaqOutput") << "End: ArtdaqOutput::writeRun(RunPrincipal& rp)";
 }
 
 inline void art::ArtdaqOutput::extractProducts_(Principal const& principal [[gnu::unused]])
 {
-	TLOG(TLVL_EXTRACTPRODUCTS) << "Begin: ArtdaqOutput::extractProducts_(Principal const& principal) sz=" << principal.size();
+	TLOG(TLVL_EXTRACTPRODUCTS, "ArtdaqOutput") << "Begin: ArtdaqOutput::extractProducts_(Principal const& principal) sz=" << principal.size();
 
 	for (auto I = principal.begin(), E = principal.end(); I != E; ++I)
 	{
@@ -798,7 +811,7 @@ inline void art::ArtdaqOutput::extractProducts_(Principal const& principal [[gnu
 
 		if (!productList_.count(branchKey))
 		{
-			TLOG(TLVL_EXTRACTPRODUCTS_VERBOSE) << "ArtdaqOutput::extractProducts_:"
+			TLOG(TLVL_EXTRACTPRODUCTS_VERBOSE, "ArtdaqOutput") << "ArtdaqOutput::extractProducts_:"
 			                                   << "Adding branch key to productList of class: '"
 			                                   << branchKey.friendlyClassName_ << "' modlbl: '" << branchKey.moduleLabel_ << "' instnm: '"
 			                                   << branchKey.productInstanceName_ << "' procnm: '" << branchKey.processName_ << "'"
@@ -808,7 +821,7 @@ inline void art::ArtdaqOutput::extractProducts_(Principal const& principal [[gnu
 		}
 	}
 
-	TLOG(TLVL_EXTRACTPRODUCTS) << "End: ArtdaqOutput::extractProducts_(Principal const& principal) Product list sz=" << productList_.size();
+	TLOG(TLVL_EXTRACTPRODUCTS, "ArtdaqOutput") << "End: ArtdaqOutput::extractProducts_(Principal const& principal) Product list sz=" << productList_.size();
 }
 
 #endif  // ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQOUTPUT_HH_

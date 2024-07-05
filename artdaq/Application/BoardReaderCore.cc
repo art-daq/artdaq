@@ -489,7 +489,7 @@ void artdaq::BoardReaderCore::send_fragments()
 				TLOG(TLVL_DEBUG + 32) << "Received first Fragment from Fragment Generator, sequence ID " << fragPtr->sequenceID() << ", size = " << fragPtr->sizeBytes() << " bytes.";
 			}
 
-			if (fragPtr->type() == Fragment::EndOfRunFragmentType || fragPtr->type() == Fragment::EndOfSubrunFragmentType || fragPtr->type() == Fragment::InitFragmentType)
+			if (artdaq::Fragment::isBroadcastFragmentType(fragPtr->type()))
 			{
 				// Just broadcast any system Fragments in the output
 				artdaq::Fragment::sequence_id_t sequence_id = fragPtr->sequenceID();
