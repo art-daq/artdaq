@@ -116,7 +116,7 @@ int artdaq::TransferTest::runTest()
 		std::vector<std::future<std::pair<size_t, double>>> results_futures(sending_threads_);
 		for (int ii = 0; ii < sending_threads_; ++ii)
 		{
-			results_futures[ii] = std::async(std::bind(&TransferTest::do_sending, this, ii));
+			results_futures[ii] = std::async(std::launch::async, std::bind(&TransferTest::do_sending, this, ii));
 		}
 		for (auto& future : results_futures)
 		{
@@ -134,7 +134,8 @@ int artdaq::TransferTest::runTest()
 	}
 	auto duration = std::chrono::duration_cast<artdaq::TimeUtils::seconds>(std::chrono::steady_clock::now() - start_time_).count();
 	TLOG(TLVL_INFO) << (my_rank < senders_ ? "Sent " : "Received ") << result.first << " bytes in " << duration << " seconds ( " << formatBytes(result.first / duration) << "/s )." << std::endl;
-	TLOG(TLVL_INFO) << "Rate of " << (my_rank < senders_ ? "sending" : "receiving") << ": " << formatBytes(result.first / result.second) << "/s." << std::endl;
+	TLOG(TLVL_INFO) << "Rate of " << (my_rank < senders_ ? "sending" : "receiving") << ": " << formatBytes(result.first / result.second) << "/s, " << formatHertz((my_rank < senders_ ? sends_each_sender_ : receives_each_receiver_) / duration)
+	                << std::endl;
 	metricMan->do_stop();
 	metricMan->shutdown();
 	TLOG(TLVL_DEBUG + 36) << "runTest DONE";

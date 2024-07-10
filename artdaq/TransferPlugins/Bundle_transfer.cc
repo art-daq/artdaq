@@ -125,8 +125,8 @@ public:
 			}
 
 			TLOG(TLVL_DEBUG + 35) << GetTraceName() << "transfer_fragment_min_blocking_mode after wait for buffer";
-			// Always send along System Fragments immediately
-			if (Fragment::isSystemFragmentType(fragment.type()))
+			// Always send along Broadcast Fragments immediately
+			if (Fragment::isBroadcastFragmentType(fragment.type()))
 			{
 				system_fragment_cached_ = true;
 			}
@@ -157,8 +157,8 @@ public:
 
 			TLOG(TLVL_DEBUG + 36) << GetTraceName() << "transfer_fragment_reliable_mode after wait for buffer";
 
-			// Always send along System Fragments immediately
-			if (Fragment::isSystemFragmentType(fragment.type()))
+			// Always send along Broadcast Fragments immediately
+			if (Fragment::isBroadcastFragmentType(fragment.type()))
 			{
 				system_fragment_cached_ = true;
 			}
@@ -328,6 +328,7 @@ bool artdaq::BundleTransfer::send_bundle_fragment_(bool forceSend)
 			size_t size = current_buffer_size_bytes_;
 			fragment_buffer_.swap(temp_buffer);
 			send_fragment_started_ = std::chrono::steady_clock::now();
+			system_fragment_cached_ = false;
 			current_buffer_size_bytes_ = 0;
 			lk.unlock();
 			TLOG(TLVL_DEBUG + 38) << GetTraceName() << "Notifying waiters";
@@ -338,7 +339,7 @@ bool artdaq::BundleTransfer::send_bundle_fragment_(bool forceSend)
 			bundle_fragment_->setTimestamp(temp_buffer.front().timestamp());
 			bundle_fragment_->reserve(size / sizeof(artdaq::RawDataType));
 
-			TLOG(TLVL_DEBUG + 38) << GetTraceName() << "Filling Bundle Fragment";
+			TLOG(TLVL_DEBUG + 38) << GetTraceName() << "Filling Bundle Fragment, sz = " << temp_buffer.size();
 			ContainerFragmentLoader container_fragment(*bundle_fragment_);
 			container_fragment.set_missing_data(false);  // Buffer mode is never missing data, even if there IS no data.
 			container_fragment.addFragments(temp_buffer, true);
