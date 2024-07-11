@@ -266,6 +266,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 	bool nonblocking_mode = ps_.get<bool>("nonblocking_sends", false);
 	std::atomic<int> activeSenders(senders_ * sending_threads_);
 	auto end_loop = std::chrono::steady_clock::now();
+	auto last_receive = std::chrono::steady_clock::now();
 
 	auto recv_size_metric = 0.0;
 	auto recv_time_metric = 0.0;
@@ -287,6 +288,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 		size_t thisSize = 0;
 		if (senderSlot >= artdaq::TransferInterface::RECV_SUCCESS && ignoreFragPtr)
 		{
+			last_receive = std::chrono::steady_clock::now();
 			if (ignoreFragPtr->type() == artdaq::Fragment::EndOfDataFragmentType)
 			{
 				TLOG(TLVL_INFO) << "Receiver " << my_rank << " received EndOfData Fragment from Sender " << senderSlot;
@@ -348,6 +350,11 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 			init_wait_metric = 0.0;
 			recv_time_metric = 0.0;
 			recv_size_metric = 0.0;
+		}
+
+		if(artdaq::TimeUtils::GetElapsedTime(last_receive) > 5.0) {
+			TLOG(TLVL_ERROR) << "Senders appear to have stopped (no data for >5 seconds), aborting test! counter=" << counter;
+			return std::make_pair(0, 0.0);
 		}
 		end_loop = std::chrono::steady_clock::now();
 	}
