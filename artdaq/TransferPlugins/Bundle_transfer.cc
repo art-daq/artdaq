@@ -150,7 +150,7 @@ public:
 		last_send_call_reliable_ = true;
 		{
 			std::unique_lock<std::mutex> lk(fragment_mutex_);
-			if (current_buffer_size_bytes_ > max_hold_size_bytes_)
+			while (current_buffer_size_bytes_ > max_hold_size_bytes_)
 			{
 				fragment_cv_.wait(lk, [&] { return current_buffer_size_bytes_ < max_hold_size_bytes_; });
 			}
