@@ -409,7 +409,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 
 			end_time = std::chrono::steady_clock::now();
 		}
-		else if (header.type == Fragment::EndOfDataFragmentType || header.type == Fragment::InitFragmentType || header.type == Fragment::EndOfRunFragmentType || header.type == Fragment::EndOfSubrunFragmentType || header.type == Fragment::ShutdownFragmentType)
+		else if (Fragment::isBroadcastFragmentType(header.type))
 		{
 			TLOG(TLVL_DEBUG + 32) << "Received System Fragment from rank " << source_rank << " of type " << detail::RawFragmentHeader::SystemTypeToString(header.type) << ".";
 
@@ -464,6 +464,11 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 					break;
 				default:
 					break;
+			}
+			
+			if (header.type != Fragment::InitFragmentType && header.type != Fragment::EndOfDataFragmentType && header.type != Fragment::ShutdownFragmentType)
+			{
+				shm_manager_->BroadcastFragment(frag);
 			}
 		}
 	}

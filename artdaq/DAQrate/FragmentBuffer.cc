@@ -148,7 +148,7 @@ void artdaq::FragmentBuffer::AddFragmentsToBuffer(FragmentPtrs frags)
 		auto dataIter = frags.begin();
 		auto frag_id = (*dataIter)->fragmentID();
 
-		if ((*dataIter)->type() == Fragment::EndOfRunFragmentType || (*dataIter)->type() == Fragment::EndOfSubrunFragmentType || (*dataIter)->type() == Fragment::InitFragmentType)
+		if (Fragment::isBroadcastFragmentType((*dataIter)->type()))
 		{
 			std::lock_guard<std::mutex> lk(systemFragmentMutex_);
 			systemFragments_.emplace_back(std::move(*dataIter));

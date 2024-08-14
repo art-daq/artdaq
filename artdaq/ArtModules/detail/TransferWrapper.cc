@@ -45,7 +45,12 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset)
     , dispatcherPort_(pset.get<std::string>("dispatcherPort", "5266"))
     , serverUrl_(pset.get<std::string>("server_url", "http://" + dispatcherHost_ + ":" + dispatcherPort_ + "/RPC2"))
     , maxEventsBeforeInit_(pset.get<std::size_t>("maxEventsBeforeInit", 5))
-    , allowedFragmentTypes_(pset.get<std::vector<int>>("allowedFragmentTypes", {226, 227, 229}))
+    , allowedFragmentTypes_(pset.get<std::vector<int>>("allowedFragmentTypes", {static_cast<int>(artdaq::Fragment::DataFragmentType),
+                                                                                static_cast<int>(artdaq::Fragment::InitFragmentType),
+                                                                                static_cast<int>(artdaq::Fragment::EndOfRunFragmentType),
+                                                                                static_cast<int>(artdaq::Fragment::EndOfSubrunFragmentType),
+                                                                                static_cast<int>(artdaq::Fragment::RunDataFragmentType),
+                                                                                static_cast<int>(artdaq::Fragment::SubrunDataFragmentType)}))
     , runningStateTimeout_(pset.get<double>("dispatcherConnectTimeout", 0))
     , runningStateInterval_us_(pset.get<size_t>("dispatcherConnectRetryInterval_us", 1000000))
     , quitOnFragmentIntegrityProblem_(pset.get<bool>("quitOnFragmentIntegrityProblem", true))
