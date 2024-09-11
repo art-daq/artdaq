@@ -27,12 +27,12 @@ file(GLOB broken_tests "fcl/broken_transfer_driver_*.fcl")
 foreach(testfile ${broken_tests})
 	get_filename_component(conffile ${testfile} NAME)
 	get_filename_component(test_name ${testfile} NAME_WE)
-#	cet_test(${test_name}_t HANDBUILT
-#	TEST_EXEC runBrokenTransferTest.sh
-#	TEST_ARGS ${conffile}
-#	DATAFILES ${testfile}
-#	TEST_PROPERTIES RUN_SERIAL 1
-#	)
+	cet_test(${test_name}_t HANDBUILT CONFIGURATIONS Debug
+	TEST_EXEC runBrokenTransferTest.sh
+	TEST_ARGS ${conffile}
+	DATAFILES ${testfile}
+	TEST_PROPERTIES RUN_SERIAL 1
+	)
 endforeach()
 
 file(GLOB transfer_tests "fcl/transfer_driver_*.fcl")
@@ -47,7 +47,7 @@ foreach(testfile ${transfer_tests})
 	
 	get_filename_component(conffile ${testfile} NAME)
 	get_filename_component(test_name ${testfile} NAME_WE)
-	cet_test(${test_name}_t HANDBUILT
+	cet_test(${test_name}_t HANDBUILT CONFIGURATIONS Debug
 	TEST_EXEC runTransferTest.sh
 	TEST_ARGS ${conffile} ${procs}
 	DATAFILES ${testfile}
