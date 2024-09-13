@@ -53,9 +53,10 @@ private:
 	std::pair<size_t, double> do_receiving();
 
 	// Helper functions
-	const std::vector<std::string> suffixes{" B", " KB", " MB", " GB", " TB"};
+	const std::vector<std::string> suffixes{" ", " K", " M", " G", " T"};
 
 	std::string formatBytes(double bytes, size_t suffixIndex = 0);
+	std::string formatHertz(double hertz, size_t suffixIndex = 0);
 
 	int senders_;
 	int receivers_;
@@ -82,7 +83,20 @@ inline std::string TransferTest::formatBytes(double bytes, size_t suffixIndex)
 		return formatBytes(bytes / 1024.0, suffixIndex + 1);
 	}
 
-	return std::to_string(bytes) + suffixes[suffixIndex];
+	return std::to_string(bytes) + suffixes[suffixIndex] + "B";
 }
+
+inline std::string TransferTest::formatHertz(double hertz, size_t suffixIndex)
+{
+	auto b = fabs(hertz);
+
+	if (b > 1000.0 && suffixIndex < suffixes.size())
+	{
+		return formatHertz(hertz / 1000.0, suffixIndex + 1);
+	}
+
+	return std::to_string(hertz) + suffixes[suffixIndex] + "Hz";
+}
+
 }  // namespace artdaq
 #endif  // ARTDAQ_TEST_DAQRATE_TRANSFERTEST_HH
