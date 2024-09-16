@@ -530,7 +530,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 		{
 			// see if we're done (with this state)
 			sts = offset += sts;
-			if (sts >= target_bytes)
+			if (static_cast<size_t>(sts) >= target_bytes)
 			{
 				TLOG(TLVL_DEBUG + 42) << GetTraceName() << "receiveFragmentData: Target read bytes reached. Changing state";
 				offset = 0;
