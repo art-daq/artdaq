@@ -40,9 +40,9 @@ public:
 	 * \brief Pretend to receive an event from the shared memory
 	 * \return Map of Fragment types retrieved from shared memory
 	 */
-	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> ReceiveEvent(bool) override
+	std::shared_ptr<ArtdaqEvent> ReceiveEvent(bool) override
 	{
-		return std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>();
+		return nullptr;
 	}
 
 	/**
@@ -50,16 +50,12 @@ public:
 	 * \return The number of events which can be read (0)
 	 */
 	size_t GetQueueSize() override { return 0; }
-	/**
+
+    /**
 	 * \brief Get the maximum number of events which can be stored in the shared memory (0)
 	 * \return The maximum number of events which can be stored in the shared memory (0)
 	 */
 	size_t GetQueueCapacity() override { return 0; }
-	/**
-	 * \brief Get a shared_ptr to the current event header, if any
-	 * \return Nullptr
-	 */
-	std::shared_ptr<artdaq::detail::RawEventHeader> GetEventHeader() override { return nullptr; }
 
 	/**
 	 * \brief Get the ID of this art process. Always 0 since ArtdaqGlobalsService does not connect to shared memory

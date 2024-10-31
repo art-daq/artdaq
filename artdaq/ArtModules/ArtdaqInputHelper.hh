@@ -149,7 +149,7 @@ private:
 	                               art::SubRunPrincipal* const, art::RunPrincipal*&, art::SubRunPrincipal*&,
 	                               art::EventPrincipal*&);
 
-	bool constructPrincipal(artdaq::Fragment::type_t, art::RunPrincipal* const,
+	bool constructPrincipal(std::shared_ptr<ArtdaqEvent>, art::RunPrincipal* const,
 	                        art::SubRunPrincipal* const, art::RunPrincipal*&, art::SubRunPrincipal*&,
 	                        art::EventPrincipal*&);
 
@@ -536,7 +536,7 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 		                                           << subrun_aux->subRun();
 
 		art::SubRunID subrun_check(subrun_aux->run(), subrun_aux->subRun());
-		if (inSR == nullptr || subrun_check != inSR->subRunID())
+		if (inSR == nullptr || !inSR->subRunID().isValid() || subrun_check != inSR->subRunID())
 		{
 			// New SubRun, either we have no input SubRunPrincipal, or the
 			// input subRun number does not match the subRun number.
@@ -589,7 +589,8 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 	{
 		TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "No principals created, making Flush Event based on whether there was an existing SubRun";
 
-		if (!inSR || !inSR->subRunID().isValid()) {
+		if (!inSR || !inSR->subRunID().isValid())
+		{
 			TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: Making run flush event";
 			art::EventID const flush_evid(art::EventID::flushEvent(inR->runID()));
 			outSR = pm_.makeSubRunPrincipal(flush_evid.subRunID(), currentTime);
@@ -605,22 +606,21 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 }
 
 template<typename U>
-bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firstFragmentType, art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR, art::RunPrincipal*& outR, art::SubRunPrincipal*& outSR, art::EventPrincipal*& outE)
+bool art::ArtdaqInputHelper<U>::constructPrincipal(std::shared_ptr<ArtdaqEvent> eventPtr, art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR, art::RunPrincipal*& outR, art::SubRunPrincipal*& outSR, art::EventPrincipal*& outE)
 {
 	// We return false, indicating we're done reading, if:
 	//   1) we did not obtain an event, because we timed out and were
 	//      configured NOT to keep trying after a timeout, or
 	//   2) the event we read was the end-of-data marker: a null
 	//      pointer
-	if (firstFragmentType == artdaq::Fragment::EndOfDataFragmentType)
+	if (eventPtr->FirstFragmentType() == artdaq::Fragment::EndOfDataFragmentType)
 	{
 		TLOG(TLVL_DEBUG + 32, "ArtdaqInputHelper") << "Received shutdown message, returning false";
 		shutdownMsgReceived_ = true;
 		return false;
 	}
 
-	auto evtHeader = communicationWrapper_.getEventHeader();
-	if (!evtHeader)
+	if (!eventPtr->header)
 	{
 		TLOG_ERROR("ArtdaqInputHelper") << "No RawEventHeader received, cannot construct principals!";
 		shutdownMsgReceived_ = true;
@@ -631,11 +631,6 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 	// fragment and that fragment is marked as EndRun or EndSubrun we'll create
 	// the special principals for that.
 	art::Timestamp currentTime = 0;
-#if 0
-				art::TimeValue_t lo_res_time = time(0);
-				TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "lo_res_time = " << lo_res_time;
-				currentTime = ((lo_res_time & 0xffffffff) << 32);
-#endif
 	timespec hi_res_time;
 	int retcode = clock_gettime(CLOCK_REALTIME, &hi_res_time);
 	TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "hi_res_time tv_sec = " << hi_res_time.tv_sec
@@ -648,25 +643,10 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 	{
 		TLOG_ERROR("ArtdaqInputHelper")
 		    << "Unable to fetch a high-resolution time with clock_gettime for art::Event Timestamp. "
-		    << "The art::Event Timestamp will be zero for event " << evtHeader->event_id;
+		    << "The art::Event Timestamp will be zero for event " << eventPtr->header->event_id;
 	}
 
-	// make new run if inR is 0 or if the run has changed
-	if (inR == nullptr || inR->run() != evtHeader->run_id)
-	{
-		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Making run principal with run_id " << evtHeader->run_id;
-		outR = pm_.makeRunPrincipal(evtHeader->run_id, currentTime);
-	}
-
-	// make new subrun if inSR is 0 or if the subrun has changed
-	art::SubRunID subrun_check(evtHeader->run_id, evtHeader->subrun_id);
-	if (inSR == nullptr || subrun_check != inSR->subRunID())
-	{
-		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Making subrun principal with subrun_id " << evtHeader->subrun_id;
-		outSR = pm_.makeSubRunPrincipal(evtHeader->run_id, evtHeader->subrun_id, currentTime);
-	}
-
-	if (firstFragmentType == artdaq::Fragment::EndOfRunFragmentType)
+	if (eventPtr->FirstFragmentType() == artdaq::Fragment::EndOfRunFragmentType)
 	{
 		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "EndOfRunFragment received, returning Flush event";
 		art::EventID const evid(art::EventID::flushEvent());
@@ -675,14 +655,16 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 		outE = pm_.makeEventPrincipal(evid, currentTime);
 		return true;
 	}
-	else if (firstFragmentType == artdaq::Fragment::EndOfSubrunFragmentType)
+
+	if (eventPtr->FirstFragmentType() == artdaq::Fragment::EndOfSubrunFragmentType)
 	{
 		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "EndOfSubrunFragment received, creating new Subrun Principal";
 		// Check if inR == 0 or is a new run
-		if (inR == nullptr || inR->run() != evtHeader->run_id)
+		if (inR == nullptr || !inR->runID().isValid() || inR->run() != eventPtr->header->run_id)
 		{
-			TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Making subrun principal with subrun_id " << evtHeader->subrun_id;
-			outSR = pm_.makeSubRunPrincipal(evtHeader->run_id, evtHeader->subrun_id, currentTime);
+			TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Making subrun principal with subrun_id " << eventPtr->header->subrun_id;
+			if (outSR) delete outSR;
+			outSR = pm_.makeSubRunPrincipal(eventPtr->header->run_id, eventPtr->header->subrun_id, currentTime);
 			art::EventID const evid(art::EventID::flushEvent(outSR->subRunID()));
 			outE = pm_.makeEventPrincipal(evid, currentTime);
 		}
@@ -692,7 +674,7 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 			// subrun, then it must have been associated with a data event.  In that case, we need
 			// to generate a flush event with a valid run but flush subrun and event number in order
 			// to end the subrun.
-			if (inSR != nullptr && !inSR->subRunID().isFlush() && inSR->subRun() == evtHeader->subrun_id)
+			if (inSR != nullptr && !inSR->subRunID().isFlush() && inSR->subRun() == eventPtr->header->subrun_id)
 			{
 				TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Flushing old run id " << inR->runID();
 				art::EventID const evid(art::EventID::flushEvent(inR->runID()));
@@ -704,20 +686,34 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 			}
 			else
 			{
-				TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Making subrun principal with subrun_id " << evtHeader->subrun_id;
-				outSR = pm_.makeSubRunPrincipal(evtHeader->run_id, evtHeader->subrun_id, currentTime);
+				TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Making subrun principal with subrun_id " << eventPtr->header->subrun_id;
+				outSR = pm_.makeSubRunPrincipal(eventPtr->header->run_id, eventPtr->header->subrun_id, currentTime);
 				art::EventID const evid(art::EventID::flushEvent(outSR->subRunID()));
 				outE = pm_.makeEventPrincipal(evid, currentTime);
 				// Possible error condition
 				//} else {
 			}
-			outR = nullptr;
 		}
 		return true;
 	}
 
-	TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Making event principal with event_id " << evtHeader->event_id;
-	outE = pm_.makeEventPrincipal(evtHeader->run_id, evtHeader->subrun_id, evtHeader->event_id, currentTime);
+	// make new run if inR is 0 or if the run has changed
+	if (inR == nullptr || !inR->runID().isValid() || inR->run() != eventPtr->header->run_id)
+	{
+		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Making run principal with run_id " << eventPtr->header->run_id;
+		outR = pm_.makeRunPrincipal(eventPtr->header->run_id, currentTime);
+	}
+
+	// make new subrun if inSR is 0 or if the subrun has changed
+	art::SubRunID subrun_check(eventPtr->header->run_id, eventPtr->header->subrun_id);
+	if (inSR == nullptr || !inSR->subRunID().isValid() || subrun_check != inSR->subRunID())
+	{
+		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Making subrun principal with subrun_id " << eventPtr->header->subrun_id;
+		outSR = pm_.makeSubRunPrincipal(eventPtr->header->run_id, eventPtr->header->subrun_id, currentTime);
+	}
+
+	TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Making event principal with event_id " << eventPtr->header->event_id;
+	outE = pm_.makeEventPrincipal(eventPtr->header->run_id, eventPtr->header->subrun_id, eventPtr->header->event_id, currentTime);
 	return true;
 }
 
@@ -976,10 +972,10 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 
 	auto read_start_time = std::chrono::steady_clock::now();
 
-	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> eventMap = communicationWrapper_.receiveMessages();
+	std::shared_ptr<ArtdaqEvent> eventMap = communicationWrapper_.receiveMessages();
 	auto got_event_time = std::chrono::steady_clock::now();
 
-	if (eventMap.empty())
+	if (eventMap == nullptr)
 	{
 		TLOG(TLVL_ERROR, "ArtdaqInputHelper") << "No Fragments received! Aborting...";
 		shutdownMsgReceived_ = true;
@@ -987,7 +983,7 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 		return false;
 	}
 
-	if (eventMap.count(artdaq::Fragment::EndOfDataFragmentType))
+	if (eventMap->FirstFragmentType() == artdaq::Fragment::EndOfDataFragmentType)
 	{
 		TLOG(TLVL_ERROR, "ArtdaqInputHelper") << "Shutdown message received!";
 		shutdownMsgReceived_ = true;
@@ -997,16 +993,16 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 
 	if (fragmentsOnlyMode_)
 	{
-		if (eventMap.count(artdaq::Fragment::DataFragmentType) || eventMap.count(artdaq::Fragment::RunDataFragmentType) || eventMap.count(artdaq::Fragment::SubrunDataFragmentType))
+		if (eventMap->fragments.count(artdaq::Fragment::DataFragmentType) || eventMap->fragments.count(artdaq::Fragment::RunDataFragmentType) || eventMap->fragments.count(artdaq::Fragment::SubrunDataFragmentType))
 		{
 			TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "ArtdaqInputHelper::readNext unexpectedly got a message with a DataFragment. This art Event will NOT be reconstructed!";
 		}
 
-		auto firstFragmentType = eventMap.begin()->first;
+		auto firstFragmentType = eventMap->FirstFragmentType();
 		TLOG(TLVL_DEBUG + 32, "ArtdaqInputHelper") << "First Fragment type is " << static_cast<int>(firstFragmentType);
-		if (constructPrincipal(firstFragmentType, inR, inSR, outR, outSR, outE))
+		if (constructPrincipal(eventMap, inR, inSR, outR, outSR, outE))
 		{
-			auto rfret = readFragments(eventMap, outR ? outR : inR, outSR ? outSR : inSR, outE);
+			auto rfret = readFragments(eventMap->fragments, outR ? outR : inR, outSR ? outSR : inSR, outE);
 
 			// No event data
 			if (!rfret.second)
@@ -1028,33 +1024,27 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 					}
 				}
 			}
-
-			// Nasty hack here. Don't return a new Run/Subrun Principal without an associated Event Principal
-			if (outE == nullptr && ((outR != nullptr && !outR->runID().isFlush()) || (outSR != nullptr && !outSR->subRunID().isFlush())))
-			{
-				return readNext(outR ? outR : inR, outSR ? outSR : inSR, outR, outSR, outE);
-			}
 		}
 	}
 	else
 	{
 		std::list<std::unique_ptr<TBufferFile>> msgs;
-		if (eventMap.count(artdaq::Fragment::DataFragmentType))
-			for (auto& dataFrag : *(eventMap[artdaq::Fragment::DataFragmentType]))
+		if (eventMap->fragments.count(artdaq::Fragment::RunDataFragmentType))
+			for (auto& dataFrag : *(eventMap->fragments[artdaq::Fragment::RunDataFragmentType]))
 			{
 				if (!dataFrag.hasMetadata()) continue;
 				auto header = dataFrag.metadata<artdaq::NetMonHeader>();
 				msgs.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, dataFrag.dataBegin(), kFALSE, nullptr));
 			}
-		if (eventMap.count(artdaq::Fragment::RunDataFragmentType))
-			for (auto& dataFrag : *(eventMap[artdaq::Fragment::RunDataFragmentType]))
+		if (eventMap->fragments.count(artdaq::Fragment::SubrunDataFragmentType))
+			for (auto& dataFrag : *(eventMap->fragments[artdaq::Fragment::SubrunDataFragmentType]))
 			{
 				if (!dataFrag.hasMetadata()) continue;
 				auto header = dataFrag.metadata<artdaq::NetMonHeader>();
 				msgs.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, dataFrag.dataBegin(), kFALSE, nullptr));
 			}
-		if (eventMap.count(artdaq::Fragment::SubrunDataFragmentType))
-			for (auto& dataFrag : *(eventMap[artdaq::Fragment::SubrunDataFragmentType]))
+		if (eventMap->fragments.count(artdaq::Fragment::DataFragmentType))
+			for (auto& dataFrag : *(eventMap->fragments[artdaq::Fragment::DataFragmentType]))
 			{
 				if (!dataFrag.hasMetadata()) continue;
 				auto header = dataFrag.metadata<artdaq::NetMonHeader>();
@@ -1128,9 +1118,9 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 			// Event message.
 			readDataProducts(msgs, outE);
 
-			if (eventMap.size() > 1)
+			if (eventMap->fragments.size() > 1)
 			{
-				readFragments(eventMap, outR ? outR : inR, outSR ? outSR : inSR, outE);
+				readFragments(eventMap->fragments, outR ? outR : inR, outSR ? outSR : inSR, outE);
 			}
 
 			TLOG(TLVL_DEBUG + 47, "ArtdaqInputHelper") << "readNext: returning true on Event message.";
@@ -1145,7 +1135,7 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 	if (outE != nullptr)
 	{
 		auto artHdrPtr = std::make_unique<artdaq::detail::RawEventHeader>();
-		auto daqHdrPtr = communicationWrapper_.getEventHeader();
+		auto daqHdrPtr = eventMap->header;
 
 		if (daqHdrPtr != nullptr)
 		{
