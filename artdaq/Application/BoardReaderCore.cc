@@ -506,7 +506,7 @@ void artdaq::BoardReaderCore::send_fragments()
 			}
 
 			artdaq::Fragment::sequence_id_t sequence_id = fragPtr->sequenceID();
-			SetMFIteration("Sequence ID " + std::to_string(sequence_id));
+			Globals::SetMFIteration("Sequence ID " + std::to_string(sequence_id));
 			statsHelper_.addSample(FRAGMENTS_PROCESSED_STAT_KEY, fragPtr->sizeBytes());
 
 			/*if ((fragment_count_ % 250) == 0)
