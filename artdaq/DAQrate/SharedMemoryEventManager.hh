@@ -40,7 +40,7 @@ public:
 	 * \param broadcast_key Shared Memory key to use for broadcasts (if 0, child program will use parent PID to generate)
 	 */
 	explicit art_config_file(fhicl::ParameterSet ps, uint32_t shm_key = 0, uint32_t broadcast_key = 0)
-	    : dir_name_("/tmp/partition_" + std::to_string(GetPartitionNumber()))
+	    : dir_name_("/tmp/partition_" + std::to_string(Globals::GetPartitionNumber()))
 	    , file_name_(dir_name_ + "/artConfig_" + std::to_string(my_rank) + "_" + std::to_string(artdaq::TimeUtils::gettimeofday_us()) + ".fcl")
 	{
 		mkdir(dir_name_.c_str(), 0777);  // Allowed to fail if directory already exists
@@ -49,7 +49,7 @@ public:
 		if (of.fail())
 		{
 			// Probably a permissions error...
-			dir_name_ = "/tmp/partition_" + std::to_string(GetPartitionNumber()) + "_" + std::to_string(getuid());
+			dir_name_ = "/tmp/partition_" + std::to_string(Globals::GetPartitionNumber()) + "_" + std::to_string(getuid());
 			mkdir(dir_name_.c_str(), 0777);  // Allowed to fail if directory already exists
 			file_name_ = dir_name_ + "/artConfig_" + std::to_string(my_rank) + "_" + std::to_string(artdaq::TimeUtils::gettimeofday_us()) + ".fcl";
 

@@ -89,7 +89,7 @@ void artdaq::PortManager::UpdateConfiguration(fhicl::ParameterSet const& ps)
 		base_configured_ = true;
 		auto max_partitions = (65535 - base_port_) / ports_per_partition_;
 		TLOG(TLVL_INFO) << "Based on configuration, there can be " << max_partitions << " partitions of " << ports_per_partition_ << " ports each, starting at port " << base_port_;
-		if (GetPartitionNumber() > max_partitions)
+		if (Globals::GetPartitionNumber() > max_partitions)
 		{
 			TLOG(TLVL_ERROR) << "Currently-configured partition number is greater than the allowed number! The system WILL NOT WORK!";
 			exit(22);
@@ -255,7 +255,7 @@ int artdaq::PortManager::GetRoutingTokenPort(int subsystemID)
 		routing_tokens_configured_ = true;
 	}
 
-	return base_port_ + routing_token_offset_ + (GetPartitionNumber() * ports_per_partition_) + subsystemID;
+	return base_port_ + routing_token_offset_ + (Globals::GetPartitionNumber() * ports_per_partition_) + subsystemID;
 }
 
 int artdaq::PortManager::GetRoutingAckPort(int subsystemID)
@@ -265,7 +265,7 @@ int artdaq::PortManager::GetRoutingAckPort(int subsystemID)
 		TLOG(TLVL_INFO) << "Using default port range for Routing Table Acknowledgements";
 		routing_acks_configured_ = true;
 	}
-	return base_port_ + routing_ack_offset_ + (GetPartitionNumber() * ports_per_partition_) + subsystemID;
+	return base_port_ + routing_ack_offset_ + (Globals::GetPartitionNumber() * ports_per_partition_) + subsystemID;
 }
 
 int artdaq::PortManager::GetXMLRPCPort(int rank)
@@ -275,7 +275,7 @@ int artdaq::PortManager::GetXMLRPCPort(int rank)
 		TLOG(TLVL_INFO) << "Using default port range for XMLRPC";
 		xmlrpc_configured_ = true;
 	}
-	return base_port_ + xmlrpc_offset_ + rank + (GetPartitionNumber() * ports_per_partition_);
+	return base_port_ + xmlrpc_offset_ + rank + (Globals::GetPartitionNumber() * ports_per_partition_);
 }
 
 int artdaq::PortManager::GetTCPSocketTransferPort(int rank)
@@ -285,7 +285,7 @@ int artdaq::PortManager::GetTCPSocketTransferPort(int rank)
 		TLOG(TLVL_INFO) << "Using default port range for TCPSocket Transfer";
 		tcpsocket_configured_ = true;
 	}
-	return base_port_ + tcp_socket_offset_ + (GetPartitionNumber() * ports_per_partition_) + rank;
+	return base_port_ + tcp_socket_offset_ + (Globals::GetPartitionNumber() * ports_per_partition_) + rank;
 }
 
 int artdaq::PortManager::GetRequestMessagePort()
@@ -388,7 +388,7 @@ std::string artdaq::PortManager::parse_pattern_(const std::string& pattern, int 
 	{
 		if (s == "PPP")
 		{
-			address.push_back(GetPartitionNumber());
+			address.push_back(Globals::GetPartitionNumber());
 		}
 		else if (s == "SSS")
 		{

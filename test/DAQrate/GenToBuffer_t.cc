@@ -159,7 +159,7 @@ private:
 					TLOG(TLVL_DEBUG) << "Received first Fragment from Fragment Generator, sequence ID " << fragPtr->sequenceID() << ", size = " << fragPtr->sizeBytes() << " bytes.";
 				}
 				artdaq::Fragment::sequence_id_t sequence_id = fragPtr->sequenceID();
-				SetMFIteration("Sequence ID " + std::to_string(sequence_id));
+				artdaq::Globals::SetMFIteration("Sequence ID " + std::to_string(sequence_id));
 
 				TLOG(17) << "send_fragments seq=" << sequence_id << " sendFragment start";
 				++fragment_count_;
