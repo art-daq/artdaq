@@ -1,9 +1,6 @@
 cet_make_library(HEADERS_TARGET_ONLY) # for e.g. artdaq/DAQdata/NetMonHeader.hh.
 
 add_subdirectory(DAQdata)
-if (${USING_RTIDDS})
-  add_subdirectory(RTIDDS)
-endif()
 add_subdirectory(TransferPlugins)
 add_subdirectory(RoutingPolicies)
 add_subdirectory(DAQrate)
