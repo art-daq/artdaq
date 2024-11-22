@@ -48,8 +48,8 @@ public:
 		fhicl::Atom<size_t> event_buffer_timeout_us{fhicl::Name{"event_buffer_timeout_us"}, fhicl::Comment{"The timeout for \"EventBuilder\" buffers to be marked incomplete and abandoned"}, 1000000};
 		/// "default_transfer_ps" (Default: {}): The default ParameterSet to use for transfers. Will have transferPluginType, destination_rank, buffer_count and source_rank overridden. If max_fragment_size_words is unspecified, will be set using fragment_size
 		fhicl::Table<artdaq::TransferInterface::Config> default_transfer_ps{fhicl::Name{"default_transfer_ps"}, fhicl::Comment{"The default ParameterSet to use for transfers. Will have transferPluginType, destination_rank, buffer_count and source_rank overridden. If max_fragment_size_words is unspecified, will be set using fragment_size"}};
-		/// "transfer_to_use" (Default: "Shmem"): The name of the Transfer Plugin to use
-		fhicl::Atom<std::string> transfer_to_use{fhicl::Name{"transfer_to_use"}, fhicl::Comment{"The name of the Transfer Plugin to use"}, "Shmem"};
+		/// "transfer_to_use" (Default: "TCPSocket"): The name of the Transfer Plugin to use
+		fhicl::Atom<std::string> transfer_to_use{fhicl::Name{"transfer_to_use"}, fhicl::Comment{"The name of the Transfer Plugin to use"}, "TCPSocket"};
 	};
 
 	/// <summary>

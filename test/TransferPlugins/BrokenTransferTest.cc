@@ -171,7 +171,7 @@ fhicl::ParameterSet artdaqtest::BrokenTransferTest::make_transfer_ps_(int sender
 {
 	auto thePs = ps_.get<fhicl::ParameterSet>("default_transfer_ps", fhicl::ParameterSet());
 
-	thePs.put_or_replace("transferPluginType", ps_.get<std::string>("transfer_to_use", "Shmem"));
+	thePs.put_or_replace("transferPluginType", ps_.get<std::string>("transfer_to_use", "TCPSocket"));
 	thePs.put_or_replace("destination_rank", receiver_rank);
 	thePs.put_or_replace("source_rank", sender_rank);
 	thePs.put_or_replace("buffer_count", transfer_buffer_count_);

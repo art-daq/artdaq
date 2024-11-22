@@ -16,7 +16,7 @@ daq: {
 
 	auto_suppression_enabled: false
 	sources: {
-		s0: { transferPluginType: Shmem source_rank: 0 max_fragment_size_words: 20971520 }
+		s0: { transferPluginType: TCPSocket source_rank: 0 max_fragment_size_words: 20971520 }
 	}
   }
 
@@ -51,7 +51,7 @@ daq: {
   }
 
   # transfer_to_dispatcher: {
-  #   transferPluginType: Shmem
+  #   transferPluginType: TCPSocket
   # 	source_rank: 4
   # 	destination_rank: 8
   #     max_fragment_size_words: 2097152
