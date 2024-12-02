@@ -11,13 +11,6 @@
 #define app_name artdaq::Globals::app_name_
 #define metricMan artdaq::Globals::metricMan_
 #define portMan artdaq::Globals::portMan_
-#define seedAndRandom() artdaq::Globals::seedAndRandom_()
-#define GetPartitionNumber() artdaq::Globals::getPartitionNumber_()
-
-#define GetMFIteration() artdaq::Globals::GetMFIteration_()
-#define GetMFModuleName() artdaq::Globals::GetMFModuleName_()
-#define SetMFModuleName(name) artdaq::Globals::SetMFModuleName_(name)
-#define SetMFIteration(name) artdaq::Globals::SetMFIteration_(name)
 
 // https://stackoverflow.com/questions/21594140/c-how-to-ensure-different-random-number-generation-in-c-when-program-is-execut
 #include <fcntl.h>
@@ -52,7 +45,7 @@ public:
 	 * \brief Seed the C random number generator with the current time (if that has not been done already) and generate a random value
 	 * \return A random number.
 	 */
-	static uint32_t seedAndRandom_()
+	static uint32_t SeedAndRandom()
 	{
 		static bool initialized_ = false;
 		if (!initialized_)
@@ -78,7 +71,7 @@ public:
 	 * \brief Get the current partition number, as defined by the ARTDAQ_PARTITION_NUMBER environment variable
 	 * \return The current partition number (defaults to 0 if unset, will be between 0 and 127)
 	 */
-	static int getPartitionNumber_()
+	static int GetPartitionNumber()
 	{
 		uint32_t part_u = 0;
 
@@ -110,11 +103,18 @@ public:
 		return (part_u & 0x7F);
 	}
 
+    /**
+     * \brief Get the Shared Memory Key for a given partition number
+     */
+    static uint32_t SharedMemoryKey(uint32_t seed, bool useParentPID = false) {
+		return seed + ((GetPartitionNumber() + 1) << 16) + ((useParentPID ? getppid() : getpid()) & 0xFFFF);
+    }
+
 	/**
 	 * \brief Get the current iteration for MessageFacility messages
 	 * \return The current iteration
 	 */
-	static std::string GetMFIteration_()
+	static std::string GetMFIteration()
 	{
 		std::unique_lock<std::mutex> lk(mftrace_mutex_);
 		return mftrace_iteration_;
@@ -124,7 +124,7 @@ public:
 	 * \brief Get the current module name for MessageFacility messages
 	 * \return The current module name
 	 */
-	static std::string GetMFModuleName_()
+	static std::string GetMFModuleName()
 	{
 		std::unique_lock<std::mutex> lk(mftrace_mutex_);
 		return mftrace_module_;
@@ -134,7 +134,7 @@ public:
 	 * \brief Set the current iteration for MessageFacility messages
 	 * \param name The current iteration
 	 */
-	static void SetMFIteration_(std::string const &name)
+	static void SetMFIteration(std::string const &name)
 	{
 		std::unique_lock<std::mutex> lk(mftrace_mutex_);
 		mftrace_iteration_ = name;
@@ -144,7 +144,7 @@ public:
 	 * \brief Set the current module name for MessageFacility messages
 	 * \param name The current module name
 	 */
-	static void SetMFModuleName_(std::string const &name)
+	static void SetMFModuleName(std::string const &name)
 	{
 		std::unique_lock<std::mutex> lk(mftrace_mutex_);
 		mftrace_module_ = name;

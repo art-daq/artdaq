@@ -26,7 +26,7 @@ artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role)
 	//   }
 	// }
 
-	auto partition = GetPartitionNumber() + 1;  // Can't be 0
+	auto partition = Globals::GetPartitionNumber() + 1;  // Can't be 0
 
 	auto shmKey = pset.get<uint32_t>("shm_key_offset", 0) + (partition << 24) + ((source_rank() & 0xFFF) << 12) + (destination_rank() & 0xFFF);
 

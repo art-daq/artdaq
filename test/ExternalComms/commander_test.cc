@@ -29,7 +29,7 @@ try
 
 	artdaq::Globals::partition_number_ = config_ps.get<int>("partition_number", 1);
 
-	auto id_rand = seedAndRandom();
+	auto id_rand = artdaq::Globals::SeedAndRandom();
 	if (config_ps.has_key("id"))
 	{
 		TLOG(TLVL_DEBUG) << "Ignoring set id and using random!";

@@ -97,8 +97,6 @@ private:
 
 DECLARE_ART_SERVICE_INTERFACE_IMPL(ArtdaqSharedMemoryService, ArtdaqSharedMemoryServiceInterface, LEGACY)
 
-#define build_key(seed) ((seed) + ((GetPartitionNumber() + 1) << 16) + (getppid() & 0xFFFF))
-
 static fhicl::ParameterSet empty_pset;
 
 ArtdaqSharedMemoryService::ArtdaqSharedMemoryService(fhicl::ParameterSet const& pset, art::ActivityRegistry& /*unused*/)
@@ -110,8 +108,8 @@ ArtdaqSharedMemoryService::ArtdaqSharedMemoryService(fhicl::ParameterSet const& 
 	TLOG(TLVL_DEBUG + 33) << "ArtdaqSharedMemoryService CONSTRUCTOR";
 
 	incoming_events_ = std::make_unique<artdaq::SharedMemoryEventReceiver>(
-	    pset.get<int>("shared_memory_key", build_key(0xEE000000)),
-	    pset.get<int>("broadcast_shared_memory_key", build_key(0xBB000000)));
+	    pset.get<int>("shared_memory_key", artdaq::Globals::SharedMemoryKey(0xEE000000, true)),
+	    pset.get<int>("broadcast_shared_memory_key", artdaq::Globals::SharedMemoryKey(0xBB000000, true)));
 
 	char const* artapp_env = getenv("ARTDAQ_APPLICATION_NAME");
 	std::string artapp_str;
