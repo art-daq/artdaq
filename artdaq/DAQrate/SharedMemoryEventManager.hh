@@ -370,7 +370,7 @@ public:
 	 * @param frag Fragment to broadcast
 	 * @param max_delay Length of time to wait for more Fragments to broadcast
 	 */
-	void BroadcastFragment(FragmentPtr& frag, std::chrono::microseconds max_delay = std::chrono::microseconds(100000));
+	void BroadcastFragment(FragmentPtr& frag, std::chrono::microseconds max_delay = std::chrono::microseconds(1000));
 
 	/**
 	 * \brief Gets the shared memory key of the broadcast SharedMemoryManager

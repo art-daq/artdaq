@@ -213,10 +213,10 @@ artdaq::FragmentPtrs artdaq::ListenTransferWrapper::receiveMessage()
 	return fragmentPtrs;
 }
 
-std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
+std::shared_ptr<ArtdaqEvent>
 artdaq::ListenTransferWrapper::receiveMessages()
 {
-	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> output;
+	auto output = std::make_shared<ArtdaqEvent>();
 
 	auto ptrs = receiveMessage();
 	for (auto& ptr : ptrs)
@@ -225,12 +225,12 @@ artdaq::ListenTransferWrapper::receiveMessages()
 		auto fragPtr = ptr.release();
 		ptr.reset(nullptr);
 
-		if (output.count(fragType) == 0u)
+		if (output->fragments.count(fragType) == 0u)
 		{
-			output[fragType] = std::make_unique<artdaq::Fragments>();
+			output->fragments[fragType] = std::make_unique<artdaq::Fragments>();
 		}
 
-		output[fragType]->emplace_back(std::move(*fragPtr));
+		output->fragments[fragType]->emplace_back(std::move(*fragPtr));
 	}
 
 	return output;
