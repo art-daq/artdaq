@@ -106,8 +106,8 @@ public:
     /**
      * \brief Get the Shared Memory Key for a given partition number
      */
-    static uint32_t SharedMemoryKey(uint32_t seed) {
-		return seed + ((GetPartitionNumber() + 1) << 16) + (getpid() & 0xFFFF);
+    static uint32_t SharedMemoryKey(uint32_t seed, bool useParentPID = false) {
+		return seed + ((GetPartitionNumber() + 1) << 16) + ((useParentPID ? getppid() : getpid()) & 0xFFFF);
     }
 
 	/**
