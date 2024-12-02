@@ -111,7 +111,6 @@ artdaq::FragmentPtrs artdaq::TransferWrapper::receiveMessage()
 			if (gSignalStatus != 0)
 			{
 				TLOG(TLVL_INFO) << "Ctrl-C appears to have been hit";
-				unregisterMonitor();
 				return fragmentPtrs;
 			}
 			if (!monitorRegistered_)
@@ -156,12 +155,6 @@ artdaq::FragmentPtrs artdaq::TransferWrapper::receiveMessage()
 				if (result == artdaq::TransferInterface::DATA_END)
 				{
 					TLOG(TLVL_ERROR) << "Transfer Plugin disconnected or other unrecoverable error. Shutting down.";
-					if (multi_run_mode_)
-					{
-						unregisterMonitor();
-						initialized = false;
-						continue;
-					}
 					return fragmentPtrs;
 				}
 				else
@@ -190,17 +183,6 @@ artdaq::FragmentPtrs artdaq::TransferWrapper::receiveMessage()
 
 		if (fragmentPtr->type() == artdaq::Fragment::EndOfDataFragmentType)
 		{
-			// if (monitorRegistered_)
-			//{
-			//	unregisterMonitor();
-			// }
-			if (multi_run_mode_)
-			{
-				unregisterMonitor();
-				initialized = false;
-				continue;
-			}
-
 			return fragmentPtrs;
 		}
 
@@ -222,9 +204,9 @@ artdaq::FragmentPtrs artdaq::TransferWrapper::receiveMessage()
 	return fragmentPtrs;
 }
 
-std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> artdaq::TransferWrapper::receiveMessages()
+std::shared_ptr<ArtdaqEvent> artdaq::TransferWrapper::receiveMessages()
 {
-	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> output;
+	std::shared_ptr<ArtdaqEvent> output = std::make_shared<ArtdaqEvent>();
 
 	auto ptrs = receiveMessage();
 	for (auto& ptr : ptrs)
@@ -233,12 +215,12 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 		auto fragPtr = ptr.release();
 		ptr.reset(nullptr);
 
-		if (output.count(fragType) == 0u)
+		if (output->fragments.count(fragType) == 0u)
 		{
-			output[fragType] = std::make_unique<artdaq::Fragments>();
+			output->fragments[fragType] = std::make_unique<artdaq::Fragments>();
 		}
 
-		output[fragType]->emplace_back(std::move(*fragPtr));
+		output->fragments[fragType]->emplace_back(std::move(*fragPtr));
 	}
 
 	return output;
@@ -326,7 +308,7 @@ void artdaq::TransferWrapper::registerMonitor()
 
 	while (retry > 0)
 	{
-		label_ = dispatcherConfig.get<std::string>("unique_label");
+		label_ = dispatcherConfig.get<std::string>("unique_label") + "_" + std::to_string(time(0));
 		TLOG(TLVL_INFO) << "Attempting to register this monitor (\"" << label_
 		                << "\") with the dispatcher aggregator";
 

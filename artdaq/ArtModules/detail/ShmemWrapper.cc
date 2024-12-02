@@ -14,12 +14,12 @@ art::ShmemWrapper::ShmemWrapper(fhicl::ParameterSet const& ps)
 	art::ServiceHandle<ArtdaqSharedMemoryServiceInterface> shm;
 }
 
-std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> art::ShmemWrapper::receiveMessages()
+std::shared_ptr<ArtdaqEvent> art::ShmemWrapper::receiveMessages()
 {
 	TLOG(TLVL_DEBUG + 34) << "Receiving Fragment from NetMonTransportService";
 	TLOG(TLVL_DEBUG + 33) << "receiveMessage BEGIN";
 	art::ServiceHandle<ArtdaqSharedMemoryServiceInterface> shm;
-	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> output;
+	std::shared_ptr<ArtdaqEvent> output;
 
 	// Do not process data until Init Fragment received!
 	auto start = std::chrono::steady_clock::now();
@@ -34,13 +34,12 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 
 	output = shm->ReceiveEvent(false);
 
-	if (output.empty())
+	if (output == nullptr)
 	{
 		TLOG(TLVL_DEBUG + 32) << "Did not receive event after timeout, returning from receiveMessage ";
 		return output;
 	}
 
-	hdr_ptr_ = shm->GetEventHeader();
 	TLOG(TLVL_DEBUG + 33) << "receiveMessage END";
 
 	TLOG(TLVL_DEBUG + 34) << "Done Receiving Fragments from Shared Memory";
@@ -54,26 +53,30 @@ artdaq::FragmentPtrs art::ShmemWrapper::receiveInitMessage()
 	TLOG(TLVL_DEBUG + 33) << "receiveInitMessage BEGIN";
 	art::ServiceHandle<ArtdaqSharedMemoryServiceInterface> shm;
 	auto start = std::chrono::steady_clock::now();
-	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> eventMap;
-	while (eventMap.empty())
+	std::shared_ptr<ArtdaqEvent> eventMap;
+	while (eventMap == nullptr)
 	{
 		eventMap = shm->ReceiveEvent(true);
 
-		if (eventMap.count(artdaq::Fragment::type_t(artdaq::Fragment::EndOfDataFragmentType)) != 0u)
+        if (eventMap != nullptr)
 		{
-			TLOG(TLVL_DEBUG + 32) << "Received shutdown message, returning";
-			artdaq::FragmentPtrs output;
-			for (auto& frag : *eventMap[artdaq::Fragment::EndOfDataFragmentType])
+			auto type = eventMap->FirstFragmentType();
+			if (type == artdaq::Fragment::EndOfDataFragmentType)
 			{
-				output.emplace_back(new artdaq::Fragment(std::move(frag)));
+				TLOG(TLVL_DEBUG + 32) << "Received shutdown message, returning";
+				artdaq::FragmentPtrs output;
+				for (auto& frag : *eventMap->fragments[artdaq::Fragment::EndOfDataFragmentType])
+				{
+					output.emplace_back(new artdaq::Fragment(std::move(frag)));
+				}
+				return output;
 			}
-			return output;
-		}
-		if ((eventMap.count(artdaq::Fragment::type_t(artdaq::Fragment::InitFragmentType)) == 0u) && !eventMap.empty())
-		{
-			TLOG(TLVL_WARNING) << "Did NOT receive Init Fragment as first broadcast! Type="
-			                   << artdaq::detail::RawFragmentHeader::SystemTypeToString(eventMap.begin()->first);
-			eventMap.clear();
+			if (type != artdaq::Fragment::InitFragmentType)
+			{
+				TLOG(TLVL_WARNING) << "Did NOT receive Init Fragment as first broadcast! Type="
+				                   << artdaq::detail::RawFragmentHeader::SystemTypeToString(type);
+				eventMap = nullptr;
+			}
 		}
 		else if (artdaq::TimeUtils::GetElapsedTime(start) > init_timeout_s_)
 		{
@@ -90,7 +93,7 @@ artdaq::FragmentPtrs art::ShmemWrapper::receiveInitMessage()
 
 	TLOG(TLVL_DEBUG + 33) << "receiveInitMessage: Returning top Fragment";
 	artdaq::FragmentPtrs output;
-	for (auto& frag : *eventMap[artdaq::Fragment::InitFragmentType])
+	for (auto& frag : *eventMap->fragments[artdaq::Fragment::InitFragmentType])
 	{
 		output.emplace_back(new artdaq::Fragment(std::move(frag)));
 	}
