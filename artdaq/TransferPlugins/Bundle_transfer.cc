@@ -11,10 +11,7 @@
 
 namespace artdaq {
 /**
- * \brief The BundleTransfer TransferInterface plugin sets up a
- * Shmem_transfer plugin or TCPSocket_transfer plugin depending if
- * the source and destination are on the same host, to maximize
- * throughput.
+ * \brief The BundleTransfer TransferInterface plugin automatically combines smaller Fragments to transfer a lower rate of larger Fragments, which TCP is better able to handle.
  */
 class BundleTransfer : public TransferInterface
 {
@@ -221,7 +218,7 @@ artdaq::BundleTransfer::BundleTransfer(const fhicl::ParameterSet& pset, Role rol
     : TransferInterface(pset, role)
     , send_threshold_bytes_(pset.get<size_t>("send_threshold_bytes", 10 * 0x100000))  // 10 MB
     , max_hold_size_bytes_(pset.get<size_t>("max_hold_size_bytes", 1000 * 0x100000))  // 1000 MB
-    , max_hold_time_us_(pset.get<int>("max_hold_time_us", 100000))                  // 0.1 s
+    , max_hold_time_us_(pset.get<int>("max_hold_time_us", 100000))                    // 0.1 s
 {
 	TLOG(TLVL_INFO) << GetTraceName() << "Begin BundleTransfer constructor";
 	TLOG(TLVL_INFO) << GetTraceName() << "Constructing TCPSocketTransfer";

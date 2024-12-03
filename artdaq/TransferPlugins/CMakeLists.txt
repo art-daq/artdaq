@@ -1,8 +1,4 @@
 
-if (${USING_RTIDDS})
-include_directories($ENV{NDDSHOME}/include $ENV{NDDSHOME}/include/ndds )
-endif()
-
 cet_make_library(SOURCE
   MakeTransferPlugin.cc
   TransferInterface.cc
@@ -38,12 +34,6 @@ cet_write_plugin_builder(artdaq::transfer art::plugin Modules
 
 include(artdaq::transfer)
 
-cet_build_plugin(Shmem artdaq::transfer
-  IMPL_SOURCE ShmemTransfer.cc
-  LIBRARIES PRIVATE
-  Boost::headers
-)
-
 cet_build_plugin(Null artdaq::transfer)
 
 cet_build_plugin(Multicast artdaq::transfer)
@@ -51,21 +41,10 @@ cet_build_plugin(Multicast artdaq::transfer)
 cet_build_plugin(TCPSocket artdaq::transfer
   IMPL_SOURCE TCPSocketTransfer.cc)
 
-cet_build_plugin(Autodetect artdaq::transfer
-  LIBRARIES PRIVATE
-  artdaq::TransferPlugins_Shmem_transfer
-  artdaq::TransferPlugins_TCPSocket_transfer
-)
-
 cet_build_plugin(Bundle artdaq::transfer
   LIBRARIES PRIVATE
   artdaq::TransferPlugins_TCPSocket_transfer
 )
-
-if (${USING_RTIDDS})
-  cet_build_plugin(RTIDDS artdaq::transfer
-    LIBRARIES PRIVATE artdaq::RTIDDS)
-endif()
 
 install_headers(SUBDIRS detail)
 install_fhicl(SUBDIRS fcl)

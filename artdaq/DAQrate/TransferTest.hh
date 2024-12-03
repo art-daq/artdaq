@@ -29,7 +29,7 @@ public:
 	 * "buffer_count" (Default: 10): Buffer count for TransferInterfaces
 	 * "fragment_size" (Default: 0x100000): Size of Fragments to transfer
 	 * "metrics": FHiCL table used to configure MetricManager (see documentation)
-	 * "transfer_plugin_type" (Default: Shmem): TransferInterface plugin to load
+	 * "transfer_plugin_type" (Default: TCPSocket): TransferInterface plugin to load
 	 * "hostmap" (OPTIONAL): Host map to use for "host_map" parameter of TransferInterface plugins (i.e. TCPSocketTransfer)
 	 * \endverbatim
 	 */
