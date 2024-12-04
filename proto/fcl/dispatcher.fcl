@@ -16,7 +16,7 @@ daq: {
 
 	
 sources: { 
-		s0: { transferPluginType: Shmem source_rank: 0 max_fragment_size_words: 20971520 }
+		s0: { transferPluginType: TCPSocket source_rank: 0 max_fragment_size_words: 20971520 }
  } 
 
   }

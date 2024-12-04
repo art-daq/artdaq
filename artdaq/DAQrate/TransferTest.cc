@@ -46,7 +46,7 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
 	catch (...)
 	{}
 
-	auto type(psi.get<std::string>("transfer_plugin_type", "Shmem"));
+	auto type(psi.get<std::string>("transfer_plugin_type", "TCPSocket"));
 
 	bool broadcast_mode = psi.get<bool>("broadcast_sends", false);
 	if (broadcast_mode)
