@@ -126,8 +126,6 @@ public:
 		fhicl::Atom<bool> separate_monitoring_thread{fhicl::Name{"separate_monitoring_thread"}, fhicl::Comment{"Whether a thread that calls the checkHWStatus_ method should be created"}, false};
 		/// "hardware_poll_interval_us" (Default: 0) : If a separate monitoring thread is used, how often should it call checkHWStatus_
 		fhicl::Atom<int64_t> hardware_poll_interval_us{fhicl::Name{"hardware_poll_interval_us"}, fhicl::Comment{"If a separate monitoring thread is used, how often should it call checkHWStatus_"}, 0};
-		/// "board_id" (REQUIRED) : The identification number for this FragmentBuffer
-		fhicl::Atom<int> board_id{fhicl::Name{"board_id"}, fhicl::Comment{"The identification number for this FragmentBuffer"}};
 		/// "fragment_ids" (Default: empty vector) : A list of Fragment IDs created by this FragmentBuffer
 		/// Note that only one of fragment_ids and fragment_id should be specified in the configuration
 		fhicl::Sequence<Fragment::fragment_id_t> fragment_ids{fhicl::Name("fragment_ids"), fhicl::Comment("A list of Fragment IDs created by this FragmentBuffer")};
