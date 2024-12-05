@@ -840,7 +840,7 @@ std::pair<bool, bool> art::ArtdaqInputHelper<U>::readFragments(std::unordered_ma
 	for (auto& fragmentTypePair : eventMap)
 	{
 		auto type_code = fragmentTypePair.first;
-		if (artdaq::Fragment::isSystemFragmentType(type_code) && type_code != artdaq::Fragment::ContainerFragmentType)
+		if (artdaq::Fragment::isSystemFragmentType(type_code) && type_code != artdaq::Fragment::ContainerFragmentType && type_code != artdaq::Fragment::EmptyFragmentType)
 		{
 			if (type_code == artdaq::Fragment::EndOfRunFragmentType || type_code == artdaq::Fragment::StartOfRunFragmentType)
 			{
