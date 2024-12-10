@@ -1913,7 +1913,6 @@ BOOST_AUTO_TEST_CASE(SequenceIDMode_MultipleIDs)
 	artdaq::configureMessageFacility("FragmentBuffer_t", true, MESSAGEFACILITY_DEBUG);
 	TLOG(TLVL_INFO) << "SequenceIDMode_MultipleIDs test case BEGIN";
 	fhicl::ParameterSet ps;
-	ps.put<int>("board_id", 1);
 	ps.put<std::vector<int>>("fragment_ids", {1, 2, 3});
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
