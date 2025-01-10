@@ -61,4 +61,3 @@ ArtdaqGlobalsService::~ArtdaqGlobalsService()
 }
 
 DEFINE_ART_SERVICE_INTERFACE_IMPL(ArtdaqGlobalsService, ArtdaqSharedMemoryServiceInterface)
-
