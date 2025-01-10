@@ -26,8 +26,7 @@ inline bool operator<(ArtdaqEvent const& l, ArtdaqEvent const& r)
 	auto left = l.FirstFragmentType();
 	auto right = r.FirstFragmentType();
 	// Init Fragments are always first, EndOfData Fragments are always last
-	if (left == artdaq::Fragment::InitFragmentType || right == artdaq::Fragment::InitFragmentType 
-        || left == artdaq::Fragment::EndOfDataFragmentType || right == artdaq::Fragment::EndOfDataFragmentType)
+	if (left == artdaq::Fragment::InitFragmentType || right == artdaq::Fragment::InitFragmentType || left == artdaq::Fragment::EndOfDataFragmentType || right == artdaq::Fragment::EndOfDataFragmentType)
 	{
 		if (left == right)
 		{
@@ -42,9 +41,7 @@ inline bool operator<(ArtdaqEvent const& l, ArtdaqEvent const& r)
 	else if (l.header->run_id == r.header->run_id)
 	{
 		// StartRun are first within a run, EndRun are last
-		if (left == artdaq::Fragment::StartOfRunFragmentType || right == artdaq::Fragment::StartOfRunFragmentType 
-            || left == artdaq::Fragment::EndOfRunFragmentType || right == artdaq::Fragment::EndOfRunFragmentType 
-            || left == artdaq::Fragment::RunDataFragmentType || right == artdaq::Fragment::RunDataFragmentType)
+		if (left == artdaq::Fragment::StartOfRunFragmentType || right == artdaq::Fragment::StartOfRunFragmentType || left == artdaq::Fragment::EndOfRunFragmentType || right == artdaq::Fragment::EndOfRunFragmentType || left == artdaq::Fragment::RunDataFragmentType || right == artdaq::Fragment::RunDataFragmentType)
 		{
 			if (left == right)
 			{
@@ -60,9 +57,7 @@ inline bool operator<(ArtdaqEvent const& l, ArtdaqEvent const& r)
 		if (l.header->subrun_id == r.header->subrun_id)
 		{
 			// StartSubrun are first within a subrun, EndSubrun are last
-			if (left == artdaq::Fragment::StartOfSubrunFragmentType || right == artdaq::Fragment::StartOfSubrunFragmentType 
-                || left == artdaq::Fragment::EndOfSubrunFragmentType || right == artdaq::Fragment::EndOfSubrunFragmentType 
-                || left == artdaq::Fragment::SubrunDataFragmentType || right == artdaq::Fragment::SubrunDataFragmentType)
+			if (left == artdaq::Fragment::StartOfSubrunFragmentType || right == artdaq::Fragment::StartOfSubrunFragmentType || left == artdaq::Fragment::EndOfSubrunFragmentType || right == artdaq::Fragment::EndOfSubrunFragmentType || left == artdaq::Fragment::SubrunDataFragmentType || right == artdaq::Fragment::SubrunDataFragmentType)
 			{
 				if (left == right)
 				{

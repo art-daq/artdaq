@@ -77,7 +77,8 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 		fragment_ids.emplace_back(fragment_id);
 	}
 
-	if(ps.has_key("generated_fragments_per_event")) {
+	if (ps.has_key("generated_fragments_per_event"))
+	{
 		TLOG(TLVL_WARNING) << "Ignoring deprecated configuration parameter \"generated_fragments_per_event\"";
 	}
 

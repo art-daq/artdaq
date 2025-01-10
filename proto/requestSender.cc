@@ -76,7 +76,7 @@ try
 	auto ts_scale = tempPset.get<artdaq::Fragment::timestamp_t>("timestamp_scale", 1);
 	auto tmo = tempPset.get<size_t>("recevier_timeout_ms", 1000);
 	auto rate = tempPset.get<double>("request_rate", 1.0);
-	if(rate <= 0) rate = std::numeric_limits<double>::max();
+	if (rate <= 0) rate = std::numeric_limits<double>::max();
 
 	auto sending_start = std::chrono::steady_clock::now();
 
@@ -115,7 +115,7 @@ try
 
 		seq += seq_scale;
 		ts += ts_scale;
-		auto target = sending_start + std::chrono::microseconds(static_cast<int>((ii+1) * 1000000 / rate));
+		auto target = sending_start + std::chrono::microseconds(static_cast<int>((ii + 1) * 1000000 / rate));
 		auto now = std::chrono::steady_clock::now();
 		if (now < target)
 		{

@@ -123,7 +123,7 @@ protected:
 	virtual void respondToCloseInputFile(FileBlock const&)
 	{
 		TLOG(TLVL_RESPONDTOCLOSEINPUTFILE, "ArtdaqOutput") << "Begin/End: ArtdaqOutput::"
-		                                      "respondToCloseOutputFiles(FileBlock const&)";
+		                                                      "respondToCloseOutputFiles(FileBlock const&)";
 	}
 
 	/// <summary>
@@ -132,7 +132,7 @@ protected:
 	virtual void respondToCloseOutputFiles(FileBlock const&)
 	{
 		TLOG(TLVL_RESPONDTOCLOSEOUTPUTFILE, "ArtdaqOutput") << "Begin/End: ArtdaqOutput::"
-		                                       "respondToCloseOutputFiles(FileBlock const&)";
+		                                                       "respondToCloseOutputFiles(FileBlock const&)";
 	}
 
 	/// <summary>
@@ -456,7 +456,7 @@ inline void art::ArtdaqOutput::writeDataProducts(std::unique_ptr<TBufferFile>& m
 	//  Write the data product count.
 	//
 	TLOG(TLVL_WRITEDATAPRODUCTS, "ArtdaqOutput") << "ArtdaqOutput::writeDataProducts(...): Streaming product count: " +
-	                                    std::to_string(prd_cnt);
+	                                                    std::to_string(prd_cnt);
 	msg->WriteULong(prd_cnt);
 	TLOG(TLVL_WRITEDATAPRODUCTS, "ArtdaqOutput") << "ArtdaqOutput::writeDataProducts(...): Finished streaming product count.";
 
@@ -496,25 +496,25 @@ inline void art::ArtdaqOutput::writeDataProducts(std::unique_ptr<TBufferFile>& m
 		    << bkv.back()->friendlyClassName_ << "' modlbl: '" << bkv.back()->moduleLabel_ << "' instnm: '"
 		    << bkv.back()->productInstanceName_ << "' procnm: '" << bkv.back()->processName_ << "'";
 		TLOG(TLVL_WRITEDATAPRODUCTS, "ArtdaqOutput") << "ArtdaqOutput::writeDataProducts(...): "
-		                                "Streaming branch key         of class: '"
-		                             << bd.producedClassName() << "' modlbl: '" << bd.moduleLabel() << "' instnm: '"
-		                             << bd.productInstanceName() << "' procnm: '" << bd.processName() << "'";
+		                                                "Streaming branch key         of class: '"
+		                                             << bd.producedClassName() << "' modlbl: '" << bd.moduleLabel() << "' instnm: '"
+		                                             << bd.productInstanceName() << "' procnm: '" << bd.processName() << "'";
 		msg->WriteObjectAny(bkv.back(), branch_key_class);
 
 		TLOG(TLVL_WRITEDATAPRODUCTS, "ArtdaqOutput") << "ArtdaqOutput::writeDataProducts(...): "
-		                                "Streaming product            of class: '"
-		                             << bd.producedClassName() << "' modlbl: '" << bd.moduleLabel() << "' instnm: '"
-		                             << bd.productInstanceName() << "' procnm: '" << bd.processName() << "'";
+		                                                "Streaming product            of class: '"
+		                                             << bd.producedClassName() << "' modlbl: '" << bd.moduleLabel() << "' instnm: '"
+		                                             << bd.productInstanceName() << "' procnm: '" << bd.processName() << "'";
 
 		OutputHandle oh = principal.getForOutput(bd.productID(), true);
 		const EDProduct* prd = oh.wrapper();
 		TLOG(TLVL_WRITEDATAPRODUCTS, "ArtdaqOutput") << "Class for branch " << bd.wrappedName() << " is "
-		                             << static_cast<void*>(TClass::GetClass(bd.wrappedName().c_str()));
+		                                             << static_cast<void*>(TClass::GetClass(bd.wrappedName().c_str()));
 		msg->WriteObjectAny(prd, TClass::GetClass(bd.wrappedName().c_str()));
 		TLOG(TLVL_WRITEDATAPRODUCTS, "ArtdaqOutput") << "ArtdaqOutput::writeDataProducts(...): "
-		                                "Streaming product provenance of class: '"
-		                             << bd.producedClassName() << "' modlbl: '" << bd.moduleLabel() << "' instnm: '"
-		                             << bd.productInstanceName() << "' procnm: '" << bd.processName() << "'";
+		                                                "Streaming product provenance of class: '"
+		                                             << bd.producedClassName() << "' modlbl: '" << bd.moduleLabel() << "' instnm: '"
+		                                             << bd.productInstanceName() << "' procnm: '" << bd.processName() << "'";
 
 		const ProductProvenance* prdprov = I->second->productProvenance().get();
 
@@ -765,7 +765,7 @@ inline void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 	//
 	//  Begin preparing message.
 	//
-	auto msg = prepareMessage(last_sequence_id_ + 1,rp.run() + 1, artdaq::Fragment::RunDataFragmentType);
+	auto msg = prepareMessage(last_sequence_id_ + 1, rp.run() + 1, artdaq::Fragment::RunDataFragmentType);
 	//
 	//  Write message type code.
 	//
@@ -812,10 +812,10 @@ inline void art::ArtdaqOutput::extractProducts_(Principal const& principal [[gnu
 		if (!productList_.count(branchKey))
 		{
 			TLOG(TLVL_EXTRACTPRODUCTS_VERBOSE, "ArtdaqOutput") << "ArtdaqOutput::extractProducts_:"
-			                                   << "Adding branch key to productList of class: '"
-			                                   << branchKey.friendlyClassName_ << "' modlbl: '" << branchKey.moduleLabel_ << "' instnm: '"
-			                                   << branchKey.productInstanceName_ << "' procnm: '" << branchKey.processName_ << "'"
-			                                   << ", description: " << productDescription.wrappedName();
+			                                                   << "Adding branch key to productList of class: '"
+			                                                   << branchKey.friendlyClassName_ << "' modlbl: '" << branchKey.moduleLabel_ << "' instnm: '"
+			                                                   << branchKey.productInstanceName_ << "' procnm: '" << branchKey.processName_ << "'"
+			                                                   << ", description: " << productDescription.wrappedName();
 
 			productList_[branchKey] = productDescription;
 		}

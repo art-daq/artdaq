@@ -22,37 +22,34 @@
 #include <memory>
 
 namespace artdaq {
-  class OffsetPrescale;
+class OffsetPrescale;
 }
 
-
-class artdaq::OffsetPrescale : public art::EDFilter {
+class artdaq::OffsetPrescale : public art::EDFilter
+{
 public:
-  explicit OffsetPrescale(fhicl::ParameterSet const& p);
-  // The compiler-generated destructor is fine for non-base
-  // classes without bare pointers or other resource use.
+	explicit OffsetPrescale(fhicl::ParameterSet const& p);
+	// The compiler-generated destructor is fine for non-base
+	// classes without bare pointers or other resource use.
 
-  // Plugins should not be copied or assigned.
-  OffsetPrescale(OffsetPrescale const&) = delete;
-  OffsetPrescale(OffsetPrescale&&) = delete;
-  OffsetPrescale& operator=(OffsetPrescale const&) = delete;
-  OffsetPrescale& operator=(OffsetPrescale&&) = delete;
+	// Plugins should not be copied or assigned.
+	OffsetPrescale(OffsetPrescale const&) = delete;
+	OffsetPrescale(OffsetPrescale&&) = delete;
+	OffsetPrescale& operator=(OffsetPrescale const&) = delete;
+	OffsetPrescale& operator=(OffsetPrescale&&) = delete;
 
-  // Required functions.
-  bool filter(art::Event& e) override;
+	// Required functions.
+	bool filter(art::Event& e) override;
 
 private:
-
-  // Declare member data here.
+	// Declare member data here.
 	size_t events_skip_;
 	size_t offset_{0};
-
 };
 
-
 artdaq::OffsetPrescale::OffsetPrescale(fhicl::ParameterSet const& p)
-  : EDFilter{p} 
-	, events_skip_(p.get<size_t>("prescale", 1))
+    : EDFilter{p}
+    , events_skip_(p.get<size_t>("prescale", 1))
 {
 	art::ServiceHandle<ArtdaqSharedMemoryServiceInterface> shm;
 	offset_ = shm->GetMyId();
@@ -61,8 +58,7 @@ artdaq::OffsetPrescale::OffsetPrescale(fhicl::ParameterSet const& p)
 bool artdaq::OffsetPrescale::filter(art::Event& e)
 {
 	auto eid = e.event();
-	return eid >= offset_ 
-		&& (eid - offset_) % events_skip_ == 0;
+	return eid >= offset_ && (eid - offset_) % events_skip_ == 0;
 }
 
 DEFINE_ART_MODULE(artdaq::OffsetPrescale)
