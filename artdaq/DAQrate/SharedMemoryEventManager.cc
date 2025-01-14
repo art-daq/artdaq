@@ -1439,7 +1439,8 @@ void artdaq::SharedMemoryEventManager::check_pending_broadcasts_()
 	std::lock_guard<std::mutex> lk(broadcast_mutex_);
 
 	auto entry = pending_broadcasts_.begin();
-	while(entry != pending_broadcasts_.end()) {
+	while (entry != pending_broadcasts_.end())
+	{
 		if (!init_frags_sent_ || entry->fragments.size() == 0 || (entry->fragments.size() < num_fragments_per_event_ && std::chrono::steady_clock::now() < entry->deadline))
 		{
 			entry++;
@@ -1448,7 +1449,6 @@ void artdaq::SharedMemoryEventManager::check_pending_broadcasts_()
 
 		broadcastFragments_(entry->fragments);
 		entry = pending_broadcasts_.erase(entry);
-		
 	}
 }
 
@@ -1458,14 +1458,17 @@ void artdaq::SharedMemoryEventManager::BroadcastFragment(FragmentPtr& frag, std:
 		std::lock_guard<std::mutex> lk(broadcast_mutex_);
 
 		bool entry_found = false;
-		for (auto& entry : pending_broadcasts_) {
-			if (entry.type == frag->type()) {
+		for (auto& entry : pending_broadcasts_)
+		{
+			if (entry.type == frag->type())
+			{
 				entry.fragments.push_back(std::move(frag));
 				entry_found = true;
 				break;
 			}
 		}
-		if (!entry_found) {
+		if (!entry_found)
+		{
 			pending_broadcasts_.emplace_back();
 			pending_broadcasts_.back().deadline = std::chrono::steady_clock::now() + max_delay;
 			pending_broadcasts_.back().type = frag->type();

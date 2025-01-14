@@ -378,33 +378,37 @@ void artdaq::FragmentBuffer::getDataBufferStats(Fragment::fragment_id_t id)
 //-----------------------------------------------------------------------------
 // P.Murat: return stat reports as a string
 //-----------------------------------------------------------------------------
-std::string artdaq::FragmentBuffer::getStatReport() {
-  std::ostringstream oss;
+std::string artdaq::FragmentBuffer::getStatReport()
+{
+	std::ostringstream oss;
 
-  for (auto& it : dataBuffers_) { 
-    Fragment::fragment_id_t id = it.first;
-    if (!dataBuffers_.count(id)) {
-      TLOG(TLVL_ERROR) << "DataBufferError: "
-                       << "Error in FragmentBuffer: Cannot get stats of data buffer for ID " 
-                       << id << " because it does not exist!";
-      throw cet::exception("DataBufferError") << "Error in FragmentBuffer: Cannot get stats of data buffer for ID " 
-                                              << id << " because it does not exist!";
-    }
+	for (auto& it : dataBuffers_)
+	{
+		Fragment::fragment_id_t id = it.first;
+		if (!dataBuffers_.count(id))
+		{
+			TLOG(TLVL_ERROR) << "DataBufferError: "
+			                 << "Error in FragmentBuffer: Cannot get stats of data buffer for ID "
+			                 << id << " because it does not exist!";
+			throw cet::exception("DataBufferError") << "Error in FragmentBuffer: Cannot get stats of data buffer for ID "
+			                                        << id << " because it does not exist!";
+		}
 
-    auto dataBuffer = dataBuffers_[id];
+		auto dataBuffer = dataBuffers_[id];
 
-    TLOG(TLVL_GETBUFFERSTATS) << "getDataBufferStats: Sending Metrics";
+		TLOG(TLVL_GETBUFFERSTATS) << "getDataBufferStats: Sending Metrics";
 
-    int nf = dataBuffer->DataBufferDepthFragments.load();
-    int nb = dataBuffer->DataBufferDepthBytes.load();
-    oss << std::endl << "fragment_id:" << id << " nfragments:" << nf << " nbytes:" << nb 
-        << " max_nf:" << maxDataBufferDepthFragments_ << " max_nb:" << maxDataBufferDepthBytes_;
-      
-    TLOG(TLVL_GETBUFFERSTATS) << "getDataBufferStats: frags=" << dataBuffer->DataBufferDepthFragments.load() << "/" << maxDataBufferDepthFragments_
-                              << ", sz=" << dataBuffer->DataBufferDepthBytes.load() << "/" << maxDataBufferDepthBytes_;
-  }
+		int nf = dataBuffer->DataBufferDepthFragments.load();
+		int nb = dataBuffer->DataBufferDepthBytes.load();
+		oss << std::endl
+		    << "fragment_id:" << id << " nfragments:" << nf << " nbytes:" << nb
+		    << " max_nf:" << maxDataBufferDepthFragments_ << " max_nb:" << maxDataBufferDepthBytes_;
 
-  return oss.str();
+		TLOG(TLVL_GETBUFFERSTATS) << "getDataBufferStats: frags=" << dataBuffer->DataBufferDepthFragments.load() << "/" << maxDataBufferDepthFragments_
+		                          << ", sz=" << dataBuffer->DataBufferDepthBytes.load() << "/" << maxDataBufferDepthBytes_;
+	}
+
+	return oss.str();
 }
 
 void artdaq::FragmentBuffer::checkDataBuffer(Fragment::fragment_id_t id)

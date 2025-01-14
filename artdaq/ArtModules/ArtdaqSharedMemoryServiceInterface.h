@@ -12,7 +12,6 @@
 class ArtdaqSharedMemoryServiceInterface
 {
 public:
-
 	ArtdaqSharedMemoryServiceInterface() = default;
 
 	/**

@@ -465,7 +465,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 				default:
 					break;
 			}
-			
+
 			if (header.type != Fragment::InitFragmentType && header.type != Fragment::EndOfDataFragmentType && header.type != Fragment::ShutdownFragmentType)
 			{
 				shm_manager_->BroadcastFragment(frag);

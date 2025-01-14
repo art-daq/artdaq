@@ -2,9 +2,9 @@
 #define artdaq_ArtModules_TransferWrapper_hh
 
 #include "artdaq-core/Data/RawEvent.hh"
+#include "artdaq/ArtModules/ArtdaqEvent.hh"
 #include "artdaq/ExternalComms/CommanderInterface.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
-#include "artdaq/ArtModules/ArtdaqEvent.hh"
 
 namespace fhicl {
 class ParameterSet;

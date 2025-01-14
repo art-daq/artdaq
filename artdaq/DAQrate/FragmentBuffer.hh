@@ -282,7 +282,7 @@ public:
 	/**
 	 * \brief report statistics as a string
 	 */
-  std::string getStatReport();
+	std::string getStatReport();
 
 	/**
 	 * \brief Perform data buffer pruning operations for the given buffer. If the RequestMode is Single, removes all but the latest Fragment from the data buffer.
