@@ -1577,8 +1577,8 @@ void artdaq::SharedMemoryEventManager::send_init_frags_()
 void artdaq::SharedMemoryEventManager::AddInitFragment(FragmentPtr& frag)
 {
 	std::lock_guard<std::mutex> lk(init_fragments_mutex_);
-	if (received_init_frags_.count(frag->fragmentID()) == 0)
-	{
+	//if (received_init_frags_.count(frag->fragmentID()) == 0)
+	//{
 		TLOG(TLVL_DEBUG + 32) << "Received Init Fragment from rank " << frag->fragmentID() << ". Now have " << init_fragments_.size() + 1 << " of " << init_fragment_count_;
 		received_init_frags_.insert(frag->fragmentID());
 		init_fragments_.push_back(std::move(frag));
@@ -1588,11 +1588,11 @@ void artdaq::SharedMemoryEventManager::AddInitFragment(FragmentPtr& frag)
 		{
 			send_init_frags_();
 		}
-	}
-	else
-	{
-		TLOG(TLVL_DEBUG + 33) << "Ignoring duplicate Init Fragment from rank " << frag->fragmentID();
-	}
+	//}
+	//else
+	//{
+	//	TLOG(TLVL_DEBUG + 33) << "Ignoring duplicate Init Fragment from rank " << frag->fragmentID();
+	//}
 }
 
 void artdaq::SharedMemoryEventManager::UpdateArtConfiguration(fhicl::ParameterSet art_pset)
