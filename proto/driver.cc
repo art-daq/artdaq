@@ -193,7 +193,7 @@ try
 	auto last_delta_time = std::chrono::steady_clock::now();
 	auto last_count = event_manager.size() - event_manager.WriteReadyCount(false);
 
-	while (last_count > 0 && artdaq::TimeUtils::GetElapsedTime(last_delta_time) < 1.0)
+	while (last_count > 0 && artdaq::TimeUtils::GetElapsedTime(last_delta_time) < 5.0)
 	{
 		auto this_count = event_manager.size() - event_manager.WriteReadyCount(false);
 		if (this_count != last_count)
