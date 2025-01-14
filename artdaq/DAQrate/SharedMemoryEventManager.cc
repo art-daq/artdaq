@@ -54,6 +54,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(const fhicl::Paramete
     , restart_art_(false)
     , always_restart_art_(pset.get<bool>("restart_crashed_art_processes", true))
     , manual_art_(pset.get<bool>("manual_art", false))
+    , send_dummy_event_(pset.get<bool>("send_dummy_event", false))
     , current_art_pset_(art_pset)
     , art_cmdline_(pset.get<std::string>("art_command_line", "art -c #CONFIG_FILE#"))
     , art_process_index_offset_(pset.get<size_t>("art_index_offset", 0))
@@ -945,6 +946,15 @@ void artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 			tokens_->SendRoutingToken(queue_size_, run_id_);
 		}
 	}
+
+    // Dummy events should only be sent by fragment-mode applications (e.g. EventBuilders)
+    if (init_fragment_count_ == 0 && send_dummy_event_) {
+		auto emptyFrag = MetadataFragment::CreateMetadataFragment({my_rank}, Fragment::EmptyFragmentType, 0, 0, 0);
+		FragmentPtrs broadcast;
+		broadcast.emplace_back(std::move(emptyFrag));
+		broadcastFragments_(broadcast);
+    }
+
 	TLOG(TLVL_DEBUG + 32) << "Starting run " << run_id_
 	                      << ", max queue size = "
 	                      << queue_size_
