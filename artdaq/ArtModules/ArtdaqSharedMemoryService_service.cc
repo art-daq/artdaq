@@ -254,7 +254,7 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 			{
 				output_event = event_ordering_.front();
 				event_ordering_.pop_front();
-				break; // while(output_event == nullptr)
+				break;  // while(output_event == nullptr)
 			}
 		}
 
@@ -263,22 +263,20 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 		{
 			auto type = (*it)->FirstFragmentType();
 
-            // We will automatically start draining if we have an Init, EndOfData, or Event message
-			if (type == artdaq::Fragment::StartOfRunFragmentType || type == artdaq::Fragment::StartOfSubrunFragmentType 
-                || type == artdaq::Fragment::EndOfSubrunFragmentType || type == artdaq::Fragment::EndOfRunFragmentType
-                || type == artdaq::Fragment::RunDataFragmentType || type == artdaq::Fragment::SubrunDataFragmentType)
+			// We will automatically start draining if we have an Init, EndOfData, or Event message
+			if (type == artdaq::Fragment::StartOfRunFragmentType || type == artdaq::Fragment::StartOfSubrunFragmentType || type == artdaq::Fragment::EndOfSubrunFragmentType || type == artdaq::Fragment::EndOfRunFragmentType || type == artdaq::Fragment::RunDataFragmentType || type == artdaq::Fragment::SubrunDataFragmentType)
 			{
-				continue; // for (auto it = event_ordering_.begin(); it != event_ordering_.end(); ++it)
+				continue;  // for (auto it = event_ordering_.begin(); it != event_ordering_.end(); ++it)
 			}
 			eventInEventOrder = true;
-			break; // for (auto it = event_ordering_.begin(); it != event_ordering_.end(); ++it)
+			break;  // for (auto it = event_ordering_.begin(); it != event_ordering_.end(); ++it)
 		}
 		if (eventInEventOrder)
 		{
 			output_event = event_ordering_.front();
 			event_ordering_.pop_front();
-			break; // while(output_event == nullptr)
-        }
+			break;  // while(output_event == nullptr)
+		}
 
 		auto next_event = ReadEventFromSharedMemory(broadcast);
 		if (next_event == nullptr)
@@ -290,8 +288,8 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 			}
 			else
 			{
-                // Will return nullptr
-				break; // while(output_event == nullptr)
+				// Will return nullptr
+				break;  // while(output_event == nullptr)
 			}
 		}
 		else

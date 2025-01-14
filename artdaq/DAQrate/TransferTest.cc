@@ -352,7 +352,8 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 			recv_size_metric = 0.0;
 		}
 
-		if(artdaq::TimeUtils::GetElapsedTime(last_receive) > 5.0) {
+		if (artdaq::TimeUtils::GetElapsedTime(last_receive) > 5.0)
+		{
 			TLOG(TLVL_ERROR) << "Senders appear to have stopped (no data for >5 seconds), aborting test! counter=" << counter;
 			return std::make_pair(0, 0.0);
 		}

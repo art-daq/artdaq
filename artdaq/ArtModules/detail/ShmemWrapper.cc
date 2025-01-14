@@ -58,7 +58,7 @@ artdaq::FragmentPtrs art::ShmemWrapper::receiveInitMessage()
 	{
 		eventMap = shm->ReceiveEvent(true);
 
-        if (eventMap != nullptr)
+		if (eventMap != nullptr)
 		{
 			auto type = eventMap->FirstFragmentType();
 			if (type == artdaq::Fragment::EndOfDataFragmentType)

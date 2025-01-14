@@ -51,7 +51,7 @@ public:
 	 */
 	size_t GetQueueSize() override { return 0; }
 
-    /**
+	/**
 	 * \brief Get the maximum number of events which can be stored in the shared memory (0)
 	 * \return The maximum number of events which can be stored in the shared memory (0)
 	 */
@@ -60,7 +60,7 @@ public:
 	/**
 	 * \brief Get the ID of this art process. Always 0 since ArtdaqGlobalsService does not connect to shared memory
 	 * \return 0
-	*/
+	 */
 	size_t GetMyId() override { return 0; }
 
 private:

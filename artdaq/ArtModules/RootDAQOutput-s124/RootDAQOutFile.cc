@@ -397,7 +397,8 @@ RootDAQOutFile::RootDAQOutFile(OutputModule* om,
 	                                treeMaxVirtualSize,
 	                                saveMemoryObjectThreshold);
 #if ART_HEX_VERSION > 0x31400
-	rootFileDB_ = ServiceHandle<DatabaseConnection> {
+	rootFileDB_ = ServiceHandle<DatabaseConnection>
+	{
 	} -> get<TKeyVFSOpenPolicy>("RootFileDB",
 	                            filePtr_.get(),
 	                            SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE);

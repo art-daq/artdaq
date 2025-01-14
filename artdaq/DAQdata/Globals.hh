@@ -103,12 +103,13 @@ public:
 		return (part_u & 0x7F);
 	}
 
-    /**
-     * \brief Get the Shared Memory Key for a given partition number
-     */
-    static uint32_t SharedMemoryKey(uint32_t seed, bool useParentPID = false) {
+	/**
+	 * \brief Get the Shared Memory Key for a given partition number
+	 */
+	static uint32_t SharedMemoryKey(uint32_t seed, bool useParentPID = false)
+	{
 		return seed + ((GetPartitionNumber() + 1) << 16) + ((useParentPID ? getppid() : getpid()) & 0xFFFF);
-    }
+	}
 
 	/**
 	 * \brief Get the current iteration for MessageFacility messages

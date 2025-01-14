@@ -25,7 +25,7 @@ ArtdaqGlobalsService::ArtdaqGlobalsService(fhicl::ParameterSet const& pset, art:
 	}
 
 	TLOG(TLVL_DEBUG + 33) << "Setting app_name to " << artapp_str;
-		app_name = artapp_str;
+	app_name = artapp_str;
 
 	artapp_env = getenv("ARTDAQ_RANK");
 	if (artapp_env != nullptr && my_rank < 0)

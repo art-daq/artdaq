@@ -12,7 +12,8 @@ struct NetMonHeader;
  */
 struct artdaq::NetMonHeader
 {
-	enum class MessageType : uint32_t {
+	enum class MessageType : uint32_t
+	{
 		Invalid = 0,
 		Init = 1,
 		Run = 2,
