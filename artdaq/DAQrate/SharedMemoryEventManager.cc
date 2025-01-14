@@ -1525,11 +1525,10 @@ std::vector<char*> artdaq::SharedMemoryEventManager::parse_art_command_line_(con
 
 void artdaq::SharedMemoryEventManager::send_init_frags_()
 {
-	auto start_time = std::chrono::steady_clock::now();
-	auto sleep_time = std::chrono::milliseconds(broadcast_timeout_ms_) / 1000;
+	auto sleep_time = std::chrono::milliseconds(broadcast_timeout_ms_);
 	bool first = true;
 
-	while (!init_frags_sent_ && TimeUtils::GetElapsedTimeMilliseconds(start_time) < static_cast<size_t>(broadcast_timeout_ms_))
+	while (!init_frags_sent_ && running_.load())
 	{
 		{
 			std::lock_guard<std::mutex> lk(init_fragments_mutex_);
