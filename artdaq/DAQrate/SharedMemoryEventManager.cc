@@ -445,7 +445,7 @@ void artdaq::SharedMemoryEventManager::RunArt(size_t process_index, const std::s
 	do
 	{
 		auto start_time = std::chrono::steady_clock::now();
-		send_init_frags_();
+		//send_init_frags_();
 		TLOG(TLVL_INFO) << "Starting art process with config file " << current_art_config_file_->getFileName();
 
 		pid_t pid = 0;
