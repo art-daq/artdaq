@@ -499,7 +499,7 @@ private:
 	std::unique_ptr<TokenSender> tokens_;
 	fhicl::ParameterSet data_pset_;
 
-    std::mutex init_fragments_mutex_;
+	std::mutex init_fragments_mutex_;
 	FragmentPtrs init_fragments_;
 	bool init_frags_sent_{false};
 	std::set<Fragment::fragment_id_t> received_init_frags_;

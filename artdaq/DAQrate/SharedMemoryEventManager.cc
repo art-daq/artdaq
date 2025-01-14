@@ -71,7 +71,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(const fhicl::Paramete
 	SetMinWriteSize(sizeof(detail::RawEventHeader) + sizeof(detail::RawFragmentHeader));
 	broadcasts_.SetMinWriteSize(sizeof(detail::RawEventHeader) + sizeof(detail::RawFragmentHeader));
 
-    RegisterWriter();
+	RegisterWriter();
 	broadcasts_.RegisterWriter();
 
 	if (!pset.get<bool>("use_art", true))
@@ -139,7 +139,7 @@ artdaq::SharedMemoryEventManager::~SharedMemoryEventManager() noexcept
 		}
 	}
 
-    UnregisterWriter();
+	UnregisterWriter();
 	broadcasts_.UnregisterWriter();
 	TLOG(TLVL_DEBUG + 33) << "Destructor END";
 }
@@ -1569,9 +1569,10 @@ void artdaq::SharedMemoryEventManager::send_init_frags_()
 				init_frags_sent_ = true;
 			}
 		}
-        if (!init_frags_sent_) {
+		if (!init_frags_sent_)
+		{
 			std::this_thread::sleep_for(sleep_time);
-        }
+		}
 	}
 }
 
