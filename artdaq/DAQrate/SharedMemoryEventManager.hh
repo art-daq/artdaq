@@ -174,8 +174,6 @@ public:
 		fhicl::Atom<bool> use_art{fhicl::Name{"use_art"}, fhicl::Comment{"Whether to start and manage art threads (Sets art_analyzer count to 0 and overwrite_mode to true when false)"}, true};
 		/// "manual_art" (Default: false): Prints the startup command line for the art process so that the user may (for example) run it in GDB or valgrind
 		fhicl::Atom<bool> manual_art{fhicl::Name{"manual_art"}, fhicl::Comment{"Prints the startup command line for the art process so that the user may (for example) run it in GDB or valgrind"}, false};
-		/// "send_dummy_event" (Default: false): Send an empty event through art at startup (this should generate init Fragments)
-		fhicl::Atom<bool> send_dummy_event{fhicl::Name{"send_dummy_event"}, fhicl::Comment{"Send an empty event through art at startup (this should generate init Fragments)"}, false};
 		/// Configuration of the RequestSender. See artdaq::RequestSender::Config
 		fhicl::TableFragment<artdaq::RequestSender::Config> requestSenderConfig;
 		/// Configuration of the TokenSender. See artdaq::TokenSender::Config
@@ -490,7 +488,6 @@ private:
 	std::atomic<bool> restart_art_;
 	bool always_restart_art_;
 	std::atomic<bool> manual_art_;
-	std::atomic<bool> send_dummy_event_;
 	fhicl::ParameterSet current_art_pset_;
 	std::shared_ptr<art_config_file> current_art_config_file_;
 	std::string art_cmdline_;
