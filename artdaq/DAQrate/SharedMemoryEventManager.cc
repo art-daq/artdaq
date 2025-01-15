@@ -445,7 +445,7 @@ void artdaq::SharedMemoryEventManager::RunArt(size_t process_index, const std::s
 	do
 	{
 		auto start_time = std::chrono::steady_clock::now();
-		//send_init_frags_();
+		send_init_frags_();
 		TLOG(TLVL_INFO) << "Starting art process with config file " << current_art_config_file_->getFileName();
 
 		pid_t pid = 0;
@@ -1525,12 +1525,6 @@ std::vector<char*> artdaq::SharedMemoryEventManager::parse_art_command_line_(con
 
 void artdaq::SharedMemoryEventManager::send_init_frags_()
 {
-	auto sleep_time = std::chrono::milliseconds(broadcast_timeout_ms_);
-	bool first = true;
-
-	while (!init_frags_sent_ && running_.load())
-	{
-		{
 			std::lock_guard<std::mutex> lk(init_fragments_mutex_);
 			if (init_fragments_.size() >= init_fragment_count_ && init_fragment_count_ > 0)
 			{
@@ -1549,13 +1543,11 @@ void artdaq::SharedMemoryEventManager::send_init_frags_()
 			}
 			else if (init_fragment_count_ > 0 && init_fragments_.size() == 0)
 			{
-				TLOG(first ? TLVL_WARNING : TLVL_DEBUG + 33) << "Cannot send Init Fragment(s) because I haven't yet received them! Set send_init_fragments to false or init_fragment_count to 0 if this process does not receive serialized art events to avoid potentially lengthy timeouts!";
-				first = false;
+				TLOG(TLVL_WARNING) << "Cannot send Init Fragment(s) because I haven't yet received them! Set send_init_fragments to false or init_fragment_count to 0 if this process does not receive serialized art events to avoid potentially lengthy timeouts!";
 			}
 			else if (init_fragment_count_ > 0)
 			{
-				TLOG(first ? TLVL_INFO : TLVL_DEBUG + 33) << "Cannot send Init Fragment(s) because I haven't yet received them (have " << init_fragments_.size() << " of " << init_fragment_count_ << ")!";
-				first = false;
+				TLOG(TLVL_INFO) << "Cannot send Init Fragment(s) because I haven't yet received them (have " << init_fragments_.size() << " of " << init_fragment_count_ << ")!";
 			}
 			else
 			{
@@ -1566,17 +1558,11 @@ void artdaq::SharedMemoryEventManager::send_init_frags_()
 				broadcastFragments_(begin_run_fragments_);
 				init_frags_sent_ = true;
 			}
-		}
-		if (!init_frags_sent_)
-		{
-			std::this_thread::sleep_for(sleep_time);
-		}
-	}
 }
 
 void artdaq::SharedMemoryEventManager::AddInitFragment(FragmentPtr& frag)
 {
-	std::lock_guard<std::mutex> lk(init_fragments_mutex_);
+	std::unique_lock<std::mutex> lk(init_fragments_mutex_);
 	if (received_init_frags_.count(frag->fragmentID()) == 0)
 	{
 		TLOG(TLVL_DEBUG + 32) << "Received Init Fragment from rank " << frag->fragmentID() << ". Now have " << init_fragments_.size() + 1 << " of " << init_fragment_count_;
@@ -1586,6 +1572,7 @@ void artdaq::SharedMemoryEventManager::AddInitFragment(FragmentPtr& frag)
 		// Don't send until all init fragments have been received
 		if (init_fragments_.size() >= init_fragment_count_)
 		{
+			lk.unlock();
 			send_init_frags_();
 		}
 	}
