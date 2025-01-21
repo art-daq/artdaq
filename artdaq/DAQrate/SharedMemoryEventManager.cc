@@ -291,6 +291,7 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 
 			if (maximum_oversize_fragment_count_ > 0 && oversize_fragment_count_ >= maximum_oversize_fragment_count_)
 			{
+				lk.unlock();
 				throw cet::exception("Too many over-size Fragments received! Please adjust max_event_size_bytes or max_fragment_size_bytes!");
 			}
 
@@ -1275,10 +1276,16 @@ bool artdaq::SharedMemoryEventManager::bufferComparator(int bufA, int bufB)
 void artdaq::SharedMemoryEventManager::CheckPendingBuffers()
 {
 	{
-		TLOG(TLVL_BUFLCK) << "CheckPendingBuffers: Obtaining sequence_id_mutex_";
-		std::unique_lock<std::mutex> lk(sequence_id_mutex_);
-		TLOG(TLVL_BUFLCK) << "CheckPendingBuffers: Obtained sequence_id_mutex_";
-		check_pending_buffers_(lk);
+		TLOG(TLVL_BUFLCK) << "Obtaining sequence_id_mutex_";
+		std::unique_lock<std::mutex> lk(sequence_id_mutex_, std::try_to_lock);
+        if (!lk) {
+			TLOG(TLVL_BUFLCK) << "Could not obtain sequence_id_mutex_, other user will presumably call check_pending_buffers_ in a timely manner";
+		}
+		else
+		{
+			TLOG(TLVL_BUFLCK) << "Obtained sequence_id_mutex_";
+			check_pending_buffers_(lk);
+		}
 	}
 	check_pending_broadcasts_();
 }
