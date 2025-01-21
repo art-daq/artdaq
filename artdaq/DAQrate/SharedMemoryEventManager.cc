@@ -1259,13 +1259,14 @@ void artdaq::SharedMemoryEventManager::complete_buffer_(int buffer)
 			                  << WriteReadyCount(false) << ","
 			                  << pending_buffers_.size() << ","
 			                  << active_buffers_.size() << ")";
+			check_pending_buffers_(lk);
 		}
 		if (requests_)
 		{
 			requests_->RemoveRequest(hdr->sequence_id);
 		}
 	}
-	CheckPendingBuffers();
+	check_pending_broadcasts_();
 }
 
 bool artdaq::SharedMemoryEventManager::bufferComparator(int bufA, int bufB)
@@ -1277,17 +1278,11 @@ void artdaq::SharedMemoryEventManager::CheckPendingBuffers()
 {
 	{
 		TLOG(TLVL_BUFLCK) << "Obtaining sequence_id_mutex_";
-		std::unique_lock<std::mutex> lk(sequence_id_mutex_, std::try_to_lock);
-        if (!lk) {
-			TLOG(TLVL_BUFLCK) << "Could not obtain sequence_id_mutex_, other user will presumably call check_pending_buffers_ in a timely manner";
-		}
-		else
-		{
-			TLOG(TLVL_BUFLCK) << "Obtained sequence_id_mutex_";
-			check_pending_buffers_(lk);
-		}
+		std::unique_lock<std::mutex> lk(sequence_id_mutex_);
+		TLOG(TLVL_BUFLCK) << "Obtained sequence_id_mutex_";
+
+		check_pending_buffers_(lk);
 	}
-	check_pending_broadcasts_();
 }
 
 void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<std::mutex> const& lock)
@@ -1532,10 +1527,10 @@ std::vector<char*> artdaq::SharedMemoryEventManager::parse_art_command_line_(con
 
 void artdaq::SharedMemoryEventManager::send_init_frags_()
 {
-			std::lock_guard<std::mutex> lk(init_fragments_mutex_);
-			if (init_fragments_.size() >= init_fragment_count_ && init_fragment_count_ > 0)
-			{
-				TLOG(TLVL_INFO) << "Broadcasting " << init_fragments_.size() << " Init Fragment(s) to all art subprocesses...";
+	std::lock_guard<std::mutex> lk(init_fragments_mutex_);
+	if (init_fragments_.size() >= init_fragment_count_ && init_fragment_count_ > 0)
+	{
+		TLOG(TLVL_INFO) << "Broadcasting " << init_fragments_.size() << " Init Fragment(s) to all art subprocesses...";
 
 #if 0
 		std::string fileName = "receiveInitMessage_" + std::to_string(my_rank) + ".bin";
@@ -1544,27 +1539,27 @@ void artdaq::SharedMemoryEventManager::send_init_frags_()
 		ostream.close();
 #endif
 
-				broadcastFragments_(init_fragments_);
-				TLOG(TLVL_DEBUG + 33) << "Init Fragment sent";
-				init_frags_sent_ = true;
-			}
-			else if (init_fragment_count_ > 0 && init_fragments_.size() == 0)
-			{
-				TLOG(TLVL_WARNING) << "Cannot send Init Fragment(s) because I haven't yet received them! Set send_init_fragments to false or init_fragment_count to 0 if this process does not receive serialized art events to avoid potentially lengthy timeouts!";
-			}
-			else if (init_fragment_count_ > 0)
-			{
-				TLOG(TLVL_INFO) << "Cannot send Init Fragment(s) because I haven't yet received them (have " << init_fragments_.size() << " of " << init_fragment_count_ << ")!";
-			}
-			else
-			{
-				// Send an empty Init Fragment so that ArtdaqInput knows that this is a pure-Fragment input
-				artdaq::FragmentPtrs begin_run_fragments_;
-				begin_run_fragments_.emplace_back(new artdaq::Fragment());
-				begin_run_fragments_.back()->setSystemType(artdaq::Fragment::InitFragmentType);
-				broadcastFragments_(begin_run_fragments_);
-				init_frags_sent_ = true;
-			}
+		broadcastFragments_(init_fragments_);
+		TLOG(TLVL_DEBUG + 33) << "Init Fragment sent";
+		init_frags_sent_ = true;
+	}
+	else if (init_fragment_count_ > 0 && init_fragments_.size() == 0)
+	{
+		TLOG(TLVL_WARNING) << "Cannot send Init Fragment(s) because I haven't yet received them! Set send_init_fragments to false or init_fragment_count to 0 if this process does not receive serialized art events to avoid potentially lengthy timeouts!";
+	}
+	else if (init_fragment_count_ > 0)
+	{
+		TLOG(TLVL_INFO) << "Cannot send Init Fragment(s) because I haven't yet received them (have " << init_fragments_.size() << " of " << init_fragment_count_ << ")!";
+	}
+	else
+	{
+		// Send an empty Init Fragment so that ArtdaqInput knows that this is a pure-Fragment input
+		artdaq::FragmentPtrs begin_run_fragments_;
+		begin_run_fragments_.emplace_back(new artdaq::Fragment());
+		begin_run_fragments_.back()->setSystemType(artdaq::Fragment::InitFragmentType);
+		broadcastFragments_(begin_run_fragments_);
+		init_frags_sent_ = true;
+	}
 }
 
 void artdaq::SharedMemoryEventManager::AddInitFragment(FragmentPtr& frag)
