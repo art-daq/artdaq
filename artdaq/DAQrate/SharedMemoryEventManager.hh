@@ -191,7 +191,7 @@ public:
 	/**
 	 * \brief SharedMemoryEventManager Destructor
 	 */
-	virtual ~SharedMemoryEventManager();
+	virtual ~SharedMemoryEventManager() noexcept;
 
 private:
 	/**
@@ -499,7 +499,9 @@ private:
 	std::unique_ptr<TokenSender> tokens_;
 	fhicl::ParameterSet data_pset_;
 
+	std::mutex init_fragments_mutex_;
 	FragmentPtrs init_fragments_;
+	bool init_frags_sent_{false};
 	std::set<Fragment::fragment_id_t> received_init_frags_;
 	std::list<std::pair<detail::RawFragmentHeader, FragmentPtr>> dropped_data_;
 
@@ -525,7 +527,6 @@ private:
 	std::vector<char*> parse_art_command_line_(const std::shared_ptr<art_config_file>& config_file, size_t process_index);
 
 	void send_init_frags_();
-	bool init_frags_sent_{false};
 	SharedMemoryManager broadcasts_;
 };
 }  // namespace artdaq

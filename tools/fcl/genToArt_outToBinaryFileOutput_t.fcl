@@ -21,9 +21,13 @@ genToArt:
     use_art: true
     verbose: false
 	max_event_size_bytes: 10000
+    init_fragment_count: 0
   }
 }
 
+services: {
+    ArtdaqSharedMemoryInterface: { service_provider: ArtdaqSharedMemoryService }
+}
 
 source:
 {

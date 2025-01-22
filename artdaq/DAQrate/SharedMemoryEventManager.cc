@@ -71,6 +71,9 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(const fhicl::Paramete
 	SetMinWriteSize(sizeof(detail::RawEventHeader) + sizeof(detail::RawFragmentHeader));
 	broadcasts_.SetMinWriteSize(sizeof(detail::RawEventHeader) + sizeof(detail::RawFragmentHeader));
 
+	RegisterWriter();
+	broadcasts_.RegisterWriter();
+
 	if (!pset.get<bool>("use_art", true))
 	{
 		TLOG(TLVL_INFO) << "BEGIN SharedMemoryEventManager CONSTRUCTOR with use_art:false";
@@ -121,7 +124,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(const fhicl::Paramete
 	TLOG(TLVL_DEBUG + 33) << "END CONSTRUCTOR";
 }
 
-artdaq::SharedMemoryEventManager::~SharedMemoryEventManager()
+artdaq::SharedMemoryEventManager::~SharedMemoryEventManager() noexcept
 {
 	TLOG(TLVL_DEBUG + 33) << "DESTRUCTOR";
 	if (running_)
@@ -135,6 +138,9 @@ artdaq::SharedMemoryEventManager::~SharedMemoryEventManager()
 			// IGNORED
 		}
 	}
+
+	UnregisterWriter();
+	broadcasts_.UnregisterWriter();
 	TLOG(TLVL_DEBUG + 33) << "Destructor END";
 }
 
@@ -285,6 +291,7 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 
 			if (maximum_oversize_fragment_count_ > 0 && oversize_fragment_count_ >= maximum_oversize_fragment_count_)
 			{
+				lk.unlock();
 				throw cet::exception("Too many over-size Fragments received! Please adjust max_event_size_bytes or max_fragment_size_bytes!");
 			}
 
@@ -798,7 +805,10 @@ void artdaq::SharedMemoryEventManager::ReconfigureArt(fhicl::ParameterSet art_ps
 bool artdaq::SharedMemoryEventManager::endOfData()
 {
 	running_ = false;
-	init_fragments_.clear();
+	{
+		std::lock_guard<std::mutex> lk(init_fragments_mutex_);
+		init_fragments_.clear();
+	}
 	init_frags_sent_ = false;
 	received_init_frags_.clear();
 	TLOG(TLVL_DEBUG + 32) << "SharedMemoryEventManager::endOfData";
@@ -898,7 +908,10 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 void artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 {
 	running_ = true;
-	init_fragments_.clear();
+	{
+		std::lock_guard<std::mutex> lk(init_fragments_mutex_);
+		init_fragments_.clear();
+	}
 	init_frags_sent_ = false;
 	received_init_frags_.clear();
 	statsHelper_.resetStatistics();
@@ -1246,13 +1259,14 @@ void artdaq::SharedMemoryEventManager::complete_buffer_(int buffer)
 			                  << WriteReadyCount(false) << ","
 			                  << pending_buffers_.size() << ","
 			                  << active_buffers_.size() << ")";
+			check_pending_buffers_(lk);
 		}
 		if (requests_)
 		{
 			requests_->RemoveRequest(hdr->sequence_id);
 		}
 	}
-	CheckPendingBuffers();
+	check_pending_broadcasts_();
 }
 
 bool artdaq::SharedMemoryEventManager::bufferComparator(int bufA, int bufB)
@@ -1263,12 +1277,12 @@ bool artdaq::SharedMemoryEventManager::bufferComparator(int bufA, int bufB)
 void artdaq::SharedMemoryEventManager::CheckPendingBuffers()
 {
 	{
-		TLOG(TLVL_BUFLCK) << "CheckPendingBuffers: Obtaining sequence_id_mutex_";
+		TLOG(TLVL_BUFLCK) << "Obtaining sequence_id_mutex_";
 		std::unique_lock<std::mutex> lk(sequence_id_mutex_);
-		TLOG(TLVL_BUFLCK) << "CheckPendingBuffers: Obtained sequence_id_mutex_";
+		TLOG(TLVL_BUFLCK) << "Obtained sequence_id_mutex_";
+
 		check_pending_buffers_(lk);
 	}
-	check_pending_broadcasts_();
 }
 
 void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<std::mutex> const& lock)
@@ -1513,6 +1527,7 @@ std::vector<char*> artdaq::SharedMemoryEventManager::parse_art_command_line_(con
 
 void artdaq::SharedMemoryEventManager::send_init_frags_()
 {
+	std::lock_guard<std::mutex> lk(init_fragments_mutex_);
 	if (init_fragments_.size() >= init_fragment_count_ && init_fragment_count_ > 0)
 	{
 		TLOG(TLVL_INFO) << "Broadcasting " << init_fragments_.size() << " Init Fragment(s) to all art subprocesses...";
@@ -1549,8 +1564,7 @@ void artdaq::SharedMemoryEventManager::send_init_frags_()
 
 void artdaq::SharedMemoryEventManager::AddInitFragment(FragmentPtr& frag)
 {
-	static std::mutex init_fragment_mutex;
-	std::lock_guard<std::mutex> lk(init_fragment_mutex);
+	std::unique_lock<std::mutex> lk(init_fragments_mutex_);
 	if (received_init_frags_.count(frag->fragmentID()) == 0)
 	{
 		TLOG(TLVL_DEBUG + 32) << "Received Init Fragment from rank " << frag->fragmentID() << ". Now have " << init_fragments_.size() + 1 << " of " << init_fragment_count_;
@@ -1560,6 +1574,7 @@ void artdaq::SharedMemoryEventManager::AddInitFragment(FragmentPtr& frag)
 		// Don't send until all init fragments have been received
 		if (init_fragments_.size() >= init_fragment_count_)
 		{
+			lk.unlock();
 			send_init_frags_();
 		}
 	}
