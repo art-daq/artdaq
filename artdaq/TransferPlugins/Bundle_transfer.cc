@@ -133,7 +133,7 @@ public:
 			fragment_buffer_.emplace_back(fragment);
 		}
 		TLOG(TLVL_DEBUG + 35) << GetTraceName() << "transfer_fragment_min_blocking_mode END";
-		return CopyStatus::kSuccess;  // Might be a lie, but we're going to send from the thread proc
+		return last_copy_status_;  // Might be a lie, but we're going to send from the thread proc
 	}
 
 	/**
@@ -164,7 +164,7 @@ public:
 			fragment_buffer_.emplace_back(std::move(fragment));
 		}
 		TLOG(TLVL_DEBUG + 36) << GetTraceName() << "transfer_fragment_reliable_mode END";
-		return CopyStatus::kSuccess;  // Might be a lie, but we're going to send from the thread proc
+		return last_copy_status_;  // Might be a lie, but we're going to send from the thread proc
 	}
 
 	/**
@@ -194,6 +194,7 @@ private:
 	Fragments fragment_buffer_;
 	size_t current_block_index_{0};
 	int current_rank_ = 0;
+	CopyStatus last_copy_status_{CopyStatus::kSuccess};
 
 	std::chrono::steady_clock::time_point send_fragment_started_;
 	std::atomic<size_t> current_buffer_size_bytes_{0};
@@ -357,7 +358,7 @@ bool artdaq::BundleTransfer::send_bundle_fragment_(bool forceSend)
 				}
 				bundle_fragment_.reset(nullptr);
 			}
-
+			last_copy_status_ = sts;
 			if (sts != CopyStatus::kSuccess)
 			{
 				auto sts_string = sts == CopyStatus::kTimeout ? "timeout" : "other error";
