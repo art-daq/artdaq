@@ -257,7 +257,7 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 				event_ordering_.pop_front();
 				break;  // while(output_event == nullptr)
 			}
-            // Don't try to get more data if we have an EndOfData event
+			// Don't try to get more data if we have an EndOfData event
 			if (end_of_data_received_) { break; }
 		}
 
@@ -267,15 +267,14 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 			auto type = (*it)->FirstFragmentType();
 
 			// We will automatically start draining if we have an Init, EndOfData, or Event message
-			if (type == artdaq::Fragment::StartOfRunFragmentType || type == artdaq::Fragment::StartOfSubrunFragmentType 
-                || type == artdaq::Fragment::EndOfSubrunFragmentType || type == artdaq::Fragment::EndOfRunFragmentType 
-                || type == artdaq::Fragment::RunDataFragmentType || type == artdaq::Fragment::SubrunDataFragmentType)
+			if (type == artdaq::Fragment::StartOfRunFragmentType || type == artdaq::Fragment::StartOfSubrunFragmentType || type == artdaq::Fragment::EndOfSubrunFragmentType || type == artdaq::Fragment::EndOfRunFragmentType || type == artdaq::Fragment::RunDataFragmentType || type == artdaq::Fragment::SubrunDataFragmentType)
 			{
 				continue;  // for (auto it = event_ordering_.begin(); it != event_ordering_.end(); ++it)
 			}
-            if (type == artdaq::Fragment::EndOfDataFragmentType) {
+			if (type == artdaq::Fragment::EndOfDataFragmentType)
+			{
 				end_of_data_received_ = true;
-            }
+			}
 			eventInEventOrder = true;
 			break;  // for (auto it = event_ordering_.begin(); it != event_ordering_.end(); ++it)
 		}
