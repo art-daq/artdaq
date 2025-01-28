@@ -40,7 +40,7 @@ public:
 	 * \param broadcast_key Shared Memory key to use for broadcasts (if 0, child program will use parent PID to generate)
 	 */
 	explicit art_config_file(fhicl::ParameterSet ps, uint32_t shm_key = 0, uint32_t broadcast_key = 0)
-	    : dir_name_("/tmp/partition_" + std::to_string(GetPartitionNumber()))
+	    : dir_name_("/tmp/partition_" + std::to_string(Globals::GetPartitionNumber()))
 	    , file_name_(dir_name_ + "/artConfig_" + std::to_string(my_rank) + "_" + std::to_string(artdaq::TimeUtils::gettimeofday_us()) + ".fcl")
 	{
 		mkdir(dir_name_.c_str(), 0777);  // Allowed to fail if directory already exists
@@ -49,7 +49,7 @@ public:
 		if (of.fail())
 		{
 			// Probably a permissions error...
-			dir_name_ = "/tmp/partition_" + std::to_string(GetPartitionNumber()) + "_" + std::to_string(getuid());
+			dir_name_ = "/tmp/partition_" + std::to_string(Globals::GetPartitionNumber()) + "_" + std::to_string(getuid());
 			mkdir(dir_name_.c_str(), 0777);  // Allowed to fail if directory already exists
 			file_name_ = dir_name_ + "/artConfig_" + std::to_string(my_rank) + "_" + std::to_string(artdaq::TimeUtils::gettimeofday_us()) + ".fcl";
 
@@ -67,7 +67,7 @@ public:
 			of << " services.message: { " << generateMessageFacilityConfiguration(mf::GetApplicationName().c_str(), true, false, "-art") << "} ";
 		}
 
-		TLOG(TLVL_INFO, "ArtConfigFile") << "Inserting Shared memory keys (0x" << std::hex << shm_key << ", 0x" << std::hex << broadcast_key << ") into source config";
+		if (shm_key > 0 || broadcast_key > 0) TLOG(TLVL_INFO, "ArtConfigFile") << "Inserting Shared memory keys (0x" << std::hex << shm_key << ", 0x" << std::hex << broadcast_key << ") into source config";
 		if (shm_key > 0) of << " source.shared_memory_key: 0x" << std::hex << shm_key;
 		if (broadcast_key > 0) of << " source.broadcast_shared_memory_key: 0x" << std::hex << broadcast_key;
 
@@ -191,7 +191,7 @@ public:
 	/**
 	 * \brief SharedMemoryEventManager Destructor
 	 */
-	virtual ~SharedMemoryEventManager();
+	virtual ~SharedMemoryEventManager() noexcept;
 
 private:
 	/**
@@ -370,7 +370,7 @@ public:
 	 * @param frag Fragment to broadcast
 	 * @param max_delay Length of time to wait for more Fragments to broadcast
 	 */
-	void BroadcastFragment(FragmentPtr& frag, std::chrono::microseconds max_delay = std::chrono::microseconds(100000));
+	void BroadcastFragment(FragmentPtr& frag, std::chrono::microseconds max_delay = std::chrono::microseconds(1000));
 
 	/**
 	 * \brief Gets the shared memory key of the broadcast SharedMemoryManager
@@ -499,7 +499,9 @@ private:
 	std::unique_ptr<TokenSender> tokens_;
 	fhicl::ParameterSet data_pset_;
 
+	std::mutex init_fragments_mutex_;
 	FragmentPtrs init_fragments_;
+	bool init_frags_sent_{false};
 	std::set<Fragment::fragment_id_t> received_init_frags_;
 	std::list<std::pair<detail::RawFragmentHeader, FragmentPtr>> dropped_data_;
 
@@ -525,7 +527,6 @@ private:
 	std::vector<char*> parse_art_command_line_(const std::shared_ptr<art_config_file>& config_file, size_t process_index);
 
 	void send_init_frags_();
-	bool init_frags_sent_{false};
 	SharedMemoryManager broadcasts_;
 };
 }  // namespace artdaq

@@ -192,7 +192,6 @@ BOOST_AUTO_TEST_CASE(Simple)
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
 	TLOG(TLVL_INFO) << "Simple test case BEGIN";
 	fhicl::ParameterSet ps;
-	ps.put<int>("board_id", 1);
 	ps.put<int>("fragment_id", 1);
 	artdaqtest::CommandableFragmentGeneratorTest testGen(ps);
 
@@ -213,7 +212,6 @@ BOOST_AUTO_TEST_CASE(WaitForStart)
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
 	TLOG(TLVL_INFO) << "WaitForStart test case BEGIN";
 	fhicl::ParameterSet ps;
-	ps.put<int>("board_id", 1);
 	ps.put<int>("fragment_id", 1);
 	artdaqtest::CommandableFragmentGeneratorTest testGen(ps);
 
@@ -243,7 +241,6 @@ BOOST_AUTO_TEST_CASE(StateMachine)
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
 	TLOG(TLVL_INFO) << "StateMachine test case BEGIN";
 	fhicl::ParameterSet ps;
-	ps.put<int>("board_id", 1);
 	ps.put<int>("fragment_id", 1);
 	artdaqtest::CommandableFragmentGeneratorTest testGen(ps);
 
@@ -310,7 +307,6 @@ BOOST_AUTO_TEST_CASE(MultipleIDs)
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
 	TLOG(TLVL_INFO) << "MultipleIDs test case BEGIN";
 	fhicl::ParameterSet ps;
-	ps.put<int>("board_id", 1);
 	ps.put<std::vector<int>>("fragment_ids", {1, 2, 3});
 	ps.put<int>("generated_fragments_per_event", 3);
 
@@ -364,7 +360,6 @@ BOOST_AUTO_TEST_CASE(HardwareFailure_NonThreaded)
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
 	TLOG(TLVL_INFO) << "HardwareFailure_NonThreaded test case BEGIN";
 	fhicl::ParameterSet ps;
-	ps.put<int>("board_id", 1);
 	ps.put<int>("fragment_id", 1);
 	ps.put<bool>("separate_data_thread", false);
 	ps.put<bool>("separate_monitoring_thread", false);
@@ -402,7 +397,6 @@ BOOST_AUTO_TEST_CASE(HardwareFailure_Threaded)
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
 	TLOG(TLVL_INFO) << "HardwareFailure_Threaded test case BEGIN";
 	fhicl::ParameterSet ps;
-	ps.put<int>("board_id", 1);
 	ps.put<int>("fragment_id", 1);
 	ps.put<bool>("separate_monitoring_thread", true);
 	ps.put<int64_t>("hardware_poll_interval_us", 750000);

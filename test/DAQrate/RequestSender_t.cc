@@ -47,7 +47,7 @@ BOOST_AUTO_TEST_CASE(Requests)
 	metricMan->initialize(fhicl::ParameterSet());
 	metricMan->do_start();
 	TLOG(TLVL_INFO) << "Requests Test Case BEGIN";
-	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
+	const int REQUEST_PORT = (artdaq::Globals::SeedAndRandom() % (32768 - 1024)) + 1024;
 	const int DELAY_TIME = 100;
 #if 0
 	const std::string MULTICAST_IP = "227.28.12.28";

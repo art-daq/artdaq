@@ -26,7 +26,7 @@ cet_test(DataReceiverManager_t USE_BOOST_UNIT INSTALL_BIN
   LIBRARIES PRIVATE
   artdaq::DAQrate
   artdaq::TransferPlugins
-  artdaq::TransferPlugins_Shmem_transfer
+  artdaq::TransferPlugins_TCPSocket_transfer
 )
 
 cet_test(RequestSender_t USE_BOOST_UNIT INSTALL_BIN

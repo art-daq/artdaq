@@ -29,7 +29,7 @@ public:
 	 * "buffer_count" (Default: 10): Buffer count for TransferInterfaces
 	 * "fragment_size" (Default: 0x100000): Size of Fragments to transfer
 	 * "metrics": FHiCL table used to configure MetricManager (see documentation)
-	 * "transfer_plugin_type" (Default: Shmem): TransferInterface plugin to load
+	 * "transfer_plugin_type" (Default: TCPSocket): TransferInterface plugin to load
 	 * "hostmap" (OPTIONAL): Host map to use for "host_map" parameter of TransferInterface plugins (i.e. TCPSocketTransfer)
 	 * \endverbatim
 	 */
@@ -53,9 +53,10 @@ private:
 	std::pair<size_t, double> do_receiving();
 
 	// Helper functions
-	const std::vector<std::string> suffixes{" B", " KB", " MB", " GB", " TB"};
+	const std::vector<std::string> suffixes{" ", " K", " M", " G", " T"};
 
 	std::string formatBytes(double bytes, size_t suffixIndex = 0);
+	std::string formatHertz(double hertz, size_t suffixIndex = 0);
 
 	int senders_;
 	int receivers_;
@@ -82,7 +83,20 @@ inline std::string TransferTest::formatBytes(double bytes, size_t suffixIndex)
 		return formatBytes(bytes / 1024.0, suffixIndex + 1);
 	}
 
-	return std::to_string(bytes) + suffixes[suffixIndex];
+	return std::to_string(bytes) + suffixes[suffixIndex] + "B";
 }
+
+inline std::string TransferTest::formatHertz(double hertz, size_t suffixIndex)
+{
+	auto b = fabs(hertz);
+
+	if (b > 1000.0 && suffixIndex < suffixes.size())
+	{
+		return formatHertz(hertz / 1000.0, suffixIndex + 1);
+	}
+
+	return std::to_string(hertz) + suffixes[suffixIndex] + "Hz";
+}
+
 }  // namespace artdaq
 #endif  // ARTDAQ_TEST_DAQRATE_TRANSFERTEST_HH

@@ -3,6 +3,7 @@
 
 #include "art/Framework/Services/Registry/ServiceMacros.h"
 #include "artdaq-core/Data/RawEvent.hh"
+#include "artdaq/ArtModules/ArtdaqEvent.hh"
 #include "fhiclcpp/types/Atom.h"
 
 /**
@@ -21,9 +22,9 @@ public:
 	/**
 	 * \brief Receive an event from the shared memory
 	 * \param broadcast Whether to only attempt to receive a broadcast (broadcasts are always preferentially received over data)
-	 * \return Map of Fragment types retrieved from shared memory
+	 * \return Event Struct received from shared memory
 	 */
-	virtual std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> ReceiveEvent(bool broadcast) = 0;
+	virtual std::shared_ptr<ArtdaqEvent> ReceiveEvent(bool broadcast) = 0;
 
 	/**
 	 * \brief Get the number of events which are ready to be read
@@ -38,15 +39,9 @@ public:
 	virtual size_t GetQueueCapacity() = 0;
 
 	/**
-	 * \brief Get a shared_ptr to the current event header, if any
-	 * \return std::shared_ptr to current event header. May be nullptr if no event is currently being read
-	 */
-	virtual std::shared_ptr<artdaq::detail::RawEventHeader> GetEventHeader() = 0;
-
-	/**
 	 * \brief Get the ID of this art process
 	 * \return The ID of this art process (from shm->GetMyId())
-	*/
+	 */
 	virtual size_t GetMyId() = 0;
 
 private:

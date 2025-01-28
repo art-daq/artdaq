@@ -238,6 +238,14 @@ cet_build_plugin(TransferOutput art::module
   TRACE::MF
 )
 
+cet_build_plugin(TransferOutputReliable art::module
+  LIBRARIES PRIVATE
+  artdaq::ArtdaqOutput
+  artdaq::DAQdata
+  artdaq_plugin_support::transferMaker
+  TRACE::MF
+)
+
 cet_build_plugin(OffsetPrescale art::EDFilter
   LIBRARIES PRIVATE
   artdaq_plugin_types::ArtdaqSharedMemoryService

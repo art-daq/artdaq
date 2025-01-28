@@ -17,10 +17,16 @@ genToArt:
 	buffer_count: 10
 	expected_fragments_per_event: 1
 	max_event_size_bytes: 0x100000
+    init_fragment_count: 0
   }
 }
 
 process_name: TEST
+
+
+services: {
+    ArtdaqSharedMemoryInterface: { service_provider: ArtdaqSharedMemoryService }
+}
 
 source:
 {

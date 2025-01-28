@@ -410,9 +410,9 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 	uint8_t* buff;
 	size_t byte_cnt = 0;
 	int sts;
-	int offset = 0;
+	size_t offset = 0;
 	SocketState state = SocketState::Metadata;
-	int target_bytes = sizeof(MessHead);
+	size_t target_bytes = sizeof(MessHead);
 
 	pollfd pollfd_s;
 	pollfd_s.events = POLLIN | POLLPRI | POLLERR;
@@ -530,7 +530,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 		{
 			// see if we're done (with this state)
 			sts = offset += sts;
-			if (sts >= target_bytes)
+			if (static_cast<size_t>(sts) >= target_bytes)
 			{
 				TLOG(TLVL_DEBUG + 42) << GetTraceName() << "receiveFragmentData: Target read bytes reached. Changing state";
 				offset = 0;

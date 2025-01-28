@@ -18,10 +18,11 @@ cmake_minimum_required (VERSION 3.19 FATAL_ERROR)
 
 find_package(cetmodules 3.16.00 REQUIRED)
 
-project(artdaq VERSION 3.14.00)
+project(artdaq VERSION 3.15.00)
 
 include(CetCMakeEnv)
 cet_cmake_env()
+SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # Find our own CMake modules, and tell everyone else where to find them.
 cet_cmake_module_directories(Modules BINARY)

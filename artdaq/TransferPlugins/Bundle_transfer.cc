@@ -11,10 +11,7 @@
 
 namespace artdaq {
 /**
- * \brief The BundleTransfer TransferInterface plugin sets up a
- * Shmem_transfer plugin or TCPSocket_transfer plugin depending if
- * the source and destination are on the same host, to maximize
- * throughput.
+ * \brief The BundleTransfer TransferInterface plugin automatically combines smaller Fragments to transfer a lower rate of larger Fragments, which TCP is better able to handle.
  */
 class BundleTransfer : public TransferInterface
 {
@@ -125,8 +122,8 @@ public:
 			}
 
 			TLOG(TLVL_DEBUG + 35) << GetTraceName() << "transfer_fragment_min_blocking_mode after wait for buffer";
-			// Always send along System Fragments immediately
-			if (Fragment::isSystemFragmentType(fragment.type()))
+			// Always send along Broadcast Fragments immediately
+			if (Fragment::isBroadcastFragmentType(fragment.type()))
 			{
 				system_fragment_cached_ = true;
 			}
@@ -136,7 +133,7 @@ public:
 			fragment_buffer_.emplace_back(fragment);
 		}
 		TLOG(TLVL_DEBUG + 35) << GetTraceName() << "transfer_fragment_min_blocking_mode END";
-		return CopyStatus::kSuccess;  // Might be a lie, but we're going to send from the thread proc
+		return last_copy_status_;  // Might be a lie, but we're going to send from the thread proc
 	}
 
 	/**
@@ -150,15 +147,15 @@ public:
 		last_send_call_reliable_ = true;
 		{
 			std::unique_lock<std::mutex> lk(fragment_mutex_);
-			if (current_buffer_size_bytes_ > max_hold_size_bytes_)
+			while (current_buffer_size_bytes_ > max_hold_size_bytes_)
 			{
 				fragment_cv_.wait(lk, [&] { return current_buffer_size_bytes_ < max_hold_size_bytes_; });
 			}
 
 			TLOG(TLVL_DEBUG + 36) << GetTraceName() << "transfer_fragment_reliable_mode after wait for buffer";
 
-			// Always send along System Fragments immediately
-			if (Fragment::isSystemFragmentType(fragment.type()))
+			// Always send along Broadcast Fragments immediately
+			if (Fragment::isBroadcastFragmentType(fragment.type()))
 			{
 				system_fragment_cached_ = true;
 			}
@@ -167,7 +164,7 @@ public:
 			fragment_buffer_.emplace_back(std::move(fragment));
 		}
 		TLOG(TLVL_DEBUG + 36) << GetTraceName() << "transfer_fragment_reliable_mode END";
-		return CopyStatus::kSuccess;  // Might be a lie, but we're going to send from the thread proc
+		return last_copy_status_;  // Might be a lie, but we're going to send from the thread proc
 	}
 
 	/**
@@ -197,6 +194,7 @@ private:
 	Fragments fragment_buffer_;
 	size_t current_block_index_{0};
 	int current_rank_ = 0;
+	CopyStatus last_copy_status_{CopyStatus::kSuccess};
 
 	std::chrono::steady_clock::time_point send_fragment_started_;
 	std::atomic<size_t> current_buffer_size_bytes_{0};
@@ -221,7 +219,7 @@ artdaq::BundleTransfer::BundleTransfer(const fhicl::ParameterSet& pset, Role rol
     : TransferInterface(pset, role)
     , send_threshold_bytes_(pset.get<size_t>("send_threshold_bytes", 10 * 0x100000))  // 10 MB
     , max_hold_size_bytes_(pset.get<size_t>("max_hold_size_bytes", 1000 * 0x100000))  // 1000 MB
-    , max_hold_time_us_(pset.get<int>("max_hold_time_us", 100000))                  // 0.1 s
+    , max_hold_time_us_(pset.get<int>("max_hold_time_us", 100000))                    // 0.1 s
 {
 	TLOG(TLVL_INFO) << GetTraceName() << "Begin BundleTransfer constructor";
 	TLOG(TLVL_INFO) << GetTraceName() << "Constructing TCPSocketTransfer";
@@ -328,6 +326,7 @@ bool artdaq::BundleTransfer::send_bundle_fragment_(bool forceSend)
 			size_t size = current_buffer_size_bytes_;
 			fragment_buffer_.swap(temp_buffer);
 			send_fragment_started_ = std::chrono::steady_clock::now();
+			system_fragment_cached_ = false;
 			current_buffer_size_bytes_ = 0;
 			lk.unlock();
 			TLOG(TLVL_DEBUG + 38) << GetTraceName() << "Notifying waiters";
@@ -338,7 +337,7 @@ bool artdaq::BundleTransfer::send_bundle_fragment_(bool forceSend)
 			bundle_fragment_->setTimestamp(temp_buffer.front().timestamp());
 			bundle_fragment_->reserve(size / sizeof(artdaq::RawDataType));
 
-			TLOG(TLVL_DEBUG + 38) << GetTraceName() << "Filling Bundle Fragment";
+			TLOG(TLVL_DEBUG + 38) << GetTraceName() << "Filling Bundle Fragment, sz = " << temp_buffer.size();
 			ContainerFragmentLoader container_fragment(*bundle_fragment_);
 			container_fragment.set_missing_data(false);  // Buffer mode is never missing data, even if there IS no data.
 			container_fragment.addFragments(temp_buffer, true);
@@ -359,7 +358,7 @@ bool artdaq::BundleTransfer::send_bundle_fragment_(bool forceSend)
 				}
 				bundle_fragment_.reset(nullptr);
 			}
-
+			last_copy_status_ = sts;
 			if (sts != CopyStatus::kSuccess)
 			{
 				auto sts_string = sts == CopyStatus::kTimeout ? "timeout" : "other error";

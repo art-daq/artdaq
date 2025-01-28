@@ -1,7 +1,7 @@
 #include "artdaq/DAQrate/DataReceiverManager.hh"
 
 #define BOOST_TEST_MODULE DataReceiverManager_t
-#include "artdaq/TransferPlugins/ShmemTransfer.hh"
+#include "artdaq/TransferPlugins/TCPSocketTransfer.hh"
 #include "cetlib/quiet_unit_test.hpp"
 #include "cetlib_except/exception.h"
 
@@ -33,12 +33,12 @@ BOOST_AUTO_TEST_CASE(Construct)
 	pset.put("expected_fragments_per_event", 2);
 
 	fhicl::ParameterSet source_fhicl;
-	source_fhicl.put("transferPluginType", "Shmem");
+	source_fhicl.put("transferPluginType", "TCPSocket");
 	source_fhicl.put("destination_rank", 1);
 	source_fhicl.put("source_rank", 0);
 
 	fhicl::ParameterSet sources_fhicl;
-	sources_fhicl.put("shmem", source_fhicl);
+	sources_fhicl.put("tcp", source_fhicl);
 	pset.put("sources", sources_fhicl);
 	auto shm = std::make_shared<artdaq::SharedMemoryEventManager>(pset, pset);
 	artdaq::DataReceiverManager t(pset, shm);
@@ -56,19 +56,19 @@ BOOST_AUTO_TEST_CASE(ReceiveData)
 	pset.put("expected_fragments_per_event", 2);
 
 	fhicl::ParameterSet source_fhicl;
-	source_fhicl.put("transferPluginType", "Shmem");
+	source_fhicl.put("transferPluginType", "TCPSocket");
 	source_fhicl.put("destination_rank", 1);
 	source_fhicl.put("source_rank", 0);
 	source_fhicl.put("shm_key", 0xFEEE0000 + getpid());
 
 	fhicl::ParameterSet sources_fhicl;
-	sources_fhicl.put("shmem", source_fhicl);
+	sources_fhicl.put("tcp", source_fhicl);
 	pset.put("sources", sources_fhicl);
 	auto shm = std::make_shared<artdaq::SharedMemoryEventManager>(pset, pset);
 	shm->startRun(1);
 	artdaq::DataReceiverManager t(pset, shm);
 	{
-		artdaq::ShmemTransfer transfer(source_fhicl, artdaq::TransferInterface::Role::kSend);
+		artdaq::TCPSocketTransfer transfer(source_fhicl, artdaq::TransferInterface::Role::kSend);
 		TRACE_REQUIRE_EQUAL(t.getSharedMemoryEventManager().get(), shm.get());
 		TRACE_REQUIRE_EQUAL(t.enabled_sources().size(), 1);
 		TRACE_REQUIRE_EQUAL(t.running_sources().size(), 0);

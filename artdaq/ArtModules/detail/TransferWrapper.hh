@@ -2,6 +2,7 @@
 #define artdaq_ArtModules_TransferWrapper_hh
 
 #include "artdaq-core/Data/RawEvent.hh"
+#include "artdaq/ArtModules/ArtdaqEvent.hh"
 #include "artdaq/ExternalComms/CommanderInterface.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 
@@ -69,7 +70,7 @@ public:
 	 * \brief Receive all messsages for an event from ArtdaqSharedMemoryService
 	 * \return A map of Fragment::type_t to a unique_ptr to Fragments containing all Fragments in an event
 	 */
-	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> receiveMessages();
+	std::shared_ptr<ArtdaqEvent> receiveMessages();
 
 	/**
 	 * \brief Receive the Init message from the TransferInterface, and send it to art
@@ -79,12 +80,6 @@ public:
 	{
 		return receiveMessage();
 	}
-
-	/**
-	 * \brief Get a pointer to the last received RawEventHeader
-	 * \return a shared_ptr to the last received RawEventHeader
-	 */
-	std::shared_ptr<artdaq::detail::RawEventHeader> getEventHeader() { return nullptr; }
 
 private:
 	TransferWrapper(TransferWrapper const&) = delete;

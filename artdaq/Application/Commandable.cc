@@ -36,7 +36,7 @@ bool artdaq::Commandable::initialize(fhicl::ParameterSet const& pset, uint64_t t
 	external_request_status_ = true;
 	report_string_ = "All is OK.";
 
-	SetMFModuleName("Initializing");
+	Globals::SetMFModuleName("Initializing");
 
 	TLOG(TLVL_INIT) << "Initialize transition started";
 	auto start_time = std::chrono::steady_clock::now();
@@ -46,7 +46,7 @@ bool artdaq::Commandable::initialize(fhicl::ParameterSet const& pset, uint64_t t
 	{
 		std::string finalState = fsm_.getState().getName();
 
-		SetMFModuleName(finalState);
+		Globals::SetMFModuleName(finalState);
 		TLOG(TLVL_DEBUG + 32)
 		    << "States before and after an init transition: "
 		    << initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
@@ -66,7 +66,7 @@ bool artdaq::Commandable::start(art::RunID id, uint64_t timeout, uint64_t timest
 	external_request_status_ = true;
 	report_string_ = "All is OK.";
 
-	SetMFModuleName("Starting");
+	Globals::SetMFModuleName("Starting");
 
 	TLOG(TLVL_START) << "Start transition started";
 	auto start_time = std::chrono::steady_clock::now();
@@ -76,7 +76,7 @@ bool artdaq::Commandable::start(art::RunID id, uint64_t timeout, uint64_t timest
 	{
 		std::string finalState = fsm_.getState().getName();
 
-		SetMFModuleName(finalState);
+		Globals::SetMFModuleName(finalState);
 		TLOG(TLVL_DEBUG + 32)
 		    << "States before and after a start transition: "
 		    << initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
@@ -96,7 +96,7 @@ bool artdaq::Commandable::stop(uint64_t timeout, uint64_t timestamp)
 	external_request_status_ = true;
 	report_string_ = "All is OK.";
 
-	SetMFModuleName("Stopping");
+	Globals::SetMFModuleName("Stopping");
 
 	TLOG(TLVL_STOP) << "Stop transition started";
 	auto start_time = std::chrono::steady_clock::now();
@@ -106,7 +106,7 @@ bool artdaq::Commandable::stop(uint64_t timeout, uint64_t timestamp)
 	{
 		std::string finalState = fsm_.getState().getName();
 
-		SetMFModuleName(finalState);
+		Globals::SetMFModuleName(finalState);
 		TLOG(TLVL_DEBUG + 32)
 		    << "States before and after a stop transition: "
 		    << initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
@@ -126,7 +126,7 @@ bool artdaq::Commandable::pause(uint64_t timeout, uint64_t timestamp)
 	external_request_status_ = true;
 	report_string_ = "All is OK.";
 
-	SetMFModuleName("Pausing");
+	Globals::SetMFModuleName("Pausing");
 
 	TLOG(TLVL_PAUSE) << "Pause transition started";
 	auto start_time = std::chrono::steady_clock::now();
@@ -136,7 +136,7 @@ bool artdaq::Commandable::pause(uint64_t timeout, uint64_t timestamp)
 	{
 		std::string finalState = fsm_.getState().getName();
 
-		SetMFModuleName(finalState);
+		Globals::SetMFModuleName(finalState);
 		TLOG(TLVL_DEBUG + 32)
 		    << "States before and after a pause transition: "
 		    << initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
@@ -156,7 +156,7 @@ bool artdaq::Commandable::resume(uint64_t timeout, uint64_t timestamp)
 	external_request_status_ = true;
 	report_string_ = "All is OK.";
 
-	SetMFModuleName("Resuming");
+	Globals::SetMFModuleName("Resuming");
 
 	TLOG(TLVL_RESUME) << "Resume transition started";
 	auto start_time = std::chrono::steady_clock::now();
@@ -165,7 +165,7 @@ bool artdaq::Commandable::resume(uint64_t timeout, uint64_t timestamp)
 	if (external_request_status_)
 	{
 		std::string finalState = fsm_.getState().getName();
-		SetMFModuleName(finalState);
+		Globals::SetMFModuleName(finalState);
 		TLOG(TLVL_DEBUG + 32)
 		    << "States before and after a resume transition: "
 		    << initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
@@ -184,7 +184,7 @@ bool artdaq::Commandable::shutdown(uint64_t timeout)
 	std::lock_guard<std::mutex> lk(primary_mutex_);
 	external_request_status_ = true;
 	report_string_ = "All is OK.";
-	SetMFModuleName("Shutting Down");
+	Globals::SetMFModuleName("Shutting Down");
 
 	TLOG(TLVL_SHUTDOWN) << "Shutdown transition started";
 	auto start_time = std::chrono::steady_clock::now();
@@ -193,7 +193,7 @@ bool artdaq::Commandable::shutdown(uint64_t timeout)
 	if (external_request_status_)
 	{
 		std::string finalState = fsm_.getState().getName();
-		// SetMFModuleName(finalState); // ELF, 12/17/20: We may have already shut down MessageFacility
+		// Globals::SetMFModuleName(finalState); // ELF, 12/17/20: We may have already shut down MessageFacility
 		TLOG(TLVL_DEBUG + 32)
 		    << "States before and after a shutdown transition: "
 		    << initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
@@ -213,7 +213,7 @@ bool artdaq::Commandable::soft_initialize(fhicl::ParameterSet const& pset, uint6
 	external_request_status_ = true;
 	report_string_ = "All is OK.";
 
-	SetMFModuleName("Soft_initializing");
+	Globals::SetMFModuleName("Soft_initializing");
 
 	TLOG(TLVL_SOFT_INIT) << "Soft_initialize transition started";
 	auto start_time = std::chrono::steady_clock::now();
@@ -223,7 +223,7 @@ bool artdaq::Commandable::soft_initialize(fhicl::ParameterSet const& pset, uint6
 	{
 		std::string finalState = fsm_.getState().getName();
 
-		SetMFModuleName(finalState);
+		Globals::SetMFModuleName(finalState);
 		TLOG(TLVL_DEBUG + 32)
 		    << "States before and after a soft_init transition: "
 		    << initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
@@ -243,7 +243,7 @@ bool artdaq::Commandable::reinitialize(fhicl::ParameterSet const& pset, uint64_t
 	external_request_status_ = true;
 	report_string_ = "All is OK.";
 
-	SetMFModuleName("Reinitializing");
+	Globals::SetMFModuleName("Reinitializing");
 
 	TLOG(TLVL_REINIT) << "Reinitialize transition started";
 	auto start_time = std::chrono::steady_clock::now();
@@ -253,7 +253,7 @@ bool artdaq::Commandable::reinitialize(fhicl::ParameterSet const& pset, uint64_t
 	{
 		std::string finalState = fsm_.getState().getName();
 
-		SetMFModuleName(finalState);
+		Globals::SetMFModuleName(finalState);
 		TLOG(TLVL_DEBUG + 32)
 		    << "States before and after a reinit transition: "
 		    << initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
@@ -273,7 +273,7 @@ bool artdaq::Commandable::in_run_failure()
 	external_request_status_ = true;
 	report_string_ = "An error condition was reported while running.";
 
-	SetMFModuleName("Failing");
+	Globals::SetMFModuleName("Failing");
 
 	TLOG(TLVL_INRUN_FAILURE) << "In_Run_Failure transition started";
 	auto start_time = std::chrono::steady_clock::now();
@@ -283,7 +283,7 @@ bool artdaq::Commandable::in_run_failure()
 	{
 		std::string finalState = fsm_.getState().getName();
 
-		SetMFModuleName(finalState);
+		Globals::SetMFModuleName(finalState);
 		TLOG(TLVL_DEBUG + 32)
 		    << "States before and after an in_run_failure transition: "
 		    << initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
