@@ -80,9 +80,9 @@ void art::TransferOutputReliable::SendMessage(artdaq::FragmentPtr& fragment)
 	                      << ", length=" << fragment->dataSizeBytes();
 	auto sts = artdaq::TransferInterface::CopyStatus::kErrorNotRequiringException;
 	sts = transfer_->transfer_fragment_reliable_mode(std::move(*fragment));
-	if(sts != artdaq::TransferInterface::CopyStatus::kSuccess) 
+	if (sts != artdaq::TransferInterface::CopyStatus::kSuccess)
 	{
-TLOG(TLVL_ERROR) << "Error sending Fragment " << seqID << " of type " << type << " and length " << length;
+		TLOG(TLVL_ERROR) << "Error sending Fragment " << seqID << " of type " << type << " and length " << length;
 	}
 }
 

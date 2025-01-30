@@ -93,6 +93,7 @@ private:
 	bool last_read_timeout_{false};
 	bool resume_after_timeout_;
 	bool printed_exit_message_{false};
+	bool end_of_data_received_{false};
 };
 
 DECLARE_ART_SERVICE_INTERFACE_IMPL(ArtdaqSharedMemoryService, ArtdaqSharedMemoryServiceInterface, LEGACY)
@@ -247,8 +248,8 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 
 	while (output_event == nullptr)
 	{
-		// If we experienced a timeout, drain any held Start/End Run/SubRun events
-		if (last_read_timeout_)
+		// If we experienced a timeout, or have an EndOfData event, drain any held Start/End Run/SubRun events
+		if (last_read_timeout_ || end_of_data_received_)
 		{
 			if (event_ordering_.size() > 0)
 			{
@@ -256,6 +257,8 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 				event_ordering_.pop_front();
 				break;  // while(output_event == nullptr)
 			}
+			// Don't try to get more data if we have an EndOfData event
+			if (end_of_data_received_) { break; }
 		}
 
 		bool eventInEventOrder = false;
@@ -267,6 +270,10 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 			if (type == artdaq::Fragment::StartOfRunFragmentType || type == artdaq::Fragment::StartOfSubrunFragmentType || type == artdaq::Fragment::EndOfSubrunFragmentType || type == artdaq::Fragment::EndOfRunFragmentType || type == artdaq::Fragment::RunDataFragmentType || type == artdaq::Fragment::SubrunDataFragmentType)
 			{
 				continue;  // for (auto it = event_ordering_.begin(); it != event_ordering_.end(); ++it)
+			}
+			if (type == artdaq::Fragment::EndOfDataFragmentType)
+			{
+				end_of_data_received_ = true;
 			}
 			eventInEventOrder = true;
 			break;  // for (auto it = event_ordering_.begin(); it != event_ordering_.end(); ++it)
