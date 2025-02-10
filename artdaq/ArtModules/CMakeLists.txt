@@ -10,7 +10,7 @@ cet_register_export_set(SET_NAME AMPluginTypes NAMESPACE artdaq_plugin_types)
 cet_make_library(LIBRARY_NAME ArtConfig INTERFACE
   SOURCE detail/ArtConfig.hh
   LIBRARIES INTERFACE
-  artdaq_utilities::artdaq-utilities_Plugins
+  artdaq-utilities::Plugins
   art::Framework_Core
   art::Framework_IO
   fhiclcpp::types
@@ -90,7 +90,7 @@ cet_make_library(LIBRARY_NAME ArtdaqBuildInfo INTERFACE
 cet_build_plugin(ArtdaqBuildInfo art::EDProducer
   LIBRARIES PRIVATE
   artdaq-core::BuildInfo
-  artdaq_utilities::artdaq-utilities_BuildInfo
+  artdaq-utilities::BuildInfo
   artdaq::BuildInfo
 )
 

@@ -4,7 +4,7 @@ cet_make_library(SOURCE
   TCPConnect.cc
   TCP_listen_fd.cc
   LIBRARIES PUBLIC
-  artdaq_utilities::artdaq-utilities_Plugins
+  artdaq-utilities::Plugins
   fhiclcpp::types
   Threads::Threads
   TRACE::MF
