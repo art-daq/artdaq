@@ -16,6 +16,7 @@ create_doxygen_documentation(EXCLUDE
 	artdaq/Application/detail/Commandable_sm.h
 	artdaq/Application/detail/Commandable_sm.cpp
 	DEPENDS
-	artdaq_core
-	artdaq_utilities
+	artdaq-core
+	artdaq-utilities
+    artdaq-mfextensions
 )

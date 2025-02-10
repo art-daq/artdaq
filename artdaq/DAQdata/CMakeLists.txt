@@ -22,7 +22,7 @@ cet_build_plugin(GenericFragmentSimulator artdaq::generator
   LIBRARIES
   PUBLIC
   artdaq_plugin_types::generator
-  artdaq_core::artdaq-core_Data
+  artdaq-core::Data
   fhiclcpp::types
   PRIVATE
   fhiclcpp::fhiclcpp

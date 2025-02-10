@@ -6,7 +6,7 @@ cet_make_exec(NAME transfer_driver # NO_INSTALL -- comment out to install
   artdaq::DAQrate
   artdaq::DAQdata
   artdaq::TransferPlugins
-  artdaq_core::artdaq-core_Utilities
+  artdaq-core::Utilities
 )
 
 cet_make_exec(NAME broken_transfer_driver 
@@ -15,7 +15,7 @@ cet_make_exec(NAME broken_transfer_driver
   artdaq::DAQrate 
   artdaq::DAQdata 
   artdaq::TransferPlugins 
-  artdaq_core::artdaq-core_Utilities
+  artdaq-core::Utilities
   Boost::program_options
 )
 

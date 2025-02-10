@@ -89,7 +89,7 @@ endif()
 
 #cet_report_compiler_flags()
 find_package(TRACE 3.17.04 REQUIRED EXPORT)
-find_package(artdaq_core 3.08.04 REQUIRED EXPORT)
+find_package(artdaq-core 3.08.04 REQUIRED EXPORT)
 find_package(artdaq_utilities 1.07.02 REQUIRED EXPORT)
 
 find_package(art_root_io 1.08.03 REQUIRED EXPORT QUIET)

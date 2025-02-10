@@ -17,14 +17,14 @@ cet_make_library(LIBRARY_NAME CommandableFragmentGenerator
   LIBRARIES
   PUBLIC
   artdaq::DAQrate
-  artdaq_core::artdaq-core_Data
+  artdaq-core::Data
   artdaq_plugin_types::generator
   fhiclcpp::types
   Boost::thread
   TRACE::MF
   Threads::Threads
   PRIVATE
-  artdaq_core::artdaq-core_Utilities
+  artdaq-core::Utilities
   fhiclcpp::fhiclcpp
   cetlib_except::cetlib_except
 )
