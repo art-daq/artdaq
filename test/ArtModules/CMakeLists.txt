@@ -3,7 +3,7 @@ cet_build_plugin(FragmentSniffer art::EDAnalyzer
   artdaq::DAQdata
   artdaq_core::artdaq-core_Data
 )
-  
+
 #get_cmake_property(_variableNames VARIABLES)
 #foreach (_variableName ${_variableNames})
 #    message(STATUS "${_variableName}=${${_variableName}}")

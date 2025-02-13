@@ -5,7 +5,7 @@ Process 1 on grunt2
 pi is approximately 3.1416009869231241, Error is 0.0000083333333309
 wall clock time = 0.016712
 -- contents of the r11_conf_file --
--n 1 : a.out 
+-n 1 : a.out
 -n 1 : b.out
 -- contents of the r11_host_file --
 grunt1
@@ -22,7 +22,7 @@ Process 2 on grunt2
 pi is approximately 3.1416009869231249, Error is 0.0000083333333318
 wall clock time = 0.018043
 -- contents of the r12_conf_file --
--n 1 : a.out 
+-n 1 : a.out
 -n 2 : b.out
 -- contents of the r12_host_file --
 grunt1
@@ -37,7 +37,7 @@ Process 1 on grunt2
 pi is approximately 3.1416009869231249, Error is 0.0000083333333318
 wall clock time = 0.024984
 -- contents of the r22a_conf_file --
--n 2 : a.out 
+-n 2 : a.out
 -n 2 : b.out
 -- contents of the r22a_host_file --
 grunt1
@@ -55,7 +55,7 @@ Process 2 on grunt2
 3.1416009869231249, Error is 0.0000083333333318
 wall clock time = 0.016560
 -- contents of the r22b_conf_file --
--n 2 : a.out 
+-n 2 : a.out
 -n 2 : b.out
 -- contents of the r22b_host_file --
 grunt1
@@ -72,7 +72,7 @@ Process 2 on grunt2
 pi is approximately 3.1416009869231254, Error is 0.0000083333333323
 wall clock time = 0.016622
 -- contents of the r21_conf_file --
--n 2 : a.out 
+-n 2 : a.out
 -n 1 : b.out
 -- contents of the r21_host_file --
 grunt1

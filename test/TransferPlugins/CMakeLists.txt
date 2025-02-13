@@ -9,12 +9,12 @@ cet_make_exec(NAME transfer_driver # NO_INSTALL -- comment out to install
   artdaq_core::artdaq-core_Utilities
 )
 
-cet_make_exec(NAME broken_transfer_driver 
-  SOURCE broken_transfer_driver.cc BrokenTransferTest.cc 
-  LIBRARIES 
-  artdaq::DAQrate 
-  artdaq::DAQdata 
-  artdaq::TransferPlugins 
+cet_make_exec(NAME broken_transfer_driver
+  SOURCE broken_transfer_driver.cc BrokenTransferTest.cc
+  LIBRARIES
+  artdaq::DAQrate
+  artdaq::DAQdata
+  artdaq::TransferPlugins
   artdaq_core::artdaq-core_Utilities
   Boost::program_options
 )
@@ -44,7 +44,7 @@ foreach(testfile ${transfer_tests})
 		string(REGEX MATCH "[0-9]+" numprocs_d ${line})
 		math(EXPR procs "${procs} + ${numprocs_d}")
 	endforeach()
-	
+
 	get_filename_component(conffile ${testfile} NAME)
 	get_filename_component(test_name ${testfile} NAME_WE)
 	cet_test(${test_name}_t HANDBUILT CONFIGURATIONS Debug
@@ -63,7 +63,7 @@ else()
 	DATAFILES fcl/transfer_driver_tcp.fcl
 	#TEST_PROPERTIES RUN_SERIAL 1
 	)
-	
+
 	cet_test(transfer_driver_bundle_t HANDBUILT
 	TEST_EXEC runTransferTest.sh
 	TEST_ARGS transfer_driver_bundle.fcl 2
