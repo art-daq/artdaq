@@ -6,7 +6,7 @@ genToArt:
   [
     {
       generator: GenericFragmentSimulator
-      content_selection: 3 
+      content_selection: 3
    }
   ]
 

@@ -7,7 +7,7 @@ genToArt:
     {
       generator: GenericFragmentSimulator
       payload_size: 10
-      content_selection: 3 
+      content_selection: 3
    }
   ]
 
@@ -37,7 +37,7 @@ source:
 }
 
 outputs: {
-  binaryFileOutput: {  
+  binaryFileOutput: {
       module_type: BinaryFileOutput
       fileName: "/tmp/genToArt_outToBinaryOutput_t.bin"
   }

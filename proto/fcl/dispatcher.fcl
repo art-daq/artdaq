@@ -14,10 +14,10 @@ daq: {
     is_dispatcher: true
     art_thread_wait_ms: 4000
 
-	
-sources: { 
+
+sources: {
 		s0: { transferPluginType: TCPSocket source_rank: 0 max_fragment_size_words: 20971520 }
- } 
+ }
 
   }
 
@@ -32,7 +32,7 @@ sources: {
     #   metricPluginType: "ganglia"
     #   level: %{ganglia_level}
     #   reporting_interval: 15.0
-    # 
+    #
     #   configFile: "/etc/ganglia/gmond.conf"
     #   group: "ARTDAQ"
     # }
@@ -40,7 +40,7 @@ sources: {
     #    level: %{mf_level}
     #    metricPluginType: "msgFacility"
     #    output_message_application_name: "ARTDAQ Metric"
-    #    output_message_severity: 0 
+    #    output_message_severity: 0
     # }
     # graphite: {
     #   level: %{graphite_level}
