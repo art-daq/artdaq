@@ -90,10 +90,10 @@ void create_table(sqlite3* const db,
 		    << "Number of sqlite columns specified for table: " << name << '\n'
 		    << "is zero.\n";
 	}
-	std::string ddl = "DROP TABLE IF EXISTS " + name +
+	std::string ddl = "DROP TABLE IF EXISTS " + name
 	                  "; "
-	                  "CREATE TABLE " +
-	                  name + "(" + columns.front();
+	                  "CREATE TABLE " name +
+	                  "(" + columns.front();
 	for_each(columns.begin() + 1, columns.end(), [&ddl](auto const& col) {
 		ddl += "," + col;
 	});
@@ -144,13 +144,11 @@ getExistingRangeSetIDs(sqlite3* db, art::RangeSet const& rs)
 		using std::to_string;
 		r << cet::sqlite::select("ROWID")
 		         .from(db, "EventRanges")
-		         .where("SubRun=" + to_string(range.subRun()) +
-		                " AND "
-		                "begin=" +
-		                to_string(range.begin()) +
-		                " AND "
-		                "end=" +
-		                to_string(range.end()));
+		         .where("SubRun=" + to_string(range.subRun())
+		                                " AND "
+		                                "begin=" to_string(range.begin())
+		                                    " AND "
+		                                    "end=" to_string(range.end()));
 		return unique_value(r);
 	});
 	return rangeSetIDs;
@@ -180,8 +178,7 @@ void insertIntoJoinTable(sqlite3* db,
 	cet::sqlite::Transaction txn{db};
 	sqlite3_stmt* stmt{nullptr};
 	std::string const ddl{
-	    "INSERT INTO " + art::BranchTypeToString(bt) +
-	    "RangeSets_EventRanges(RangeSetsID, EventRangesID) Values(?,?);"};
+	    "INSERT INTO " + art::BranchTypeToString(bt) "RangeSets_EventRanges(RangeSetsID, EventRangesID) Values(?,?);"};
 	sqlite3_prepare_v2(db, ddl.c_str(), -1, &stmt, nullptr);
 	cet::for_all(eventRangesIDs, [stmt, rsID](auto const eventRangeID) {
 		insert_rangeSets_eventSets_row(stmt, rsID, eventRangeID);

@@ -524,9 +524,9 @@ void artdaq::MulticastTransfer::get_fragment_quantities(const boost::asio::mutab
 	payload_size = fragment_size - metadata_size - artdaq::detail::RawFragmentHeader::num_words() * sizeof(artdaq::RawDataType);
 
 	assert(fragment_size ==
-	       artdaq::detail::RawFragmentHeader::num_words() * sizeof(artdaq::RawDataType) +
-	           metadata_size +
-	           payload_size);
+	       artdaq::detail::RawFragmentHeader::num_words() * sizeof(artdaq::RawDataType)
+	                                                            metadata_size
+	                                                                payload_size);
 
 	expected_subfragments = static_cast<size_t>(std::ceil(fragment_size / static_cast<float>(subfragment_size_)));
 }

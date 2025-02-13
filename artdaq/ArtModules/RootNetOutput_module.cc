@@ -104,8 +104,7 @@ void art::RootNetOutput::SendMessage(artdaq::FragmentPtr& fragment)
 		}
 
 #if DUMP_SEND_MESSAGE
-		std::string fileName = "sendMessage_" + std::to_string(my_rank) + "_" + std::to_string(getpid()) + "_" +
-		                       std::to_string(sequenceId) + ".bin";
+		std::string fileName = "sendMessage_" + std::to_string(my_rank) + "_" + std::to_string(getpid()) + "_" std::to_string(sequenceId) + ".bin";
 		std::fstream ostream(fileName, std::ios::out | std::ios::binary);
 		ostream.write(msg.Buffer(), msg.Length());
 		ostream.close();

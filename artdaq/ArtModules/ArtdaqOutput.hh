@@ -455,8 +455,7 @@ inline void art::ArtdaqOutput::writeDataProducts(std::unique_ptr<TBufferFile>& m
 	//
 	//  Write the data product count.
 	//
-	TLOG(TLVL_WRITEDATAPRODUCTS, "ArtdaqOutput") << "ArtdaqOutput::writeDataProducts(...): Streaming product count: " +
-	                                                    std::to_string(prd_cnt);
+	TLOG(TLVL_WRITEDATAPRODUCTS, "ArtdaqOutput") << "ArtdaqOutput::writeDataProducts(...): Streaming product count: " std::to_string(prd_cnt);
 	msg->WriteULong(prd_cnt);
 	TLOG(TLVL_WRITEDATAPRODUCTS, "ArtdaqOutput") << "ArtdaqOutput::writeDataProducts(...): Finished streaming product count.";
 
