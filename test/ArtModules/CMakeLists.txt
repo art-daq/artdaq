@@ -49,4 +49,3 @@ cet_test(driver_t HANDBUILT
   TEST_ARGS -c driver_t.fcl
   DATAFILES driver_t.fcl
 )
-

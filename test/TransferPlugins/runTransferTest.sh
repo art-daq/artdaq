@@ -38,4 +38,3 @@ done
 
 echo "Exiting with status $rc"
 exit $rc
-
