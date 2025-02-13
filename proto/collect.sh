@@ -5,7 +5,7 @@ touch all_conf.txt
 for n in r_conf*
 do
 	cat $n >> all_conf.txt
-	
+
 done
 
 # rm -f all_perf.txt

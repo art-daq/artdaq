@@ -31,7 +31,7 @@ daq: {
        metricPluginType: "ganglia"
        level: 3
        reporting_interval: 15.0
-     
+
        configFile: "/etc/ganglia/gmond.conf"
        group: "ARTDAQ"
      }
@@ -39,7 +39,7 @@ daq: {
     #    level: %{mf_level}
     #    metricPluginType: "msgFacility"
     #    output_message_application_name: "ARTDAQ Metric"
-    #    output_message_severity: 0 
+    #    output_message_severity: 0
     # }
     # graphite: {
     #   level: %{graphite_level}

@@ -23,4 +23,3 @@ do_a_run "r21u"
 # mpirun_rsh -rsh -config r12_conf_file.txt -hostfile r12_host_file.txt
 # mpirun_rsh -rsh -config r22_conf_file.txt -hostfile r22_host_file.txt
 # mpirun_rsh -rsh -config r21_conf_file.txt -hostfile r21_host_file.txt
-

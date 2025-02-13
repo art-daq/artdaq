@@ -49,7 +49,7 @@ start=`date +%s`
 while true;do
     ok=1
     for pp in $pids;do
-        kill -0 $pp >/dev/null 2>&1 || { ok=0; sleep 1; break; } 
+        kill -0 $pp >/dev/null 2>&1 || { ok=0; sleep 1; break; }
     done
     now=`date +%s`
     test $ok -eq 1 -o `expr \( $now - $start \)` -gt 10 && break;

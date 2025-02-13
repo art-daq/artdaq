@@ -21,8 +21,8 @@ randomDelay: {
     pass_filter_percentage: 100
 
 	# In the range 0.0 to 1.0. This ratio is the time the filter will delay by CPU load versus delay time by usleep calls
-	cpu_load_ratio: 1.0 
+	cpu_load_ratio: 1.0
 
 	# The seed used for the random number generator used by both the time distributions and the pass/fail distribution
-	random_seed: 271828 
+	random_seed: 271828
 }

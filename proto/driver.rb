@@ -75,7 +75,7 @@ comb.inject(1) do |run,test|
 
   # puts "#{run} #{test}"
   if short_runs.has_key?(run)
- 
+
     # prepare a hostfile for the given configuration
     np=makeNodeFile(pbs_nodefile,test[I_DETS],test[I_SRCS],test[I_SINKS],run,0)
     hostfile="#{host_base}_#{run}.txt"
