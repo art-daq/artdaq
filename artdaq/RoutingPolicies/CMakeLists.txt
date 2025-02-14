@@ -37,7 +37,7 @@ cet_write_plugin_builder(artdaq::policy art::plugin Modules
   LIBRARIES
   CONDITIONAL artdaq_plugin_types::policy
   REG artdaq_plugin_support::PolicyMacros)
-	
+
 cet_collect_plugin_builders(Modules PolicyPlugins LIST artdaq::policy)
 include(PolicyPlugins)
 

@@ -6,14 +6,14 @@
 
 
 # (Default 0xBEE70000 + PID): Key to use for shared memory access
-#shared_memory_key 
+#shared_memory_key
 
 # Number of events in the Shared Memory (incomplete + pending art)
 #buffer_count
 
 # Maximum event size (all Fragments), in bytes (only specify one of max_fragment_size_bytes OR max_event_size_bytes)
-#max_event_size_bytes 
- 
+#max_event_size_bytes
+
 # Maximum Fragment size, in bytes (only specify one of max_fragment_size_bytes OR max_event_size_bytes)
 #max_fragment_size_bytes
 
@@ -28,7 +28,7 @@
 #stale_buffer_timeout_usec
 
 # Amount of time (in seconds) an event can exist in shared memory before being released to art. Used as input to default parameter of "stale_buffer_timeout_usec".
-event_queue_wait_time: 5 
+event_queue_wait_time: 5
 
 # When true, buffers are not marked Empty when read, but return to Full state. Buffers are overwritten in order received.
 broadcast_mode: false
@@ -46,7 +46,7 @@ use_art: true
 overwite_mode: false
 
 # Whether Init Fragments are expected to be sent to art. If true, a Warning message is printed when an Init Fragment is requested but none are available.
-send_init_fragments: true 
+send_init_fragments: true
 
 # Interval at which an incomplete event report should be written (-1 to disable)
 incomplete_event_report_interval_ms: -1
@@ -59,21 +59,21 @@ end_of_data_wait_s: 1.0
 
 # Amount of time to wait for art processes to pick up and process EndOfData message before moving on to shutdown phase
 end_of_data_graceful_shutdown_us: 1000000
-		 
-		 
+
+
 #
 #  Broadcast Shared Memory Parameters
 #  A "Broadcast shared memory segment" is used for all system-level fragments, such as Init, Start/End Run, Start/End Subrun and EndOfData
 #
 
 # Amount of time broadcast fragments should live in the broadcast shared memory segment
-fragment_broadcast_timeout_ms: 3000 
+fragment_broadcast_timeout_ms: 3000
 
 # (Default: 0xCEE7000 + PID): Key to use for broadcast shared memory access
 # broadcast_shared_memory_key
 
 # Number of Buffers in the broadcast shared memory segment
-broadcast_buffer_count: 10 
+broadcast_buffer_count: 10
 
 # Size of the buffers in the broadcast shared memory segment
-broadcast_buffer_size: 0x100000 
+broadcast_buffer_size: 0x100000

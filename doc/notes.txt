@@ -83,7 +83,7 @@ Where I am 1/9/2011.
 Config and builder are changes for the new architecture.  The
 Shandle and Rhandle classes still need to be updated to use the
 new Config and to recognize the presence of the detector, source,
-and sink where necessary (probably in the determination of the 
+and sink where necessary (probably in the determination of the
 "to" for the send.
 
 -------------------
