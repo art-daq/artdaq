@@ -15,5 +15,3 @@ hostmap: [
 {rank: 4 host: localhost portOffset: 5340 },
 {rank: 5 host: localhost portOffset: 5350 }
 ]
-
-

@@ -19,7 +19,6 @@ log=`basename $fcl|cut -f1 -d.`
 exec 200>/tmp/transfer_driver.lockfile
 flock -e 200
 
-broken_transfer_driver -c $fcl 
+broken_transfer_driver -c $fcl
 
 exit $?
-

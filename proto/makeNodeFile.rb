@@ -2,7 +2,7 @@
 
 # this script must be used to generate an mpirun hostfile
 # to run builder.  The configuration generated will match the
-# needs of builder to make the correct rank assignments on 
+# needs of builder to make the correct rank assignments on
 # each of the nodes.
 # NOTE: the function num_source_nodes below and other calculations
 # must match the algorithms in Config.cc of the builder application.
@@ -15,7 +15,7 @@ def generate_dot(run,blist,dlist)
 end
 
 def makeNodeFile(file_name,detectors_per,sources_per,sinks_per,run_num,node_count)
-  
+
   nodes = File.read(file_name).split
   total_nodes=nodes.size
   save_filename = "hostfile_#{run_num}.txt"
@@ -79,7 +79,7 @@ def makeNodeFile(file_name,detectors_per,sources_per,sinks_per,run_num,node_coun
     detectors_per.to_i.times {|i| full_list << "#{n}" }
     save_file.puts "#{n} slots=#{detectors_per.to_i}"
   end
-  
+
   if det_last_slot>0
     last_name = detector_list[needed_det_nodes-1]
     det_last_slot.to_i.times {|i| full_list << "#{last_name}" }
@@ -88,7 +88,7 @@ def makeNodeFile(file_name,detectors_per,sources_per,sinks_per,run_num,node_coun
 
   builder_list.each do |n|
     sources_per.to_i.times {|i| full_list << "#{n}" }
-    save_file.puts "#{n} slots=#{sources_per.to_i}" 
+    save_file.puts "#{n} slots=#{sources_per.to_i}"
   end
   builder_list.each do |n|
     sinks_per.to_i.times {|i| full_list << "#{n}" }
@@ -109,7 +109,7 @@ def makeNodeFile(file_name,detectors_per,sources_per,sinks_per,run_num,node_coun
   # p workers
   # p clusters
   # puts "full_list sz=#{full_list.size} workers.size=#{workers.size}"
-  # 
+  #
 
   dotfile=File.new("graph_#{run_num}.dot","w")
   dotfile.puts "digraph G {"
@@ -140,12 +140,12 @@ if __FILE__ == $PROGRAM_NAME
   sinks_per=ARGV[3].to_f
   run_num=ARGV[4].to_i
   total_nodes=0 # means number in file
-  
+
   # override allowed for testing
   if ARGV.size > 5
     total_nodes=ARGV[5].to_i
   end
-  
+
   tot=makeNodeFile(file_name,detectors_per,sources_per,sinks_per,run_num,total_nodes)
 
   puts "#{tot.to_i}"

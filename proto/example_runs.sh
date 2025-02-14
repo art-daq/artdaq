@@ -1,5 +1,5 @@
 # simple test configuration
-# run on one node with 8 cores, configed as though it were 
+# run on one node with 8 cores, configed as though it were
 # two nodes, one node being the detector layer and the other
 # the builder layer.
 # The builder layer has 3 sources and 2 sinks on it

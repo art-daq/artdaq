@@ -22,9 +22,9 @@
 
 // Note that Default is called a state, but it really isn't. It is a
 // place to put a bunch of transition rules that will get used in the
-// case of every other state in the map that does *not* provide a 
+// case of every other state in the map that does *not* provide a
 // specification for handling that transition. In a sense, the Default
-// transition is a "base class" for all other states, specifying what 
+// transition is a "base class" for all other states, specifying what
 // should be done if that state doesn't say what to do.
 
 Default

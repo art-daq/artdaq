@@ -76,7 +76,7 @@ if(BTYPE_UC STREQUAL DEBUG)
 endif()
 
 #exeption stack trace
-if(DEFINED ENV{USE_EXCEPTIONSTACKTRACE})	
+if(DEFINED ENV{USE_EXCEPTIONSTACKTRACE})
 	if($ENV{USE_EXCEPTIONSTACKTRACE} GREATER 0)
 		message("!!! Exception StackTrace Activated!!!")
 		add_definitions(-D EXCEPTIONSTACKTRACE)

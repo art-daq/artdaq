@@ -9,7 +9,7 @@ genToArt:
     {
       generator: GenericFragmentSimulator
       payload_size: 10
-      content_selection: 3 
+      content_selection: 3
    }
   }
 
@@ -36,7 +36,7 @@ outputs: {
   binaryNetOutput: {
     module_type: BinaryNetOutput
     max_fragment_size_words: 2097152
-    mpi_buffer_count: 32    
+    mpi_buffer_count: 32
     first_event_builder_rank: 1
     event_builder_count: 1
   }
