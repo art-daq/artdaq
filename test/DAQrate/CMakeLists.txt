@@ -1,4 +1,4 @@
-cet_make_exec(NAME GenToBuffer_t SOURCE GenToBuffer_t.cc 
+cet_make_exec(NAME GenToBuffer_t SOURCE GenToBuffer_t.cc
 	LIBRARIES PRIVATE
   artdaq::Application
 	artdaq_plugin_support::CFGMaker

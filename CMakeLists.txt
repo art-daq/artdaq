@@ -18,7 +18,7 @@ cmake_minimum_required (VERSION 3.19 FATAL_ERROR)
 
 find_package(cetmodules 3.16.00 REQUIRED)
 
-project(artdaq VERSION 3.15.00)
+project(artdaq VERSION 3.16.00)
 
 include(CetCMakeEnv)
 cet_cmake_env()
@@ -76,7 +76,7 @@ if(BTYPE_UC STREQUAL DEBUG)
 endif()
 
 #exeption stack trace
-if(DEFINED ENV{USE_EXCEPTIONSTACKTRACE})	
+if(DEFINED ENV{USE_EXCEPTIONSTACKTRACE})
 	if($ENV{USE_EXCEPTIONSTACKTRACE} GREATER 0)
 		message("!!! Exception StackTrace Activated!!!")
 		add_definitions(-D EXCEPTIONSTACKTRACE)
