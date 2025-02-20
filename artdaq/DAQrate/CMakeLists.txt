@@ -24,8 +24,8 @@ cet_make_library(SOURCE
   LIBRARIES
   PUBLIC
   artdaq::DAQdata
-  artdaq_core::artdaq-core_Core
-  artdaq_core::artdaq-core_Data
+  artdaq-core::Core
+  artdaq-core::Data
   TRACE::MF
   Boost::thread
   PRIVATE

@@ -5,7 +5,7 @@ cet_make_exec(NAME GenToBuffer_t SOURCE GenToBuffer_t.cc
 	artdaq_plugin_types::CommandableFragmentGenerator
   artdaq::DAQrate
   artdaq::DAQdata
-  artdaq_core::artdaq-core_Utilities
+  artdaq-core::Utilities
   fhiclcpp::types
   fhiclcpp::fhiclcpp
   Boost::program_options
@@ -32,7 +32,7 @@ cet_test(DataReceiverManager_t USE_BOOST_UNIT INSTALL_BIN
 cet_test(RequestSender_t USE_BOOST_UNIT INSTALL_BIN
   LIBRARIES PRIVATE
   artdaq::DAQrate
-  artdaq_core::artdaq-core_Utilities
+  artdaq-core::Utilities
 )
 
 cet_test(SharedMemoryEventManager_t USE_BOOST_UNIT INSTALL_BIN
@@ -51,7 +51,7 @@ cet_test(requestsender HANDBUILT
 cet_test(FragmentBuffer_t USE_BOOST_UNIT INSTALL_BIN
   LIBRARIES PRIVATE
   artdaq::DAQrate
-  artdaq_core::artdaq-core_Data
-  artdaq_core::artdaq-core_Utilities
+  artdaq-core::Data
+  artdaq-core::Utilities
   Threads::Threads
 )
