@@ -31,7 +31,7 @@ cet_write_plugin_builder(artdaq::commander art::plugin Modules
 include(artdaq::commander)
 cet_build_plugin(xmlrpc artdaq::commander
   LIBRARIES PRIVATE
-  artdaq-core::Utilities
+  artdaq_core::artdaq-core_Utilities
   ${XMLRPC_LIBRARIES}
 )
 target_include_directories(artdaq_ExternalComms_xmlrpc_commander

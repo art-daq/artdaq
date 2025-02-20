@@ -4,7 +4,7 @@ cet_make_library(SOURCE
   TCPConnect.cc
   TCP_listen_fd.cc
   LIBRARIES PUBLIC
-  artdaq-utilities::Plugins
+  artdaq_utilities::artdaq-utilities_Plugins
   fhiclcpp::types
   Threads::Threads
   TRACE::MF
@@ -22,7 +22,7 @@ cet_build_plugin(GenericFragmentSimulator artdaq::generator
   LIBRARIES
   PUBLIC
   artdaq_plugin_types::generator
-  artdaq-core::Data
+  artdaq_core::artdaq-core_Data
   fhiclcpp::types
   PRIVATE
   fhiclcpp::fhiclcpp
