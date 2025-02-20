@@ -129,6 +129,7 @@ private:
 		Data
 	};
 
+	int port_;
 	size_t rcvbuf_;
 	size_t sndbuf_;
 	size_t send_retry_timeout_us_;

@@ -251,7 +251,9 @@ int artdaq::PortManager::GetRoutingTokenPort(int subsystemID)
 {
 	if (!routing_tokens_configured_)
 	{
-		TLOG(TLVL_INFO) << "Using default port range for Routing Tokens";
+		TLOG(TLVL_INFO) << "Using default port range for Routing Tokens, port=base+offset+partition+subsystem: "
+		                << (base_port_ + routing_token_offset_ + (Globals::GetPartitionNumber() * ports_per_partition_) + subsystemID)
+		                << "=" << base_port_ << "+" << routing_token_offset_ << "+" << (Globals::GetPartitionNumber() * ports_per_partition_) << "+" << subsystemID;
 		routing_tokens_configured_ = true;
 	}
 
@@ -262,7 +264,9 @@ int artdaq::PortManager::GetRoutingAckPort(int subsystemID)
 {
 	if (!routing_acks_configured_)
 	{
-		TLOG(TLVL_INFO) << "Using default port range for Routing Table Acknowledgements";
+		TLOG(TLVL_INFO) << "Using default port range for Routing Table Acknowledgements, port=base+offset+partition+subsystem: "
+		                << (base_port_ + routing_ack_offset_ + (Globals::GetPartitionNumber() * ports_per_partition_) + subsystemID)
+		                << "=" << base_port_ << "+" << routing_ack_offset_ << "+" << (Globals::GetPartitionNumber() * ports_per_partition_) << "+" << subsystemID;
 		routing_acks_configured_ = true;
 	}
 	return base_port_ + routing_ack_offset_ + (Globals::GetPartitionNumber() * ports_per_partition_) + subsystemID;
@@ -272,7 +276,9 @@ int artdaq::PortManager::GetXMLRPCPort(int rank)
 {
 	if (!xmlrpc_configured_)
 	{
-		TLOG(TLVL_INFO) << "Using default port range for XMLRPC";
+		TLOG(TLVL_INFO) << "Using default port range for XMLRPC, port=base+offset+partition+rank: "
+		                << (base_port_ + xmlrpc_offset_ + (Globals::GetPartitionNumber() * ports_per_partition_) + rank)
+		                << "=" << base_port_ << "+" << xmlrpc_offset_ << "+" << (Globals::GetPartitionNumber() * ports_per_partition_) << "+" << rank;
 		xmlrpc_configured_ = true;
 	}
 	return base_port_ + xmlrpc_offset_ + rank + (Globals::GetPartitionNumber() * ports_per_partition_);
@@ -282,7 +288,9 @@ int artdaq::PortManager::GetTCPSocketTransferPort(int rank)
 {
 	if (!tcpsocket_configured_)
 	{
-		TLOG(TLVL_INFO) << "Using default port range for TCPSocket Transfer";
+		TLOG(TLVL_INFO) << "Using default port range for TCPSocket Transfer, port=base+offset+partition+rank: "
+		                << (base_port_ + tcp_socket_offset_ + (Globals::GetPartitionNumber() * ports_per_partition_) + rank)
+		                << "=" << base_port_ << "+" << tcp_socket_offset_ << "+" << (Globals::GetPartitionNumber() * ports_per_partition_) << "+" << rank;
 		tcpsocket_configured_ = true;
 	}
 	return base_port_ + tcp_socket_offset_ + (Globals::GetPartitionNumber() * ports_per_partition_) + rank;
@@ -292,7 +300,7 @@ int artdaq::PortManager::GetRequestMessagePort()
 {
 	if (!request_port_configured_)
 	{
-		TLOG(TLVL_INFO) << "Using default port for Request Messages";
+		TLOG(TLVL_INFO) << "Using default port for Request Messages, port=" << request_message_port_;
 		request_port_configured_ = true;
 	}
 	return request_message_port_;
@@ -313,7 +321,7 @@ int artdaq::PortManager::GetRoutingTablePort()
 {
 	if (!routing_table_port_configured_)
 	{
-		TLOG(TLVL_INFO) << "Using default port for Routing Tables";
+		TLOG(TLVL_INFO) << "Using default port for Routing Tables, port= " << routing_table_port_;
 		routing_table_port_configured_ = true;
 	}
 
@@ -335,7 +343,8 @@ int artdaq::PortManager::GetMulticastTransferPort(int rank)
 {
 	if (!multicast_transfer_port_configued_)
 	{
-		TLOG(TLVL_INFO) << "Using default port for Multicast Transfer";
+		TLOG(TLVL_INFO) << "Using default port for Multicast Transfer, port=offset+rank: "
+		                << (multicast_transfer_offset_ + rank) << "=" << multicast_transfer_offset_ << "+" << rank;
 		multicast_transfer_port_configued_ = true;
 	}
 
@@ -406,7 +415,7 @@ std::string artdaq::PortManager::parse_pattern_(const std::string& pattern, int 
 
 	if (address.size() != 4)
 	{
-		TLOG(TLVL_ERROR) << "Invalid address pattern!";
+		TLOG(TLVL_ERROR) << "Invalid address pattern:" << pattern << "!";
 		while (address.size() < 4) { address.push_back(0); }
 	}
 	address[3] += multicast_group_offset_;

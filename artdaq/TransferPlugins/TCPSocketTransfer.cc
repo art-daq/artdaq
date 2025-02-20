@@ -46,6 +46,7 @@ artdaq::TCPSocketTransfer::
     TCPSocketTransfer(fhicl::ParameterSet const& pset, TransferInterface::Role role)
     : TransferInterface(pset, role)
     , send_fd_(-1)
+    , port_(pset.get<int>("port", portMan->GetTCPSocketTransferPort(destination_rank())))
     , rcvbuf_(pset.get<size_t>("tcp_receive_buffer_size", 0))
     , sndbuf_(pset.get<size_t>("tcp_send_buffer_size", max_fragment_size_words_ * sizeof(artdaq::RawDataType) * buffer_count_))
     , send_retry_timeout_us_(pset.get<size_t>("send_retry_timeout_us", 1000000))
@@ -902,7 +903,7 @@ void artdaq::TCPSocketTransfer::connect_()
 		}
 		TLOG(TLVL_DEBUG + 32) << "Requested SNDBUF is " << sndbuf_bytes;
 
-		send_fd_ = TCPConnect(hostMap_[destination_rank()].c_str(), portMan->GetTCPSocketTransferPort(destination_rank()), O_NONBLOCK, sndbuf_bytes);
+		send_fd_ = TCPConnect(hostMap_[destination_rank()].c_str(), port_, O_NONBLOCK, sndbuf_bytes);
 		if (send_fd_ == -1)
 		{
 			if (connection_was_lost_) { break; }
@@ -912,7 +913,7 @@ void artdaq::TCPSocketTransfer::connect_()
 	}
 	connect_state = 0;
 	blocking = 0;
-	TLOG(TLVL_DEBUG + 32) << GetTraceName() << "connect_ " + hostMap_[destination_rank()] + ":" << portMan->GetTCPSocketTransferPort(destination_rank()) << " send_fd_=" << send_fd_;
+	TLOG(TLVL_DEBUG + 32) << GetTraceName() << "connect_ " + hostMap_[destination_rank()] + ":" << port_ << " send_fd_=" << send_fd_;
 	if (send_fd_ != -1)
 	{
 		// write connect msg
@@ -981,7 +982,7 @@ void artdaq::TCPSocketTransfer::start_listen_thread_()
 
 		try
 		{
-			listen_thread_ = std::make_unique<boost::thread>(&TCPSocketTransfer::listen_, portMan->GetTCPSocketTransferPort(destination_rank()), rcvbuf_);
+			listen_thread_ = std::make_unique<boost::thread>(&TCPSocketTransfer::listen_, port_, rcvbuf_);
 			char tname[16];                                            // Size 16 - see man page pthread_setname_np(3) and/or prctl(2)
 			snprintf(tname, sizeof(tname) - 1, "%d-Listen", my_rank);  // NOLINT
 			tname[sizeof(tname) - 1] = '\0';                           // assure term. snprintf is not too evil :)
