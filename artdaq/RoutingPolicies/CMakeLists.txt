@@ -6,7 +6,7 @@ cet_make_library(LIBRARY_NAME policy
   SOURCE RoutingManagerPolicy.cc
   LIBRARIES
   PUBLIC
-  artdaq_core::artdaq-core_Data
+  artdaq-core::Data
   PRIVATE
   artdaq::DAQdata
   fhiclcpp::fhiclcpp

@@ -10,7 +10,7 @@ cet_register_export_set(SET_NAME AMPluginTypes NAMESPACE artdaq_plugin_types)
 cet_make_library(LIBRARY_NAME ArtConfig INTERFACE
   SOURCE detail/ArtConfig.hh
   LIBRARIES INTERFACE
-  artdaq_utilities::artdaq-utilities_Plugins
+  artdaq-utilities::Plugins
   art::Framework_Core
   art::Framework_IO
   fhiclcpp::types
@@ -21,7 +21,7 @@ cet_make_library(LIBRARY_NAME ArtdaqSharedMemoryService INTERFACE
   EXPORT_SET AMPluginTypes
   SOURCE ArtdaqSharedMemoryServiceInterface.h
   LIBRARIES INTERFACE
-  artdaq_core::artdaq-core_Data
+  artdaq-core::Data
   art_plugin_types::serviceDeclaration
   TRACE::MF
 )
@@ -32,8 +32,8 @@ cet_build_plugin(ArtdaqSharedMemoryService art::service
   LIBRARIES PRIVATE
   artdaq_plugin_types::ArtdaqSharedMemoryService
   artdaq::DAQdata
-  artdaq_core::artdaq-core_Core
-  artdaq_core::artdaq-core_Utilities
+  artdaq-core::Core
+  artdaq-core::Utilities
   fhiclcpp::types
   fhiclcpp::fhiclcpp
   TRACE::MF
@@ -54,7 +54,7 @@ cet_make_library(SOURCE
   PUBLIC
   artdaq_plugin_types::commander
   artdaq_plugin_types::transfer
-  artdaq_core::artdaq-core_Data
+  artdaq-core::Data
   fhiclcpp::fhiclcpp
   TRACE::MF
   PRIVATE
@@ -69,8 +69,8 @@ cet_make_library(LIBRARY_NAME ArtdaqFragmentNamingService INTERFACE
   EXPORT_SET AMPluginTypes
   SOURCE ArtdaqFragmentNamingService.h
   LIBRARIES INTERFACE
-  artdaq_core::artdaq-core_Plugins
-  artdaq_core::artdaq-core_Data
+  artdaq-core::Plugins
+  artdaq-core::Data
   art_plugin_types::serviceDeclaration
 )
 
@@ -83,52 +83,52 @@ cet_make_library(LIBRARY_NAME ArtdaqBuildInfo INTERFACE
   EXPORT_SET AMPluginTypes
   SOURCE ArtdaqBuildInfo_module.hh
   LIBRARIES INTERFACE
-  artdaq_core::headers
+  artdaq-core::headers
   art_plugin_types::EDProducer
 )
 
 cet_build_plugin(ArtdaqBuildInfo art::EDProducer
   LIBRARIES PRIVATE
-  artdaq_core::artdaq-core_BuildInfo
-  artdaq_utilities::artdaq-utilities_BuildInfo
+  artdaq-core::BuildInfo
+  artdaq-utilities::BuildInfo
   artdaq::BuildInfo
 )
 
 cet_build_plugin(EventDump art::EDAnalyzer
   LIBRARIES PRIVATE
-artdaq_core::artdaq-core_Data
+artdaq-core::Data
 )
 
 cet_build_plugin(FragmentWatcher art::EDAnalyzer
   LIBRARIES PRIVATE
   artdaq::DAQdata
-  artdaq_core::artdaq-core_Data
+  artdaq-core::Data
   TRACE::MF
 )
 
 cet_build_plugin(MissingDataCheck art::EDAnalyzer
   LIBRARIES PRIVATE
-  artdaq_core::artdaq-core_Data
+  artdaq-core::Data
   art_root_io::TFileService_service
   ROOT::Tree
 )
 
 cet_build_plugin(PrintBuildInfo art::EDAnalyzer
   LIBRARIES PRIVATE
-  artdaq_core::headers
+  artdaq-core::headers
   TRACE::MF
 )
 
 cet_build_plugin(RandomDelayFilter art::EDFilter
   LIBRARIES PRIVATE
-  artdaq_core::artdaq-core_Utilities
+  artdaq-core::Utilities
   TRACE::MF
 )
 
 cet_build_plugin(RequestSender art::EDAnalyzer
   LIBRARIES PRIVATE
   artdaq::DAQrate
-  artdaq_core::artdaq-core_Data
+  artdaq-core::Data
   TRACE::MF
 )
 
@@ -154,8 +154,8 @@ cet_make_library(LIBRARY_NAME ArtdaqInputHelper INTERFACE
   artdaq_plugin_types::ArtdaqSharedMemoryService
   artdaq::DAQdata
   artdaq::InputUtilities
-  artdaq_core::artdaq-core_Data
-  artdaq_core::artdaq-core_Utilities
+  artdaq-core::Data
+  artdaq-core::Utilities
   art_root_io::art_root_io
   art::Framework_Core
   art::Framework_IO_Sources
@@ -188,7 +188,7 @@ cet_make_library(LIBRARY_NAME ArtdaqOutput INTERFACE
   SOURCE ArtdaqOutput.hh
   LIBRARIES INTERFACE
   artdaq::DAQdata
-  artdaq_core::artdaq-core_Data
+  artdaq-core::Data
   art_root_io::art_root_io
   art::Framework_Core
   art::Framework_Principal
@@ -215,7 +215,7 @@ cet_build_plugin(BinaryNetOutput art::module
   artdaq::ArtdaqOutput
   artdaq::DAQrate
   artdaq::DAQdata
-  artdaq_core::artdaq-core_Data
+  artdaq-core::Data
   fhiclcpp::fhiclcpp
   TRACE::MF
 )
@@ -225,7 +225,7 @@ cet_build_plugin(BinaryFileOutput art::module
   artdaq::ArtdaqOutput
   artdaq::DAQrate
   artdaq::DAQdata
-  artdaq_core::artdaq-core_Data
+  artdaq-core::Data
   fhiclcpp::fhiclcpp
   TRACE::MF
 )
