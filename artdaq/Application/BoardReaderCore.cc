@@ -193,7 +193,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 	rt_priority_ = fr_pset.get<int>("rt_priority", 0);
 
 	// fetch the monitoring parameters and create the MonitoredQuantity instances
-	statsHelper_.createCollectors(fr_pset, 100, 30.0, 60.0, FRAGMENTS_PROCESSED_STAT_KEY);
+	statsHelper_.createCollectors(fr_pset, 100, 30.0, 60.0, FRAGMENTS_PER_READ_STAT_KEY);
 
 	// check if we should skip the sequence ID test...
 	skip_seqId_test_ = (fr_pset.get<bool>("skip_seqID_test", false) || generator_ptr_->fragmentIDs().size() > 1 || fragment_buffer_ptr_->request_mode() != RequestMode::Ignored);
