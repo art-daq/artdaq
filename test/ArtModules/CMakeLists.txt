@@ -1,7 +1,7 @@
 cet_build_plugin(FragmentSniffer art::EDAnalyzer
   LIBRARIES PRIVATE
   artdaq::DAQdata
-  artdaq-core::Data
+  artdaq_core::artdaq-core_Data
 )
 
 #get_cmake_property(_variableNames VARIABLES)
@@ -15,7 +15,7 @@ cet_test(daq_flow_t INSTALL_BIN
   artdaq::Application
   artdaq::DAQrate
   artdaq::DAQdata_GenericFragmentSimulator_generator
-  artdaq-core::Data
+  artdaq_core::artdaq-core_Data
   fhiclcpp::types
   fhiclcpp::fhiclcpp
   cetlib_except::cetlib_except
@@ -29,7 +29,7 @@ cet_test(reconfigure_t INSTALL_BIN
   artdaq::Application
   artdaq::DAQrate
   artdaq::DAQdata_GenericFragmentSimulator_generator
-  artdaq-core::Data
+  artdaq_core::artdaq-core_Data
   fhiclcpp::types
   fhiclcpp::fhiclcpp
   TEST_ARGS -c daq_flow_t.fcl

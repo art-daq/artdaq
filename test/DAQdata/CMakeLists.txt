@@ -1,8 +1,8 @@
 
 cet_test(GenericFragmentSimulator_t USE_BOOST_UNIT INSTALL_BIN
   LIBRARIES PRIVATE
-  artdaq-core::Plugins
-  artdaq-core::Data
+  artdaq_core::artdaq-core_Plugins
+  artdaq_core::artdaq-core_Data
   fhiclcpp::fhiclcpp
   )
 

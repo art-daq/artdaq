@@ -6,12 +6,12 @@ cet_make_library(SOURCE
   LIBRARIES
   PUBLIC
   artdaq::DAQdata
-  artdaq-core::Core
-  artdaq-core::Data
+  artdaq_core::artdaq-core_Core
+  artdaq_core::artdaq-core_Data
   cetlib::compiler_macros
   fhiclcpp::types
   PRIVATE
-  artdaq-core::Utilities
+  artdaq_core::artdaq-core_Utilities
   fhiclcpp::fhiclcpp
   cetlib::cetlib
   cetlib_except::cetlib_except

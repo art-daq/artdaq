@@ -12,8 +12,8 @@ cet_make_exec(NAME artdaqDriver
   artdaq::DAQrate
   artdaq::DAQdata_GenericFragmentSimulator_generator
   artdaq::DAQdata
-  artdaq-core::Utilities
-  artdaq-core::Plugins
+  artdaq_core::artdaq-core_Utilities
+  artdaq_core::artdaq-core_Plugins
 )
 
 cet_make_exec(NAME fhicl_test
@@ -34,8 +34,8 @@ cet_make_exec(NAME artdaq
   artdaq::DAQrate
   artdaq::DAQdata
   artdaq::BuildInfo
-  artdaq-core::Utilities
-  artdaq-core::Plugins
+  artdaq_core::artdaq-core_Utilities
+  artdaq_core::artdaq-core_Plugins
 )
 
 cet_make_exec(NAME boardreader
@@ -45,8 +45,8 @@ cet_make_exec(NAME boardreader
   artdaq::DAQrate
   artdaq::DAQdata
   artdaq::BuildInfo
-  artdaq-core::Utilities
-  artdaq-core::Plugins
+  artdaq_core::artdaq-core_Utilities
+  artdaq_core::artdaq-core_Plugins
 )
 
 cet_make_exec(NAME eventbuilder
@@ -56,8 +56,8 @@ cet_make_exec(NAME eventbuilder
   artdaq::DAQrate
   artdaq::DAQdata
   artdaq::BuildInfo
-  artdaq-core::Utilities
-  artdaq-core::Plugins
+  artdaq_core::artdaq-core_Utilities
+  artdaq_core::artdaq-core_Plugins
 )
 
 cet_make_exec(NAME datalogger
@@ -67,8 +67,8 @@ cet_make_exec(NAME datalogger
   artdaq::DAQrate
   artdaq::DAQdata
   artdaq::BuildInfo
-  artdaq-core::Utilities
-  artdaq-core::Plugins
+  artdaq_core::artdaq-core_Utilities
+  artdaq_core::artdaq-core_Plugins
 )
 
 cet_make_exec(NAME dispatcher
@@ -78,8 +78,8 @@ cet_make_exec(NAME dispatcher
   artdaq::DAQrate
   artdaq::DAQdata
   artdaq::BuildInfo
-  artdaq-core::Utilities
-  artdaq-core::Plugins
+  artdaq_core::artdaq-core_Utilities
+  artdaq_core::artdaq-core_Plugins
 )
 
 cet_make_exec(NAME requestReceiver
@@ -110,19 +110,19 @@ cet_make_exec(NAME routingReceiver
 cet_make_exec(NAME transfer_plugin_sender # NO_INSTALL -- comment out to install
   LIBRARIES PRIVATE
   artdaq::TransferPlugins
-  artdaq-core::Data
+  artdaq_core::artdaq-core_Data
 )
 
 cet_make_exec(NAME transfer_plugin_receiver # NO_INSTALL -- comment out to install
   LIBRARIES PRIVATE
   artdaq::TransferPlugins
-  artdaq-core::Data
+  artdaq_core::artdaq-core_Data
 )
 
 cet_make_exec(NAME tracemf
 	LIBRARIES PRIVATE
 	artdaq::DAQdata
-	artdaq-core::Utilities
+	artdaq_core::artdaq-core_Utilities
   Boost::program_options
   TRACE::MF
 )
@@ -130,8 +130,8 @@ cet_make_exec(NAME tracemf
 cet_make_exec(NAME PrintSharedMemory
 	LIBRARIES PRIVATE
 	artdaq::DAQrate
-	artdaq-core::Core
-	artdaq-core::Utilities
+	artdaq_core::artdaq-core_Core
+	artdaq_core::artdaq-core_Utilities
   Boost::program_options
 )
 
