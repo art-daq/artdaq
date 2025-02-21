@@ -965,11 +965,11 @@ bool artdaq::SharedMemoryEventManager::endRun()
 	TLOG(TLVL_DEBUG + 32) << "Shutting down TokenSender";
 	tokens_.reset(nullptr);
 
-	// TLOG(TLVL_DEBUG + 32) << "Broadcasting EndOfRun Fragment";
-	// auto endOfRunFrag = MetadataFragment::CreateEndOfRunFragment(my_rank);
-	// FragmentPtrs broadcast;
-	// broadcast.emplace_back(std::move(endOfRunFrag));
-	// broadcastFragments_(broadcast);
+	TLOG(TLVL_DEBUG + 32) << "Broadcasting EndOfRun Fragment";
+	auto endOfRunFrag = MetadataFragment::CreateEndOfRunFragment(my_rank, run_event_count_);
+	FragmentPtrs broadcast;
+	broadcast.emplace_back(std::move(endOfRunFrag));
+	broadcastFragments_(broadcast);
 
 	TLOG(TLVL_INFO) << "Run " << run_id_ << " has ended. There were " << run_event_count_ << " events in this run.";
 	run_event_count_ = 0;
