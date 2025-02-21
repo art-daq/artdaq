@@ -515,7 +515,7 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 	TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
 	                                           << "finished processing Run auxiliary.";
 
-	if (msg_type_code != artdaq::NetMonHeader::MessageType::Run) // SubRun or Event
+	if (msg_type_code != artdaq::NetMonHeader::MessageType::Run)  // SubRun or Event
 	{
 		TLOG(TLVL_DEBUG + 38, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
 		                                           << "processing SubRun auxiliary ...";
@@ -577,7 +577,6 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 		TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
 		                                           << "finished processing Event auxiliary.";
 	}
-
 }
 
 template<typename U>
