@@ -965,11 +965,11 @@ bool artdaq::SharedMemoryEventManager::endRun()
 	TLOG(TLVL_DEBUG + 32) << "Shutting down TokenSender";
 	tokens_.reset(nullptr);
 
-	//TLOG(TLVL_DEBUG + 32) << "Broadcasting EndOfRun Fragment";
-	//auto endOfRunFrag = MetadataFragment::CreateEndOfRunFragment(my_rank);
-	//FragmentPtrs broadcast;
-	//broadcast.emplace_back(std::move(endOfRunFrag));
-	//broadcastFragments_(broadcast);
+	// TLOG(TLVL_DEBUG + 32) << "Broadcasting EndOfRun Fragment";
+	// auto endOfRunFrag = MetadataFragment::CreateEndOfRunFragment(my_rank);
+	// FragmentPtrs broadcast;
+	// broadcast.emplace_back(std::move(endOfRunFrag));
+	// broadcastFragments_(broadcast);
 
 	TLOG(TLVL_INFO) << "Run " << run_id_ << " has ended. There were " << run_event_count_ << " events in this run.";
 	run_event_count_ = 0;
@@ -1075,7 +1075,7 @@ bool artdaq::SharedMemoryEventManager::broadcastFragments_(FragmentPtrs& frags)
 	while (buffer == -1 && TimeUtils::GetElapsedTimeMilliseconds(start_time) < static_cast<size_t>(broadcast_timeout_ms_))
 	{
 		usleep(10000);
-		buffer = broadcasts_.GetBufferForWriting(true); // Go into overwrite mode
+		buffer = broadcasts_.GetBufferForWriting(true);  // Go into overwrite mode
 	}
 	TLOG(TLVL_DEBUG + 32) << "broadcastFragments_: after getting buffer w/timeout, buffer=" << buffer << ", elapsed time=" << TimeUtils::GetElapsedTime(start_time) << " s.";
 	if (buffer == -1)
