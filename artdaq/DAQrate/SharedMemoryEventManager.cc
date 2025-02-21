@@ -1075,7 +1075,7 @@ bool artdaq::SharedMemoryEventManager::broadcastFragments_(FragmentPtrs& frags)
 	while (buffer == -1 && TimeUtils::GetElapsedTimeMilliseconds(start_time) < static_cast<size_t>(broadcast_timeout_ms_))
 	{
 		usleep(10000);
-		buffer = broadcasts_.GetBufferForWriting(false);
+		buffer = broadcasts_.GetBufferForWriting(true); // Go into overwrite mode
 	}
 	TLOG(TLVL_DEBUG + 32) << "broadcastFragments_: after getting buffer w/timeout, buffer=" << buffer << ", elapsed time=" << TimeUtils::GetElapsedTime(start_time) << " s.";
 	if (buffer == -1)

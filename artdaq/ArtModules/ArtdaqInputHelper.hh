@@ -585,7 +585,7 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 		                                           << "finished processing Event auxiliary.";
 	}
 
-	//if (!outR && !outSR && !outE)
+	// if (!outR && !outSR && !outE)
 	//{
 	//	TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "No principals created, making Flush Event based on whether there was an existing SubRun";
 
@@ -662,8 +662,10 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(std::shared_ptr<ArtdaqEvent> 
 		// Check if inR == 0 or is a new run
 		if (inR == nullptr || !inR->runID().isValid() || inR->run() != eventPtr->header->run_id)
 		{
-			TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Making subrun principal with subrun_id " << eventPtr->header->subrun_id;
+			TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Making run and subrun principals with run/subrun_id " << eventPtr->header->run_id << "/" << eventPtr->header->subrun_id;
+			if (outR) delete outR;
 			if (outSR) delete outSR;
+			outR = pm_.makeRunPrincipal(eventPtr->header->run_id, currentTime);
 			outSR = pm_.makeSubRunPrincipal(eventPtr->header->run_id, eventPtr->header->subrun_id, currentTime);
 			art::EventID const evid(art::EventID::flushEvent(outSR->subRunID()));
 			outE = pm_.makeEventPrincipal(evid, currentTime);
@@ -676,7 +678,7 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(std::shared_ptr<ArtdaqEvent> 
 			// to end the subrun.
 			if (inSR != nullptr && !inSR->subRunID().isFlush() && inSR->subRun() == eventPtr->header->subrun_id)
 			{
-				TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Flushing old run id " << inR->runID();
+				TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Flushing old subrun id " << inSR->subRun();
 				art::EventID const evid(art::EventID::flushEvent(inR->runID()));
 				outSR = pm_.makeSubRunPrincipal(evid.subRunID(), currentTime);
 				outE = pm_.makeEventPrincipal(evid, currentTime);
