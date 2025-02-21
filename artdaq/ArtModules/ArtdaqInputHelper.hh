@@ -585,24 +585,24 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 		                                           << "finished processing Event auxiliary.";
 	}
 
-	if (!outR && !outSR && !outE)
-	{
-		TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "No principals created, making Flush Event based on whether there was an existing SubRun";
+	//if (!outR && !outSR && !outE)
+	//{
+	//	TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "No principals created, making Flush Event based on whether there was an existing SubRun";
 
-		if (!inSR || !inSR->subRunID().isValid())
-		{
-			TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: Making run flush event";
-			art::EventID const flush_evid(art::EventID::flushEvent(inR->runID()));
-			outSR = pm_.makeSubRunPrincipal(flush_evid.subRunID(), currentTime);
-			outE = pm_.makeEventPrincipal(flush_evid, currentTime);
-		}
-		else
-		{
-			TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: Making subrun flush event";
-			art::EventID const flush_evid(art::EventID::flushEvent(inSR->subRunID()));
-			outE = pm_.makeEventPrincipal(flush_evid, currentTime);
-		}
-	}
+	//	if (!inSR || !inSR->subRunID().isValid())
+	//	{
+	//		TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: Making run flush event";
+	//		art::EventID const flush_evid(art::EventID::flushEvent(inR->runID()));
+	//		outSR = pm_.makeSubRunPrincipal(flush_evid.subRunID(), currentTime);
+	//		outE = pm_.makeEventPrincipal(flush_evid, currentTime);
+	//	}
+	//	else
+	//	{
+	//		TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: Making subrun flush event";
+	//		art::EventID const flush_evid(art::EventID::flushEvent(inSR->subRunID()));
+	//		outE = pm_.makeEventPrincipal(flush_evid, currentTime);
+	//	}
+	//}
 }
 
 template<typename U>
