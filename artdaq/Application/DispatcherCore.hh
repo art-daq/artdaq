@@ -50,9 +50,9 @@ public:
 	 * \brief Processes the initialize request.
 	 * \param pset ParameterSet used to configure the DispatcherCore
 	 * \return Whether the initialize attempt succeeded
-     * 
-     *  Configuration Parameters unique to the Dispatcher:
-     *  "allow_label_overwrites" (default: true): Allow a new process to start with the same unique_label as an old one, stopping the appropriate art process and restarting with the new configuration.
+	 *
+	 *  Configuration Parameters unique to the Dispatcher:
+	 *  "allow_label_overwrites" (default: true): Allow a new process to start with the same unique_label as an old one, stopping the appropriate art process and restarting with the new configuration.
 	 *  Note that the "Dispatcher" ParameterSet is also used to configure the EventStore. See that class' documentation for more information.
 	 */
 	bool initialize(fhicl::ParameterSet const& pset) override;
