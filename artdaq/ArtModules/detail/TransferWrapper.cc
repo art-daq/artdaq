@@ -54,7 +54,6 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset)
     , runningStateTimeout_(pset.get<double>("dispatcherConnectTimeout", 0))
     , runningStateInterval_us_(pset.get<size_t>("dispatcherConnectRetryInterval_us", 1000000))
     , quitOnFragmentIntegrityProblem_(pset.get<bool>("quitOnFragmentIntegrityProblem", true))
-    , multi_run_mode_(pset.get<bool>("allowMultipleRuns", false))
     , monitorRegistered_(false)
 {
 	std::signal(SIGINT, signal_handler);
