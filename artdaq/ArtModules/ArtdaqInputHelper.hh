@@ -493,7 +493,8 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 	}
 
     TLOG(TLVL_DEBUG + 37, "ArtdaqInputHelper") << "inR: " << static_cast<void*>(inR) << " run " << (inR ? std::to_string(inR->run()) : "invalid")
-	                                           << "inSR: " << static_cast<void*>(inSR) << " subrun " << (inSR ? std::to_string(inSR->run()) : "invalid");
+	                                           << "inSR: " << static_cast<void*>(inSR) << " subrun " << (inSR ? std::to_string(inSR->run()) : "invalid")
+	                                           << ", subrun " << (inSR ? std::to_string(inSR->subRun()) : "invalid");
 
 	// Process Run Aux
 	TLOG(TLVL_DEBUG + 37, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
