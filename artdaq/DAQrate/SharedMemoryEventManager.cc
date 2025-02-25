@@ -966,7 +966,7 @@ bool artdaq::SharedMemoryEventManager::endRun()
 	tokens_.reset(nullptr);
 
 	TLOG(TLVL_DEBUG + 32) << "Broadcasting EndOfRun Fragment";
-	auto endOfRunFrag = MetadataFragment::CreateEndOfRunFragment(my_rank);
+	auto endOfRunFrag = MetadataFragment::CreateEndOfRunFragment(my_rank, run_event_count_);
 	FragmentPtrs broadcast;
 	broadcast.emplace_back(std::move(endOfRunFrag));
 	broadcastFragments_(broadcast);
