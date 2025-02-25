@@ -492,6 +492,9 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 		    << "Unable to fetch a high-resolution time with clock_gettime for art::SubRun Timestamp. ";
 	}
 
+    TLOG(TLVL_DEBUG + 37, "ArtdaqInputHelper") << "inR: " << static_cast<void*>(inR) << " run " << (inR ? std::to_string(inR->run()) : "invalid")
+	                                           << "inSR: " << static_cast<void*>(inSR) << " subrun " << (inSR ? std::to_string(inSR->run()) : "invalid");
+
 	// Process Run Aux
 	TLOG(TLVL_DEBUG + 37, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
 	                                           << "processing Run auxiliary ...";
