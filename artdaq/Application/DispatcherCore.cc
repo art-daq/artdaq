@@ -107,6 +107,7 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 		TLOG(TLVL_DEBUG + 32) << "Getting unique_label from input ParameterSet";
 		auto const& label = pset.get<std::string>("unique_label");
 		TLOG(TLVL_DEBUG + 32) << "Unique label is " << label;
+		TLOG(TLVL_INFO) << "Registering monitor with unique_label \"" << label << "\"";
 		{
 			std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
 			if (registered_monitors_.count(label) != 0u)
@@ -159,7 +160,7 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 
 std::string artdaq::DispatcherCore::unregister_monitor(std::string const& label)
 {
-	TLOG(TLVL_DEBUG + 32) << "DispatcherCore::unregister_monitor called with argument \"" << label << "\"";
+	TLOG(TLVL_INFO) << "DispatcherCore::unregister_monitor called for unique_label \"" << label << "\"";
 	check_filters_();
 
 	try

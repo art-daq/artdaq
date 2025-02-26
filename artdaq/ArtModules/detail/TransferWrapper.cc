@@ -307,7 +307,9 @@ void artdaq::TransferWrapper::registerMonitor()
 
 	while (retry > 0)
 	{
-		label_ = dispatcherConfig.get<std::string>("unique_label") + "_" + std::to_string(time(0));
+		label_ = dispatcherConfig.get<std::string>("unique_label") + "T" + std::to_string(time(0));
+		dispatcherConfig.erase("unique_label");
+		dispatcherConfig.put<std::string>("unique_label", label_);
 		TLOG(TLVL_INFO) << "Attempting to register this monitor (\"" << label_
 		                << "\") with the dispatcher aggregator";
 
