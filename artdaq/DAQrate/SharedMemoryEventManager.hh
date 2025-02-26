@@ -368,9 +368,8 @@ public:
 	/**
 	 * @brief Add a Fragment for broadcast. May be collected with other Fragments before sending
 	 * @param frag Fragment to broadcast
-	 * @param max_delay Length of time to wait for more Fragments to broadcast
 	 */
-	void BroadcastFragment(FragmentPtr& frag, std::chrono::microseconds max_delay = std::chrono::microseconds(1000));
+	void BroadcastFragment(FragmentPtr& frag);
 
 	/**
 	 * \brief Gets the shared memory key of the broadcast SharedMemoryManager
@@ -414,15 +413,16 @@ public:
 	/**
 	 * \brief Get the subrun number that the given Sequence ID would be assigned to
 	 * \param seqID Sequence ID to check
+     * \param type Type of Fragment (Data and SubrunData fragments encode Subrun in Sequence ID)
 	 * \return Subrun number that the given sequence ID will be associated with
 	 */
-	subrun_id_t GetSubrunForSequenceID(Fragment::sequence_id_t seqID);
+	subrun_id_t GetSubrunForSequenceID(Fragment::sequence_id_t seqID, Fragment::type_t type);
 
 	/**
 	 * \brief Get the current subrun number (Gets the last defined subrun)
 	 * \return Number of the subrun that corresponds to events with the maximum possible sequence ID.
 	 */
-	subrun_id_t GetCurrentSubrun() { return GetSubrunForSequenceID(Fragment::InvalidSequenceID); }
+	subrun_id_t GetCurrentSubrun() { return GetSubrunForSequenceID(Fragment::InvalidSequenceID, Fragment::InvalidFragmentType); }
 
 	std::string BuildStatisticsString() const { return buildStatisticsString_(); };
 
@@ -519,7 +519,7 @@ private:
 
 	detail::RawEventHeader* getEventHeader_(int buffer);
 
-	int getBufferForSequenceID_(Fragment::sequence_id_t seqID, bool create_new, Fragment::timestamp_t timestamp = Fragment::InvalidTimestamp);
+	int getBufferForSequenceID_(Fragment::sequence_id_t seqID, bool create_new, Fragment::timestamp_t timestamp = Fragment::InvalidTimestamp, Fragment::type_t type = Fragment::InvalidFragmentType);
 	bool hasFragments_(int buffer);
 	void complete_buffer_(int buffer);
 	bool bufferComparator(int bufA, int bufB);

@@ -150,7 +150,7 @@ bool artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader fra
 
 	TLOG(TLVL_DEBUG + 33) << "AddFragment(Header, ptr) BEGIN frag.word_count=" << frag.word_count
 	                      << ", sequence_id=" << frag.sequence_id;
-	auto buffer = getBufferForSequenceID_(frag.sequence_id, true, frag.timestamp);
+	auto buffer = getBufferForSequenceID_(frag.sequence_id, true, frag.timestamp, frag.type);
 	TLOG(TLVL_DEBUG + 33) << "Using buffer " << buffer << " for seqid=" << frag.sequence_id;
 	if (buffer == -1)
 	{
@@ -167,7 +167,7 @@ bool artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader fra
 	{
 		hdr->run_id = run_id_;
 	}
-	hdr->subrun_id = GetSubrunForSequenceID(frag.sequence_id);
+	hdr->subrun_id = GetSubrunForSequenceID(frag.sequence_id, frag.type);
 
 	TLOG(TLVL_DEBUG + 33) << "AddFragment before Write calls";
 	Write(buffer, dataPtr, frag.word_count * sizeof(RawDataType));
@@ -218,7 +218,7 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 {
 	if (!running_) return nullptr;
 	TLOG(TLVL_DEBUG + 34) << "WriteFragmentHeader BEGIN, seqID=" << frag.sequence_id;
-	auto buffer = getBufferForSequenceID_(frag.sequence_id, true, frag.timestamp);
+	auto buffer = getBufferForSequenceID_(frag.sequence_id, true, frag.timestamp, frag.type);
 
 	if (buffer < 0)
 	{
@@ -308,7 +308,7 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 {
 	TLOG(TLVL_DEBUG + 33) << "DoneWritingFragment BEGIN";
 
-	auto buffer = getBufferForSequenceID_(frag.sequence_id, false, frag.timestamp);
+	auto buffer = getBufferForSequenceID_(frag.sequence_id, false, frag.timestamp, frag.type);
 	if (buffer < 0)
 	{
 		for (auto it = dropped_data_.begin(); it != dropped_data_.end(); ++it)
@@ -346,7 +346,7 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 		{
 			hdr->run_id = run_id_;
 		}
-		hdr->subrun_id = GetSubrunForSequenceID(frag.sequence_id);
+		hdr->subrun_id = GetSubrunForSequenceID(frag.sequence_id, frag.type);
 
 		TLOG(TLVL_DEBUG + 33) << "DoneWritingFragment: Updating buffer touch time";
 		TouchBuffer(buffer);
@@ -965,12 +965,6 @@ bool artdaq::SharedMemoryEventManager::endRun()
 	TLOG(TLVL_DEBUG + 32) << "Shutting down TokenSender";
 	tokens_.reset(nullptr);
 
-	TLOG(TLVL_DEBUG + 32) << "Broadcasting EndOfRun Fragment";
-	auto endOfRunFrag = MetadataFragment::CreateEndOfRunFragment(my_rank, run_event_count_);
-	FragmentPtrs broadcast;
-	broadcast.emplace_back(std::move(endOfRunFrag));
-	broadcastFragments_(broadcast);
-
 	TLOG(TLVL_INFO) << "Run " << run_id_ << " has ended. There were " << run_event_count_ << " events in this run.";
 	run_event_count_ = 0;
 	run_incomplete_event_count_ = 0;
@@ -1087,7 +1081,7 @@ bool artdaq::SharedMemoryEventManager::broadcastFragments_(FragmentPtrs& frags)
 	TLOG(TLVL_DEBUG + 32) << "broadcastFragments_: Filling in RawEventHeader";
 	auto hdr = reinterpret_cast<detail::RawEventHeader*>(broadcasts_.GetBufferStart(buffer));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 	hdr->run_id = run_id_;
-	hdr->subrun_id = GetSubrunForSequenceID(frags.front()->sequenceID());
+	hdr->subrun_id = GetSubrunForSequenceID(frags.front()->sequenceID(), frags.front()->type());
 	hdr->sequence_id = frags.front()->sequenceID();
 	hdr->is_complete = true;
 	broadcasts_.IncrementWritePos(buffer, sizeof(detail::RawEventHeader));
@@ -1114,26 +1108,34 @@ artdaq::detail::RawEventHeader* artdaq::SharedMemoryEventManager::getEventHeader
 	return reinterpret_cast<detail::RawEventHeader*>(GetBufferStart(buffer));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 }
 
-artdaq::SharedMemoryEventManager::subrun_id_t artdaq::SharedMemoryEventManager::GetSubrunForSequenceID(Fragment::sequence_id_t seqID)
+artdaq::SharedMemoryEventManager::subrun_id_t artdaq::SharedMemoryEventManager::GetSubrunForSequenceID(Fragment::sequence_id_t seqID, Fragment::type_t type)
 {
-	std::unique_lock<std::mutex> lk(subrun_event_map_mutex_);
-
-	TLOG(TLVL_DEBUG + 33) << "GetSubrunForSequenceID BEGIN map size = " << subrun_event_map_.size();
-	auto it = subrun_event_map_.begin();
 	subrun_id_t subrun = 1;
-
-	while (it->first <= seqID && it != subrun_event_map_.end())
+	if (type == Fragment::DataFragmentType || type == Fragment::SubrunDataFragmentType)
 	{
-		TLOG(TLVL_DEBUG + 33) << "Map has sequence ID " << it->first << ", subrun " << it->second << " (looking for <= " << seqID << ")";
-		subrun = it->second;
-		++it;
+		TLOG(TLVL_DEBUG + 33) << "DataFragment or SubrunDataFragment: Decoding subrun from sequenceID " << seqID;
+		subrun = seqID >> 32;
+	}
+	else
+	{
+		std::unique_lock<std::mutex> lk(subrun_event_map_mutex_);
+
+		TLOG(TLVL_DEBUG + 33) << "GetSubrunForSequenceID BEGIN map size = " << subrun_event_map_.size();
+		auto it = subrun_event_map_.begin();
+
+		while (it->first <= seqID && it != subrun_event_map_.end())
+		{
+			TLOG(TLVL_DEBUG + 33) << "Map has sequence ID " << it->first << ", subrun " << it->second << " (looking for <= " << seqID << ")";
+			subrun = it->second;
+			++it;
+		}
 	}
 
 	TLOG(TLVL_DEBUG + 32) << "GetSubrunForSequenceID returning subrun " << subrun << " for sequence ID " << seqID;
 	return subrun;
 }
 
-int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence_id_t seqID, bool create_new, Fragment::timestamp_t timestamp)
+int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence_id_t seqID, bool create_new, Fragment::timestamp_t timestamp, Fragment::type_t type)
 {
 	TLOG(TLVL_DEBUG + 34) << "getBufferForSequenceID " << seqID << " BEGIN";
 	std::unique_lock<std::mutex> lk(sequence_id_mutex_);
@@ -1190,7 +1192,7 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 	auto hdr = getEventHeader_(new_buffer);
 	hdr->is_complete = false;
 	hdr->run_id = run_id_;
-	hdr->subrun_id = GetSubrunForSequenceID(seqID);
+	hdr->subrun_id = GetSubrunForSequenceID(seqID, type);
 	hdr->event_id = use_sequence_id_for_event_number_ ? static_cast<uint32_t>(seqID) : static_cast<uint32_t>(timestamp);
 	hdr->sequence_id = seqID;
 	hdr->timestamp = timestamp;
@@ -1455,7 +1457,7 @@ void artdaq::SharedMemoryEventManager::check_pending_broadcasts_()
 	auto entry = pending_broadcasts_.begin();
 	while (entry != pending_broadcasts_.end())
 	{
-		if (!init_frags_sent_ || entry->fragments.size() == 0 || (entry->fragments.size() < num_fragments_per_event_ && std::chrono::steady_clock::now() < entry->deadline))
+		if (!init_frags_sent_ || entry->fragments.size() == 0 || (entry->fragments.size() < init_fragment_count_ && std::chrono::steady_clock::now() < entry->deadline))
 		{
 			entry++;
 			continue;
@@ -1466,7 +1468,7 @@ void artdaq::SharedMemoryEventManager::check_pending_broadcasts_()
 	}
 }
 
-void artdaq::SharedMemoryEventManager::BroadcastFragment(FragmentPtr& frag, std::chrono::microseconds max_delay)
+void artdaq::SharedMemoryEventManager::BroadcastFragment(FragmentPtr& frag)
 {
 	{
 		std::lock_guard<std::mutex> lk(broadcast_mutex_);
@@ -1476,6 +1478,7 @@ void artdaq::SharedMemoryEventManager::BroadcastFragment(FragmentPtr& frag, std:
 		{
 			if (entry.type == frag->type())
 			{
+				TLOG(TLVL_DEBUG + 32) << "Received BroadcastFragment of type " << static_cast<int>(frag->type()) << ", matching current pending_broadcasts_ entry. frags=" << entry.fragments.size() + 1 << "/" << init_fragment_count_;
 				entry.fragments.push_back(std::move(frag));
 				entry_found = true;
 				break;
@@ -1483,8 +1486,9 @@ void artdaq::SharedMemoryEventManager::BroadcastFragment(FragmentPtr& frag, std:
 		}
 		if (!entry_found)
 		{
+			TLOG(TLVL_DEBUG + 32) << "Received BroadcastFragment of type " << static_cast<int>(frag->type()) << ", creating new pending_broadcasts_ entry";
 			pending_broadcasts_.emplace_back();
-			pending_broadcasts_.back().deadline = std::chrono::steady_clock::now() + max_delay;
+			pending_broadcasts_.back().deadline = std::chrono::steady_clock::now() + std::chrono::microseconds(GetBufferTimeout());
 			pending_broadcasts_.back().type = frag->type();
 			pending_broadcasts_.back().fragments.push_back(std::move(frag));
 		}
