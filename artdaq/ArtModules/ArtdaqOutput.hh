@@ -756,8 +756,8 @@ inline void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 	{
 		TLOG(TLVL_WARNING, "ArtdaqOutput") << "Not sending Run message before Event!";
 		return;
-		//send_init_message();
-		//initMsgSent_ = true;
+		// send_init_message();
+		// initMsgSent_ = true;
 	}
 
 	//

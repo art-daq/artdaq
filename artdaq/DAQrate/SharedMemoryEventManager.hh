@@ -413,7 +413,7 @@ public:
 	/**
 	 * \brief Get the subrun number that the given Sequence ID would be assigned to
 	 * \param seqID Sequence ID to check
-     * \param type Type of Fragment (Data and SubrunData fragments encode Subrun in Sequence ID)
+	 * \param type Type of Fragment (Data and SubrunData fragments encode Subrun in Sequence ID)
 	 * \return Subrun number that the given sequence ID will be associated with
 	 */
 	subrun_id_t GetSubrunForSequenceID(Fragment::sequence_id_t seqID, Fragment::type_t type);

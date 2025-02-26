@@ -18,16 +18,16 @@
 #include <utility>
 
 artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset, std::shared_ptr<SharedMemoryEventManager> shm)
-	: stop_requested_(false)
-	, stop_requested_time_(0)
-	, recv_frag_count_()
-	, recv_frag_size_()
-	, recv_seq_count_()
-	, receive_timeout_(pset.get<size_t>("receive_timeout_usec", 100000))
-	, stop_timeout_ms_(pset.get<size_t>("stop_timeout_ms", 1500))
-	, shm_manager_(std::move(std::move(shm)))
-	, non_reliable_mode_enabled_(pset.get<bool>("non_reliable_mode", false))
-	, non_reliable_mode_retry_count_(pset.get<size_t>("non_reliable_mode_retry_count", -1))
+    : stop_requested_(false)
+    , stop_requested_time_(0)
+    , recv_frag_count_()
+    , recv_frag_size_()
+    , recv_seq_count_()
+    , receive_timeout_(pset.get<size_t>("receive_timeout_usec", 100000))
+    , stop_timeout_ms_(pset.get<size_t>("stop_timeout_ms", 1500))
+    , shm_manager_(std::move(std::move(shm)))
+    , non_reliable_mode_enabled_(pset.get<bool>("non_reliable_mode", false))
+    , non_reliable_mode_retry_count_(pset.get<size_t>("non_reliable_mode_retry_count", -1))
 {
 	TLOG(TLVL_DEBUG + 32) << "Constructor";
 	auto enabled_srcs = pset.get<std::vector<int>>("enabled_sources", std::vector<int>());
@@ -36,7 +36,7 @@ artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset
 	if (non_reliable_mode_enabled_)
 	{
 		TLOG(TLVL_WARNING) << "DataReceiverManager is configured to drop data after " << non_reliable_mode_retry_count_
-						   << " failed attempts to put data into the SharedMemoryEventManager! If this is unexpected, please check your configuration!";
+		                   << " failed attempts to put data into the SharedMemoryEventManager! If this is unexpected, please check your configuration!";
 	}
 
 	if (enabled_srcs_empty)
@@ -86,7 +86,7 @@ artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset
 		try
 		{
 			auto transfer = std::unique_ptr<TransferInterface>(MakeTransferPlugin(srcs_mod, s,
-																				  TransferInterface::Role::kReceive));
+			                                                                      TransferInterface::Role::kReceive));
 			auto source_rank = transfer->source_rank();
 			if (enabled_srcs_empty)
 			{
@@ -181,14 +181,14 @@ void artdaq::DataReceiverManager::stop_threads()
 		if (TimeUtils::GetElapsedTime(last_report) > 1.0)
 		{
 			TLOG(TLVL_DEBUG + 32) << "stop_threads: Waited " << TimeUtils::GetElapsedTime(wait_start) << " s for " << initial_count
-								  << " receiver threads to end (" << running_sources().size() << " remain)";
+			                      << " receiver threads to end (" << running_sources().size() << " remain)";
 			last_report = std::chrono::steady_clock::now();
 		}
 	}
 	if (!running_sources().empty())
 	{
 		TLOG(TLVL_WARNING) << "stop_threads: Timeout expired while waiting for all receiver threads to end. There are "
-						   << running_sources().size() << " threads remaining.";
+		                   << running_sources().size() << " threads remaining.";
 	}
 
 	TLOG(TLVL_DEBUG + 33) << "stop_threads: Joining " << source_threads_.size() << " receiver threads";
@@ -362,7 +362,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			if (endOfDataCount != static_cast<size_t>(-1))
 			{
 				TLOG(TLVL_DEBUG + 32) << "Received fragment " << header.sequence_id << " from rank " << source_rank
-									  << " (" << recv_frag_count_.slotCount(source_rank) << "/" << endOfDataCount << ")";
+				                      << " (" << recv_frag_count_.slotCount(source_rank) << "/" << endOfDataCount << ")";
 			}
 
 			after_body = std::chrono::steady_clock::now();
@@ -435,7 +435,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 						endOfDataCount += *(frag->dataBegin());
 					}
 					TLOG(TLVL_DEBUG + 32) << "EndOfData Fragment indicates that " << endOfDataCount << " fragments are expected from rank " << source_rank
-										  << " (recvd " << recv_frag_count_.slotCount(source_rank) << ").";
+					                      << " (recvd " << recv_frag_count_.slotCount(source_rank) << ").";
 					break;
 				case Fragment::InitFragmentType:
 					TLOG(TLVL_DEBUG + 32) << "Received Init Fragment from rank " << source_rank << ".";
@@ -449,7 +449,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 				case Fragment::EndOfSubrunFragmentType:
 					// shm_manager_->setRequestMode(detail::RequestMessageMode::EndOfRun);
 					TLOG(TLVL_DEBUG + 32) << "Received EndOfSubrun Fragment from rank " << source_rank
-										  << " with sequence_id " << header.sequence_id << " and timestamp " << header.timestamp << ".";
+					                      << " with sequence_id " << header.sequence_id << " and timestamp " << header.timestamp << ".";
 					if (header.sequence_id != Fragment::InvalidSequenceID)
 					{
 						shm_manager_->rolloverSubrun(header.sequence_id, header.timestamp);
