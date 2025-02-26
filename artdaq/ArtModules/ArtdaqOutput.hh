@@ -558,7 +558,7 @@ inline void art::ArtdaqOutput::write(EventPrincipal& ep)
 
 	// Subrun number starts at 1
 	TLOG(TLVL_WRITE, "ArtdaqOutput") << "ArtdaqOutput::write: Setting Output Fragment Header Fields";
-	auto seqID = (static_cast<uint64_t>(ep.eventID().subRun() - 1) << 32) + ep.eventID().event();
+	auto seqID = (static_cast<uint64_t>(ep.eventID().subRun()) << 32) + ep.eventID().event();
 
 	art::ProcessTag tag("", processName());
 	auto res = ep.getMany(art::ModuleContext::invalid(), art::WrappedTypeID::make<artdaq::detail::RawEventHeader>(), art::MatchAllSelector(), tag);
@@ -637,8 +637,10 @@ inline void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 	TLOG(TLVL_WRITESUBRUN, "ArtdaqOutput") << "Begin: ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)";
 	if (!initMsgSent_)
 	{
-		send_init_message();
-		initMsgSent_ = true;
+		TLOG(TLVL_WARNING, "ArtdaqOutput") << "Not sending Subrun message before Event!";
+		return;
+		// send_init_message();
+		// initMsgSent_ = true;
 	}
 
 	//
@@ -659,7 +661,7 @@ inline void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 	//
 	//  Begin preparing message.
 	//
-	auto msg = prepareMessage(last_sequence_id_ + 1, srp.subRun() + 1, artdaq::Fragment::SubrunDataFragmentType);
+	auto msg = prepareMessage(static_cast<uint64_t>(srp.subRun()) << 32, srp.subRun() + 1, artdaq::Fragment::SubrunDataFragmentType);
 	//
 	//  Write message type code.
 	//
@@ -752,8 +754,10 @@ inline void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 	(void)rp;
 	if (!initMsgSent_)
 	{
-		send_init_message();
-		initMsgSent_ = true;
+		TLOG(TLVL_WARNING, "ArtdaqOutput") << "Not sending Run message before Event!";
+		return;
+		//send_init_message();
+		//initMsgSent_ = true;
 	}
 
 	//
@@ -765,7 +769,7 @@ inline void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 	//
 	//  Begin preparing message.
 	//
-	auto msg = prepareMessage(last_sequence_id_ + 1, rp.run() + 1, artdaq::Fragment::RunDataFragmentType);
+	auto msg = prepareMessage(static_cast<uint64_t>(rp.run()) << 32, rp.run() + 1, artdaq::Fragment::RunDataFragmentType);
 	//
 	//  Write message type code.
 	//
