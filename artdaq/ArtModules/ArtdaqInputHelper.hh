@@ -492,6 +492,10 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 		    << "Unable to fetch a high-resolution time with clock_gettime for art::SubRun Timestamp. ";
 	}
 
+	TLOG(TLVL_DEBUG + 37, "ArtdaqInputHelper") << "inR: " << static_cast<void*>(inR) << " run " << (inR ? std::to_string(inR->run()) : "invalid")
+	                                           << ", inSR: " << static_cast<void*>(inSR) << " run " << (inSR ? std::to_string(inSR->run()) : "invalid")
+	                                           << ", subrun " << (inSR ? std::to_string(inSR->subRun()) : "invalid");
+
 	// Process Run Aux
 	TLOG(TLVL_DEBUG + 37, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
 	                                           << "processing Run auxiliary ...";
@@ -515,7 +519,7 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 	TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
 	                                           << "finished processing Run auxiliary.";
 
-	if (msg_type_code != artdaq::NetMonHeader::MessageType::Run)
+	if (msg_type_code != artdaq::NetMonHeader::MessageType::Run)  // SubRun or Event
 	{
 		TLOG(TLVL_DEBUG + 38, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
 		                                           << "processing SubRun auxiliary ...";
@@ -548,13 +552,6 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 		TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
 		                                           << "finished processing SubRun auxiliary.";
 	}
-	else if (inSR == nullptr || !inSR->subRunID().isValid())
-	{
-		TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: Faking Subrun 1 because there was no input Subrun for Run message";
-
-		art::SubRunID subrun_guess(outR->runID(), 1);
-		outSR = pm_.makeSubRunPrincipal(subrun_guess, currentTime);
-	}
 
 	if (msg_type_code == artdaq::NetMonHeader::MessageType::Event)
 	{  // Event message.
@@ -584,23 +581,23 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 		TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
 		                                           << "finished processing Event auxiliary.";
 	}
-
-	if (!outR && !outSR && !outE)
+	else if (msg_type_code == artdaq::NetMonHeader::MessageType::Subrun)
 	{
-		TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "No principals created, making Flush Event based on whether there was an existing SubRun";
-
-		if (!inSR || !inSR->subRunID().isValid())
+		if (outSR == nullptr)
 		{
-			TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: Making run flush event";
-			art::EventID const flush_evid(art::EventID::flushEvent(inR->runID()));
-			outSR = pm_.makeSubRunPrincipal(flush_evid.subRunID(), currentTime);
-			outE = pm_.makeEventPrincipal(flush_evid, currentTime);
+			TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "SubrunDataFragment for current Subrun received, returning Flush event";
+			art::EventID const evid(art::EventID::flushEvent(inSR->subRunID()));
+			outE = pm_.makeEventPrincipal(evid, currentTime);
 		}
-		else
+	}
+	else if (msg_type_code == artdaq::NetMonHeader::MessageType::Run)
+	{
+		if (outR == nullptr)
 		{
-			TLOG(TLVL_DEBUG + 39, "ArtdaqInputHelper") << "readAndConstructPrincipal: Making subrun flush event";
-			art::EventID const flush_evid(art::EventID::flushEvent(inSR->subRunID()));
-			outE = pm_.makeEventPrincipal(flush_evid, currentTime);
+			TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "RunDataFragment for current Run received, returning Flush subrun/event";
+			art::EventID const evid(art::EventID::flushEvent(inR->runID()));
+			outSR = pm_.makeSubRunPrincipal(evid.subRunID(), currentTime);
+			outE = pm_.makeEventPrincipal(evid, currentTime);
 		}
 	}
 }
@@ -646,62 +643,20 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(std::shared_ptr<ArtdaqEvent> 
 		    << "The art::Event Timestamp will be zero for event " << eventPtr->header->event_id;
 	}
 
-	if (eventPtr->FirstFragmentType() == artdaq::Fragment::EndOfRunFragmentType)
-	{
-		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "EndOfRunFragment received, returning Flush event";
-		art::EventID const evid(art::EventID::flushEvent());
-		outR = pm_.makeRunPrincipal(evid.runID(), currentTime);
-		outSR = pm_.makeSubRunPrincipal(evid.subRunID(), currentTime);
-		outE = pm_.makeEventPrincipal(evid, currentTime);
-		return true;
-	}
-
-	if (eventPtr->FirstFragmentType() == artdaq::Fragment::EndOfSubrunFragmentType)
-	{
-		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "EndOfSubrunFragment received, creating new Subrun Principal";
-		// Check if inR == 0 or is a new run
-		if (inR == nullptr || !inR->runID().isValid() || inR->run() != eventPtr->header->run_id)
-		{
-			TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Making subrun principal with subrun_id " << eventPtr->header->subrun_id;
-			if (outSR) delete outSR;
-			outSR = pm_.makeSubRunPrincipal(eventPtr->header->run_id, eventPtr->header->subrun_id, currentTime);
-			art::EventID const evid(art::EventID::flushEvent(outSR->subRunID()));
-			outE = pm_.makeEventPrincipal(evid, currentTime);
-		}
-		else
-		{
-			// If the previous subrun was neither 0 nor flush and was identical with the current
-			// subrun, then it must have been associated with a data event.  In that case, we need
-			// to generate a flush event with a valid run but flush subrun and event number in order
-			// to end the subrun.
-			if (inSR != nullptr && !inSR->subRunID().isFlush() && inSR->subRun() == eventPtr->header->subrun_id)
-			{
-				TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Flushing old run id " << inR->runID();
-				art::EventID const evid(art::EventID::flushEvent(inR->runID()));
-				outSR = pm_.makeSubRunPrincipal(evid.subRunID(), currentTime);
-				outE = pm_.makeEventPrincipal(evid, currentTime);
-				// If this is either a new or another empty subrun, then generate a flush event with
-				// valid run and subrun numbers but flush event number
-				//} else if(inSR==0 || inSR->id().isFlush()){
-			}
-			else
-			{
-				TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Making subrun principal with subrun_id " << eventPtr->header->subrun_id;
-				outSR = pm_.makeSubRunPrincipal(eventPtr->header->run_id, eventPtr->header->subrun_id, currentTime);
-				art::EventID const evid(art::EventID::flushEvent(outSR->subRunID()));
-				outE = pm_.makeEventPrincipal(evid, currentTime);
-				// Possible error condition
-				//} else {
-			}
-		}
-		return true;
-	}
-
 	// make new run if inR is 0 or if the run has changed
 	if (inR == nullptr || !inR->runID().isValid() || inR->run() != eventPtr->header->run_id)
 	{
 		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Making run principal with run_id " << eventPtr->header->run_id;
 		outR = pm_.makeRunPrincipal(eventPtr->header->run_id, currentTime);
+	}
+
+	if (eventPtr->FirstFragmentType() == artdaq::Fragment::EndOfRunFragmentType)
+	{
+		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "EndOfRunFragment received, returning Flush subrun/event";
+		art::EventID const evid(art::EventID::flushEvent(outR != nullptr ? outR->runID() : inR->runID()));
+		outSR = pm_.makeSubRunPrincipal(evid.subRunID(), currentTime);
+		outE = pm_.makeEventPrincipal(evid, currentTime);
+		return true;
 	}
 
 	// make new subrun if inSR is 0 or if the subrun has changed
@@ -710,6 +665,14 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(std::shared_ptr<ArtdaqEvent> 
 	{
 		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Making subrun principal with subrun_id " << eventPtr->header->subrun_id;
 		outSR = pm_.makeSubRunPrincipal(eventPtr->header->run_id, eventPtr->header->subrun_id, currentTime);
+	}
+
+	if (eventPtr->FirstFragmentType() == artdaq::Fragment::EndOfSubrunFragmentType)
+	{
+		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "EndOfSubrunFragment received, returning Flush event";
+		art::EventID const evid(art::EventID::flushEvent(outSR != nullptr ? outSR->subRunID() : inSR->subRunID()));
+		outE = pm_.makeEventPrincipal(evid, currentTime);
+		return true;
 	}
 
 	TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Making event principal with event_id " << eventPtr->header->event_id;
@@ -1002,28 +965,7 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 		TLOG(TLVL_DEBUG + 32, "ArtdaqInputHelper") << "First Fragment type is " << static_cast<int>(firstFragmentType);
 		if (constructPrincipal(eventMap, inR, inSR, outR, outSR, outE))
 		{
-			auto rfret = readFragments(eventMap->fragments, outR ? outR : inR, outSR ? outSR : inSR, outE);
-
-			// No event data
-			if (!rfret.second)
-			{
-				delete outE;
-				outE = nullptr;
-
-				if (inSR != nullptr && outSR != nullptr)
-				{
-					// No products added to subrun
-					if (!rfret.first)
-					{
-						// New subrun is identical to old
-						if (inSR->subRunID() == outSR->subRunID())
-						{
-							delete outSR;
-							outSR = nullptr;
-						}
-					}
-				}
-			}
+			readFragments(eventMap->fragments, outR ? outR : inR, outSR ? outSR : inSR, outE);
 		}
 	}
 	else
@@ -1091,25 +1033,6 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 		}
 		else if (msg_type_code == artdaq::NetMonHeader::MessageType::Subrun)
 		{
-			// EndSubRun message.
-			// From the code above, EndRun and EndSubRun messages cause
-			// the construction of principals that have:
-			//    Run:Subrun:Event=flush:flush:flush.
-			// This is a problem when you have two neighboring EndSubRuns
-			// which are both associated with empty subruns because art will
-			// complain that you a new subrun with a subrun number identical
-			// to that of the previous subrun.  So the solution is to not
-			// return new principals.
-			if (inR != nullptr && inSR != nullptr && outR != nullptr && outSR != nullptr)
-			{
-				if (inR->runID().isFlush() && inSR->subRunID().isFlush() && outR->runID().isFlush() &&
-				    outSR->subRunID().isFlush())
-				{
-					outR = nullptr;
-					outSR = nullptr;
-					return outE ? true : false;
-				}
-			}
 			// FIXME: We need to merge these into the input SubRunPrincipal.
 			readDataProducts(msgs, outSR ? outSR : inSR);
 		}
@@ -1122,8 +1045,6 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 			{
 				readFragments(eventMap->fragments, outR ? outR : inR, outSR ? outSR : inSR, outE);
 			}
-
-			TLOG(TLVL_DEBUG + 47, "ArtdaqInputHelper") << "readNext: returning true on Event message.";
 		}
 		else
 		{

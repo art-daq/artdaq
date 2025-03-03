@@ -46,7 +46,7 @@ public:
 	 * "dispatcherConnectTimeout" (Default: 0): Maximum amount of time (in seconds) to wait for the Dispatcher to reach the Running state. 0 to wait forever
 	 * "dispatcherConnectRetryInterval_us" (Default 1,000,000): Amount of time to wait between polls of the Dispatcher status while waiting for it to reach the Running state.
 	 * "quitOnFragmentIntegrityProblem" (Default: true): If there is an inconsistency in the received Fragment, throw an exception and quit when true
-	 * "allowMultipleRuns" (Default: false): If true, will ignore EndOfData message and reconnect to the Dispatcher once the next run starts
+	 * "multi_run_mode" (Default: false): Whether to ignore EndOfData Fragments
 	 * "debugLevel" (Default: 0): Enables some additional messages
 	 * "transfer_plugin" (REQUIRED): Name of the TransferInterface plugin to load
 	 *

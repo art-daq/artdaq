@@ -66,6 +66,7 @@ bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 	}
 
 	broadcast_mode_ = agg_pset.get<bool>("broadcast_mode", true);
+	allow_label_overwrites_ = agg_pset.get<bool>("allow_label_overwrites", true);
 	if (broadcast_mode_ && !agg_pset.has_key("broadcast_mode"))
 	{
 		agg_pset.put<bool>("broadcast_mode", true);
@@ -107,19 +108,40 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 		TLOG(TLVL_DEBUG + 32) << "Getting unique_label from input ParameterSet";
 		auto const& label = pset.get<std::string>("unique_label");
 		TLOG(TLVL_DEBUG + 32) << "Unique label is " << label;
+		TLOG(TLVL_INFO) << "Registering monitor with unique_label \"" << label << "\"";
+
+		bool overwriting_label = false;
+
 		{
 			std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
 			if (registered_monitors_.count(label) != 0u)
 			{
-				throw cet::exception("DispatcherCore") << "Unique label already exists!";  // NOLINT(cert-err60-cpp)
+				if (allow_label_overwrites_)
+				{
+					TLOG(TLVL_WARNING) << "Restarting companion art process with label " << label << "!";
+					overwriting_label = true;
+				}
+				else
+				{
+					throw cet::exception("DispatcherCore") << "Unique label already exists!";  // NOLINT(cert-err60-cpp)
+				}
 			}
 
 			registered_monitors_[label] = pset;
 		}
 
-		// ELF, Jul 21, 2020: This can take a long time, and we don't want to block the XMLRPC thread
-		boost::thread thread([this, label] { start_art_process_(label); });
-		thread.detach();
+		if (overwriting_label)
+		{
+			// ELF, Jul 21, 2020: This can take a long time, and we don't want to block the XMLRPC thread
+			boost::thread thread([this, label] { restart_art_process_(label); });
+			thread.detach();
+		}
+		else
+		{
+			// ELF, Jul 21, 2020: This can take a long time, and we don't want to block the XMLRPC thread
+			boost::thread thread([this, label] { start_art_process_(label); });
+			thread.detach();
+		}
 	}
 	catch (const cet::exception& e)
 	{
@@ -159,7 +181,7 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 
 std::string artdaq::DispatcherCore::unregister_monitor(std::string const& label)
 {
-	TLOG(TLVL_DEBUG + 32) << "DispatcherCore::unregister_monitor called with argument \"" << label << "\"";
+	TLOG(TLVL_INFO) << "DispatcherCore::unregister_monitor called for unique_label \"" << label << "\"";
 	check_filters_();
 
 	try
@@ -423,6 +445,12 @@ void artdaq::DispatcherCore::check_filters_()
 		}
 		++it;
 	}
+}
+
+void artdaq::DispatcherCore::restart_art_process_(std::string const& label)
+{
+	stop_art_process_(label);
+	start_art_process_(label);
 }
 
 void artdaq::DispatcherCore::start_art_process_(std::string const& label)
