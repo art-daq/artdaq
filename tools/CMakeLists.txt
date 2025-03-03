@@ -20,8 +20,8 @@ cet_make_exec(NAME genToArt
   artdaq_plugin_support::CFGMaker
   artdaq::DAQrate
   artdaq::DAQdata_GenericFragmentSimulator_generator
-  artdaq_core::artdaq-core_Utilities
-  artdaq_core::artdaq-core_Plugins
+  artdaq-core::Utilities
+  artdaq-core::Plugins
   canvas::canvas
   fhiclcpp::fhiclcpp
   cetlib::cetlib

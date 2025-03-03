@@ -31,9 +31,9 @@ cet_make_library(LIBRARY_NAME_VAR APP_TARGET
   artdaq_plugin_support::CFGMaker
   artdaq_plugin_support::policyMaker
   artdaq::DAQdata
-  artdaq_core::artdaq-core_Data
-  artdaq_core::artdaq-core_Core
-  artdaq_core::artdaq-core_Utilities
+  artdaq-core::Data
+  artdaq-core::Core
+  artdaq-core::Utilities
 )
 
 #process_smc(${APP_TARGET} OUTPUT_DIR detail detail/Commandable.sm)

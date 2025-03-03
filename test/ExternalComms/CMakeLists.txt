@@ -23,7 +23,7 @@ cet_make_exec(NAME commander_test # NO_INSTALL -- comment out to install
   artdaq_plugin_types::commander
   artdaq::Application
   artdaq::DAQdata
-  artdaq_core::artdaq-core_Utilities
+  artdaq-core::Utilities
   fhiclcpp::types
   fhiclcpp::fhiclcpp
   Boost::thread
