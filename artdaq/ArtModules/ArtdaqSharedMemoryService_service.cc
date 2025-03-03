@@ -94,6 +94,7 @@ private:
 	bool resume_after_timeout_;
 	bool printed_exit_message_{false};
 	bool end_of_data_received_{false};
+	uint32_t current_subrun_{0};
 };
 
 DECLARE_ART_SERVICE_INTERFACE_IMPL(ArtdaqSharedMemoryService, ArtdaqSharedMemoryServiceInterface, LEGACY)
@@ -245,6 +246,7 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 {
 	TLOG(TLVL_DEBUG + 33) << "ReceiveEvent BEGIN";
 	std::shared_ptr<ArtdaqEvent> output_event;
+	auto start_time = std::chrono::steady_clock::now();
 
 	while (output_event == nullptr)
 	{
@@ -261,28 +263,44 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 			if (end_of_data_received_) { break; }
 		}
 
-		bool eventInEventOrder = false;
-		for (auto it = event_ordering_.begin(); it != event_ordering_.end(); ++it)
+		if (event_ordering_.size() > 0)
 		{
-			auto type = (*it)->FirstFragmentType();
-
-			// We will automatically start draining if we have an Init, EndOfData, or Event message
-			if (type == artdaq::Fragment::StartOfRunFragmentType || type == artdaq::Fragment::StartOfSubrunFragmentType || type == artdaq::Fragment::EndOfSubrunFragmentType || type == artdaq::Fragment::EndOfRunFragmentType || type == artdaq::Fragment::RunDataFragmentType || type == artdaq::Fragment::SubrunDataFragmentType)
+			// If there is an Init Fragment, return it
+			if (event_ordering_.front()->FirstFragmentType() == artdaq::Fragment::InitFragmentType)
 			{
-				continue;  // for (auto it = event_ordering_.begin(); it != event_ordering_.end(); ++it)
+				TLOG(TLVL_DEBUG + 34) << "Returning Init Fragment";
+				output_event = event_ordering_.front();
+				event_ordering_.pop_front();
+				break;  // while(output_event == nullptr)
 			}
-			if (type == artdaq::Fragment::EndOfDataFragmentType)
+			if (current_subrun_ != 0 && event_ordering_.front()->header->subrun_id == current_subrun_)
 			{
-				end_of_data_received_ = true;
+				TLOG(TLVL_DEBUG + 34) << "Returning Fragment due to subrun match";
+				output_event = event_ordering_.front();
+				event_ordering_.pop_front();
+				break;  // while(output_event == nullptr)
 			}
-			eventInEventOrder = true;
-			break;  // for (auto it = event_ordering_.begin(); it != event_ordering_.end(); ++it)
-		}
-		if (eventInEventOrder)
-		{
-			output_event = event_ordering_.front();
-			event_ordering_.pop_front();
-			break;  // while(output_event == nullptr)
+			if (current_subrun_ == 0)
+			{
+				TLOG(TLVL_DEBUG + 34) << "Returning Fragment due to unset subrun";
+				output_event = event_ordering_.front();
+				event_ordering_.pop_front();
+				break;  // while(output_event == nullptr)
+			}
+			if (artdaq::Fragment::isUserFragmentType(event_ordering_.front()->FirstFragmentType()))
+			{
+				TLOG(TLVL_DEBUG + 34) << "Returning Fragment due to User type";
+				output_event = event_ordering_.front();
+				event_ordering_.pop_front();
+				break;  // while(output_event == nullptr)
+			}
+			if (artdaq::TimeUtils::GetElapsedTime(start_time) > 1.0)
+			{
+				TLOG(TLVL_DEBUG + 34) << "Returning Fragment due to safety valve timeout";
+				output_event = event_ordering_.front();
+				event_ordering_.pop_front();
+				break;  // while(output_event == nullptr)
+			}
 		}
 
 		auto next_event = ReadEventFromSharedMemory(broadcast);
@@ -301,11 +319,25 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 		}
 		else
 		{
+			TLOG(TLVL_DEBUG + 33) << "Adding ArtdaqEvent with run=" << next_event->header->run_id << ", subrun=" << next_event->header->subrun_id << ", seq=" << next_event->header->sequence_id << ", and type " << static_cast<int>(next_event->FirstFragmentType()) << " to event ordering list";
+			if (next_event->FirstFragmentType() == artdaq::Fragment::EndOfDataFragmentType) { end_of_data_received_ = true; }
 			event_ordering_.push_back(next_event);
 			event_ordering_.sort();
 		}
 	}
 	TLOG(TLVL_DEBUG + 33) << "ReceiveEvent END";
+	if (output_event != nullptr)
+	{
+		TLOG(TLVL_DEBUG + 33) << "Returning ArtdaqEvent with run=" << output_event->header->run_id << ", subrun=" << output_event->header->subrun_id
+		                      << ", seq=" << output_event->header->sequence_id << ", and type " << static_cast<int>(output_event->FirstFragmentType());
+		current_subrun_ = output_event->header->subrun_id;
+		if (output_event->FirstFragmentType() == artdaq::Fragment::EndOfSubrunFragmentType || output_event->FirstFragmentType() == artdaq::Fragment::SubrunDataFragmentType || output_event->FirstFragmentType() == artdaq::Fragment::StartOfRunFragmentType || output_event->FirstFragmentType() == artdaq::Fragment::EndOfRunFragmentType || output_event->FirstFragmentType() == artdaq::Fragment::RunDataFragmentType || output_event->FirstFragmentType() == artdaq::Fragment::InitFragmentType)
+		{
+			TLOG(TLVL_DEBUG + 34) << "Due to run/subrun/control conditions, setting current_subrun to 0";
+			current_subrun_ = 0;
+		}
+	}
+
 	return output_event;
 }
 

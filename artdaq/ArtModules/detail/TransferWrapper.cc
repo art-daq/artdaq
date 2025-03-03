@@ -54,7 +54,6 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset)
     , runningStateTimeout_(pset.get<double>("dispatcherConnectTimeout", 0))
     , runningStateInterval_us_(pset.get<size_t>("dispatcherConnectRetryInterval_us", 1000000))
     , quitOnFragmentIntegrityProblem_(pset.get<bool>("quitOnFragmentIntegrityProblem", true))
-    , multi_run_mode_(pset.get<bool>("allowMultipleRuns", false))
     , monitorRegistered_(false)
 {
 	std::signal(SIGINT, signal_handler);
@@ -308,7 +307,9 @@ void artdaq::TransferWrapper::registerMonitor()
 
 	while (retry > 0)
 	{
-		label_ = dispatcherConfig.get<std::string>("unique_label") + "_" + std::to_string(time(0));
+		label_ = dispatcherConfig.get<std::string>("unique_label") + "T" + std::to_string(time(0));
+		dispatcherConfig.erase("unique_label");
+		dispatcherConfig.put<std::string>("unique_label", label_);
 		TLOG(TLVL_INFO) << "Attempting to register this monitor (\"" << label_
 		                << "\") with the dispatcher aggregator";
 
