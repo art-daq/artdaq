@@ -54,6 +54,7 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset)
     , runningStateTimeout_(pset.get<double>("dispatcherConnectTimeout", 0))
     , runningStateInterval_us_(pset.get<size_t>("dispatcherConnectRetryInterval_us", 1000000))
     , quitOnFragmentIntegrityProblem_(pset.get<bool>("quitOnFragmentIntegrityProblem", true))
+    , multi_run_mode_(pset.get<bool>("multi_run_mode", false))
     , monitorRegistered_(false)
 {
 	std::signal(SIGINT, signal_handler);
@@ -182,6 +183,11 @@ artdaq::FragmentPtrs artdaq::TransferWrapper::receiveMessage()
 
 		if (fragmentPtr->type() == artdaq::Fragment::EndOfDataFragmentType)
 		{
+			if (!multi_run_mode_)
+			{
+				TLOG(TLVL_DEBUG + 32) << "Received shutdown message, returning";
+				fragmentPtrs.push_back(std::move(fragmentPtr));
+			}
 			return fragmentPtrs;
 		}
 
