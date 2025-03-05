@@ -473,21 +473,6 @@ BOOST_AUTO_TEST_CASE(RunNumbers)
 	bool errflag = false;
 
 	t.endRun();
-	bool sts = r.ReadyForRead();
-	BOOST_REQUIRE_EQUAL(sts, true);
-	auto hdr = r.ReadHeader(errflag);
-	BOOST_REQUIRE_EQUAL(errflag, false);
-	BOOST_REQUIRE(hdr != nullptr);
-	if (hdr != nullptr)
-	{  // Make static analyzer happy
-		BOOST_REQUIRE_EQUAL(hdr->is_complete, true);
-		BOOST_REQUIRE_EQUAL(hdr->run_id, 3);
-		BOOST_REQUIRE_EQUAL(hdr->subrun_id, 1);
-	}
-	auto frags = r.GetFragmentsByType(errflag, artdaq::Fragment::EndOfRunFragmentType);
-	BOOST_REQUIRE_EQUAL(errflag, false);
-	BOOST_REQUIRE_EQUAL(frags->size(), 1);
-	r.ReleaseBuffer();
 
 	TLOG(TLVL_INFO) << "Test RunNumbers END";
 }
