@@ -14,7 +14,12 @@ cet_make_exec(NAME GenToBuffer_t SOURCE GenToBuffer_t.cc
   Threads::Threads
 )
 
-cet_test(FragCounter_t USE_BOOST_UNIT
+cet_test(MergeParameterSets_t USE_BOOST_UNIT INSTALL_BIN
+  LIBRARIES PRIVATE
+  artdaq::DAQrate
+)
+
+cet_test(FragCounter_t USE_BOOST_UNIT INSTALL_BIN
   LIBRARIES PRIVATE
   artdaq::DAQrate
   canvas::canvas
