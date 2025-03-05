@@ -11,15 +11,15 @@ BOOST_AUTO_TEST_CASE(Simple)
 	p1.put<std::string>("test_str", "test1");
 	p1.put<int>("test_int", 1);
 
-    p2.put<std::string>("another_str", "test2");
+	p2.put<std::string>("another_str", "test2");
 	p2.put<bool>("test_bool", false);
 
-    auto p3 = artdaq::merge(p1, p2);
+	auto p3 = artdaq::merge(p1, p2);
 
-    BOOST_REQUIRE(p3.has_key("test_str"));
+	BOOST_REQUIRE(p3.has_key("test_str"));
 	BOOST_REQUIRE(p3.has_key("another_str"));
 
-    BOOST_REQUIRE_EQUAL(p3.get<int>("test_int"), 1);
+	BOOST_REQUIRE_EQUAL(p3.get<int>("test_int"), 1);
 	BOOST_REQUIRE_EQUAL(p3.get<bool>("test_bool"), false);
 }
 
@@ -36,7 +36,7 @@ BOOST_AUTO_TEST_CASE(Overwrite)
 
 	BOOST_REQUIRE(p3.has_key("test_str"));
 
-    BOOST_REQUIRE_EQUAL(p3.get<std::string>("test_str"), "test2");
+	BOOST_REQUIRE_EQUAL(p3.get<std::string>("test_str"), "test2");
 	BOOST_REQUIRE_EQUAL(p3.get<int>("test_int"), 1);
 	BOOST_REQUIRE_EQUAL(p3.get<bool>("test_bool"), false);
 }
