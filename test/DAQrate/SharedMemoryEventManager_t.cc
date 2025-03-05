@@ -470,7 +470,6 @@ BOOST_AUTO_TEST_CASE(RunNumbers)
 	BOOST_REQUIRE_EQUAL(t.GetCurrentSubrun(), 1);
 
 	artdaq::SharedMemoryEventReceiver r(t.GetKey(), t.GetBroadcastKey());
-	bool errflag = false;
 
 	t.endRun();
 
