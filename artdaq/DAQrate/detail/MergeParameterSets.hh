@@ -4,7 +4,7 @@
 #include <fhiclcpp/ParameterSet.h>
 
 namespace artdaq {
-static fhicl::ParameterSet merge(fhicl::ParameterSet const& first, fhicl::ParameterSet const& second)
+inline fhicl::ParameterSet merge(fhicl::ParameterSet const& first, fhicl::ParameterSet const& second)
 {
 	auto first_str = first.to_string();
 	auto second_str = second.to_string();
