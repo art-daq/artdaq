@@ -37,6 +37,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(const fhicl::Paramete
     , use_sequence_id_for_event_number_(pset.get<bool>("use_sequence_id_for_event_number", true))
     , overwrite_mode_(!pset.get<bool>("use_art", true) || pset.get<bool>("overwrite_mode", false) || pset.get<bool>("broadcast_mode", false))
     , init_fragment_count_(pset.get<size_t>("init_fragment_count", pset.get<bool>("send_init_fragments", true) ? 1 : 0))
+    , broadcast_fragment_count_(pset.get<size_t>("broadcast_fragment_count", init_fragment_count_))
     , running_(false)
     , buffer_writes_pending_()
     , open_event_report_interval_ms_(pset.get<int>("open_event_report_interval_ms", pset.get<int>("incomplete_event_report_interval_ms", -1)))
@@ -1457,7 +1458,7 @@ void artdaq::SharedMemoryEventManager::check_pending_broadcasts_()
 	auto entry = pending_broadcasts_.begin();
 	while (entry != pending_broadcasts_.end())
 	{
-		if (!init_frags_sent_ || entry->fragments.size() == 0 || (entry->fragments.size() < init_fragment_count_ && std::chrono::steady_clock::now() < entry->deadline))
+		if (!init_frags_sent_ || entry->fragments.size() == 0 || (entry->fragments.size() < broadcast_fragment_count_ && std::chrono::steady_clock::now() < entry->deadline))
 		{
 			entry++;
 			continue;
@@ -1478,7 +1479,7 @@ void artdaq::SharedMemoryEventManager::BroadcastFragment(FragmentPtr& frag)
 		{
 			if (entry.type == frag->type())
 			{
-				TLOG(TLVL_DEBUG + 32) << "Received BroadcastFragment of type " << static_cast<int>(frag->type()) << ", matching current pending_broadcasts_ entry. frags=" << entry.fragments.size() + 1 << "/" << init_fragment_count_;
+				TLOG(TLVL_DEBUG + 32) << "Received BroadcastFragment of type " << static_cast<int>(frag->type()) << ", matching current pending_broadcasts_ entry. frags=" << entry.fragments.size() + 1 << "/" << broadcast_fragment_count_;
 				entry.fragments.push_back(std::move(frag));
 				entry_found = true;
 				break;
