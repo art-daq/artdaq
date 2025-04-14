@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <chrono>
 #include "artdaq/DAQdata/TCPConnect.hh"
+#include "artdaq/DAQrate/detail/MergeParameterSets.hh"
 #include "canvas/Utilities/Exception.h"
 
 artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
@@ -34,8 +35,8 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 	table_receiver_.reset(new TableReceiver(rmConfig));
 
 	hostMap_t host_map = MakeHostMap(pset);
-	auto tcp_send_buffer_size = pset.get<size_t>("tcp_send_buffer_size", 0);
 	auto max_fragment_size_words = pset.get<size_t>("max_fragment_size_words", 0);
+	auto transfer_parameters = pset.get<fhicl::ParameterSet>("transfer_parameters", fhicl::ParameterSet());
 
 	auto dests = pset.get<fhicl::ParameterSet>("destinations", fhicl::ParameterSet());
 	for (auto& d : dests.get_pset_names())
@@ -51,16 +52,14 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 		dest_pset.erase("host_map");
 		dest_pset.put<std::vector<fhicl::ParameterSet>>("host_map", host_map_pset);
 
-		if (tcp_send_buffer_size != 0 && !dest_pset.has_key("tcp_send_buffer_size"))
-		{
-			dest_pset.put<size_t>("tcp_send_buffer_size", tcp_send_buffer_size);
-		}
 		if (max_fragment_size_words != 0 && !dest_pset.has_key("max_fragment_size_words"))
 		{
 			dest_pset.put<size_t>("max_fragment_size_words", max_fragment_size_words);
 		}
 
-		dests_mod.put<fhicl::ParameterSet>(d, dest_pset);
+		auto resultant_set = merge(transfer_parameters, dest_pset);
+
+		dests_mod.put<fhicl::ParameterSet>(d, resultant_set);
 	}
 
 	for (auto& d : dests_mod.get_pset_names())
