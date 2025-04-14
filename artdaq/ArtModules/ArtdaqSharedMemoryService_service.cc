@@ -180,7 +180,7 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReadEventFromSharedMemor
 			}
 			if (!got_event && artdaq::TimeUtils::GetElapsedTimeMicroseconds(start_time) > read_timeout_)
 			{
-				TLOG(TLVL_WARNING) << "Timeout occurred! No data received after " << artdaq::TimeUtils::GetElapsedTimeMicroseconds(start_time) << " us. Retrying.";
+				TLOG(TLVL_DEBUG + 30) << "Timeout occurred! No data received after " << artdaq::TimeUtils::GetElapsedTimeMicroseconds(start_time) << " us. Retrying.";
 				last_read_timeout_ = true;
 			}
 		}
