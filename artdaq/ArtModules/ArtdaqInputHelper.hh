@@ -167,8 +167,11 @@ private:
 
 	std::pair<bool, bool> readFragments(std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> const& eventMap, art::RunPrincipal* const theRun, art::SubRunPrincipal* const theSubRun, art::EventPrincipal* const theEvent);
 
+    void readInitMessage();
+
 	bool shutdownMsgReceived_;
 	art::SourceHelper const& pm_;
+	art::ProductRegistryHelper& helper_;
 	U communicationWrapper_;
 	ProductList* productList_;
 	std::unique_ptr<art::History> history_to_use_;
@@ -183,6 +186,7 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
                                              art::SourceHelper const& pm)
     : shutdownMsgReceived_(false)
     , pm_(pm)
+    , helper_(helper)
     , communicationWrapper_(ps)
     , productList_()
     , fragmentsOnlyMode_(false)
@@ -212,7 +216,45 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 	                                           << "const fhicl::ParameterSet& ps, "
 	                                           << "art::ProductRegistryHelper& helper, "
 	                                           << "const art::SourceHelper& pm)";
+	readInitMessage();
 
+	helper.reconstitutes<artdaq::detail::RawEventHeader, art::InEvent>(pretend_module_name, "RawEventHeader");
+
+	if (ps.get<bool>("register_fragment_types", true))
+	{
+		TLOG(TLVL_DEBUG + 32, "ArtdaqInputHelper") << "Registering known Fragment labels from ArtdaqFragmentNamingServiceInterface";
+
+		art::ServiceHandle<ArtdaqFragmentNamingServiceInterface> translator;
+		helper.reconstitutes<artdaq::Fragments, art::InEvent>(pretend_module_name, translator->GetUnidentifiedInstanceName());
+		// Workaround for #22979
+		helper.reconstitutes<artdaq::Fragments, art::InRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
+		helper.reconstitutes<artdaq::Fragments, art::InSubRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
+
+		helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
+		helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InSubRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
+		helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InRun>(pretend_module_name, "StartOfRun");
+		helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InRun>(pretend_module_name, "EndOfRun");
+		helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InSubRun>(pretend_module_name, "StartOfSubrun");
+		helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InSubRun>(pretend_module_name, "EndOfSubrun");
+
+		std::set<std::string> instance_names = translator->GetAllProductInstanceNames();
+		for (const auto& set_iter : instance_names)
+		{
+			helper.reconstitutes<artdaq::Fragments, art::InEvent>(pretend_module_name, set_iter);
+		}
+	}
+	//
+	//  Finished with init message.
+	//
+	TLOG(TLVL_DEBUG + 33, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::ArtdaqInputHelper("
+	                                           << "const fhicl::ParameterSet& ps, "
+	                                           << "art::ProductRegistryHelper& helper, "
+	                                           << "const art::SourceHelper& pm)";
+}
+
+template<typename U>
+void art::ArtdaqInputHelper<U>::readInitMessage()
+{
 	TLOG(TLVL_DEBUG + 33, "ArtdaqInputHelper") << "Going to receive init message";
 	artdaq::FragmentPtrs initFrags = communicationWrapper_.receiveInitMessage();
 	TLOG(TLVL_DEBUG + 33, "ArtdaqInputHelper") << "Init message received";
@@ -383,42 +425,9 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 
 			// helper now owns productList_!
 
-			helper.productList(std::unique_ptr<art::ProductList>(productList_));
+			helper_.productList(std::unique_ptr<art::ProductList>(productList_));
 			TLOG(TLVL_DEBUG + 33, "ArtdaqInputHelper") << "ArtdaqInputHelper: got product list";
 		}
-
-		helper.reconstitutes<artdaq::detail::RawEventHeader, art::InEvent>(pretend_module_name, "RawEventHeader");
-
-		if (ps.get<bool>("register_fragment_types", true))
-		{
-			TLOG(TLVL_DEBUG + 32, "ArtdaqInputHelper") << "Registering known Fragment labels from ArtdaqFragmentNamingServiceInterface";
-
-			art::ServiceHandle<ArtdaqFragmentNamingServiceInterface> translator;
-			helper.reconstitutes<artdaq::Fragments, art::InEvent>(pretend_module_name, translator->GetUnidentifiedInstanceName());
-			// Workaround for #22979
-			helper.reconstitutes<artdaq::Fragments, art::InRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
-			helper.reconstitutes<artdaq::Fragments, art::InSubRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
-
-			helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
-			helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InSubRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
-			helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InRun>(pretend_module_name, "StartOfRun");
-			helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InRun>(pretend_module_name, "EndOfRun");
-			helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InSubRun>(pretend_module_name, "StartOfSubrun");
-			helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InSubRun>(pretend_module_name, "EndOfSubrun");
-
-			std::set<std::string> instance_names = translator->GetAllProductInstanceNames();
-			for (const auto& set_iter : instance_names)
-			{
-				helper.reconstitutes<artdaq::Fragments, art::InEvent>(pretend_module_name, set_iter);
-			}
-		}
-		//
-		//  Finished with init message.
-		//
-		TLOG(TLVL_DEBUG + 33, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::ArtdaqInputHelper("
-		                                           << "const fhicl::ParameterSet& ps, "
-		                                           << "art::ProductRegistryHelper& helper, "
-		                                           << "const art::SourceHelper& pm)";
 	}
 }
 
@@ -953,6 +962,14 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 		TLOG(TLVL_DEBUG + 45, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::readNext";
 		return false;
 	}
+
+    if (eventMap->FirstFragmentType() == artdaq::Fragment::InitFragmentType) {
+		TLOG(TLVL_INFO, "ArtdaqInputHelper") << "Additional Init Message received! Attempting to register new products...";
+		readInitMessage();
+		TLOG(TLVL_DEBUG + 45, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::readNext";
+		return true;
+
+    }
 
 	if (fragmentsOnlyMode_)
 	{

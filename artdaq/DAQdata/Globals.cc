@@ -3,6 +3,7 @@
 #include "artdaq/DAQdata/Globals.hh"
 
 int artdaq::Globals::my_rank_ = -1;
+int artdaq::Globals::my_art_id_ = -1;
 std::unique_ptr<artdaq::MetricManager> artdaq::Globals::metricMan_ = std::make_unique<artdaq::MetricManager>();
 std::unique_ptr<artdaq::PortManager> artdaq::Globals::portMan_ = std::make_unique<artdaq::PortManager>();
 std::string artdaq::Globals::app_name_;

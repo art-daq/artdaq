@@ -808,10 +808,9 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 	running_ = false;
 	{
 		std::lock_guard<std::mutex> lk(init_fragments_mutex_);
-		init_fragments_.clear();
+		init_fragment_map_.clear();
 	}
 	init_frags_sent_ = false;
-	received_init_frags_.clear();
 	TLOG(TLVL_DEBUG + 32) << "SharedMemoryEventManager::endOfData";
 	restart_art_ = false;
 
@@ -911,10 +910,9 @@ void artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 	running_ = true;
 	{
 		std::lock_guard<std::mutex> lk(init_fragments_mutex_);
-		init_fragments_.clear();
+		init_fragment_map_.clear();
 	}
 	init_frags_sent_ = false;
-	received_init_frags_.clear();
 	statsHelper_.resetStatistics();
 	TLOG(TLVL_DEBUG + 33) << "startRun: Clearing broadcast buffers";
 	for (size_t ii = 0; ii < broadcasts_.size(); ++ii)
@@ -1533,28 +1531,30 @@ std::vector<char*> artdaq::SharedMemoryEventManager::parse_art_command_line_(con
 void artdaq::SharedMemoryEventManager::send_init_frags_()
 {
 	std::lock_guard<std::mutex> lk(init_fragments_mutex_);
-	if (init_fragments_.size() >= init_fragment_count_ && init_fragment_count_ > 0)
+	if (init_fragment_map_size_() >= init_fragment_count_ && init_fragment_count_ > 0)
 	{
-		TLOG(TLVL_INFO) << "Broadcasting " << init_fragments_.size() << " Init Fragment(s) to all art subprocesses...";
+		TLOG(TLVL_INFO) << "Broadcasting " << init_fragment_map_size_() << " Init Fragment(s) to all art subprocesses...";
 
-#if 0
-		std::string fileName = "receiveInitMessage_" + std::to_string(my_rank) + ".bin";
-		std::fstream ostream(fileName.c_str(), std::ios::out | std::ios::binary);
-		ostream.write(reinterpret_cast<char*>(init_fragment_->dataBeginBytes()), init_fragment_->dataSizeBytes());
-		ostream.close();
-#endif
+		FragmentPtrs init_fragments;
+		for (auto& fragment_id_pair : init_fragment_map_)
+		{
+			for (auto& ts_pair : fragment_id_pair.second)
+			{
+				init_fragments.emplace_back(std::make_unique<Fragment>(*ts_pair.second));
+			}
+		}
 
-		broadcastFragments_(init_fragments_);
+		broadcastFragments_(init_fragments);
 		TLOG(TLVL_DEBUG + 33) << "Init Fragment sent";
 		init_frags_sent_ = true;
 	}
-	else if (init_fragment_count_ > 0 && init_fragments_.size() == 0)
+	else if (init_fragment_count_ > 0 && init_fragment_map_size_() == 0)
 	{
 		TLOG(TLVL_WARNING) << "Cannot send Init Fragment(s) because I haven't yet received them! Set send_init_fragments to false or init_fragment_count to 0 if this process does not receive serialized art events to avoid potentially lengthy timeouts!";
 	}
 	else if (init_fragment_count_ > 0)
 	{
-		TLOG(TLVL_INFO) << "Cannot send Init Fragment(s) because I haven't yet received them (have " << init_fragments_.size() << " of " << init_fragment_count_ << ")!";
+		TLOG(TLVL_INFO) << "Cannot send Init Fragment(s) because I haven't yet received them (have " << init_fragment_map_size_() << " of " << init_fragment_count_ << ")!";
 	}
 	else
 	{
@@ -1570,23 +1570,31 @@ void artdaq::SharedMemoryEventManager::send_init_frags_()
 void artdaq::SharedMemoryEventManager::AddInitFragment(FragmentPtr& frag)
 {
 	std::unique_lock<std::mutex> lk(init_fragments_mutex_);
-	if (received_init_frags_.count(frag->fragmentID()) == 0)
-	{
-		TLOG(TLVL_DEBUG + 32) << "Received Init Fragment from rank " << frag->fragmentID() << ". Now have " << init_fragments_.size() + 1 << " of " << init_fragment_count_;
-		received_init_frags_.insert(frag->fragmentID());
-		init_fragments_.push_back(std::move(frag));
 
-		// Don't send until all init fragments have been received
-		if (init_fragments_.size() >= init_fragment_count_)
-		{
-			lk.unlock();
-			send_init_frags_();
-		}
-	}
-	else
+	auto fragId = frag->fragmentID();
+	auto ts = frag->timestamp();
+
+	init_fragment_map_[fragId][ts] = std::move(frag);
+	TLOG(TLVL_DEBUG + 32) << "Received Init Fragment from rank " << fragId << ", art process id " << ts << ". Now have " << init_fragment_map_size_() << " of " << init_fragment_count_;
+
+	// Don't send until all init fragments have been received
+	if (init_fragment_map_size_() >= init_fragment_count_)
 	{
-		TLOG(TLVL_DEBUG + 33) << "Ignoring duplicate Init Fragment from rank " << frag->fragmentID();
+		lk.unlock();
+		send_init_frags_();
 	}
+}
+
+size_t artdaq::SharedMemoryEventManager::init_fragment_map_size_() const
+{
+	size_t size = 0;
+
+	for (auto& frag_id_pair : init_fragment_map_)
+	{
+		size += frag_id_pair.second.size();
+	}
+
+	return size;
 }
 
 void artdaq::SharedMemoryEventManager::UpdateArtConfiguration(fhicl::ParameterSet art_pset)

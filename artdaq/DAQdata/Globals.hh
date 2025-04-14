@@ -36,6 +36,7 @@ public:
 	static std::unique_ptr<PortManager> portMan_;      ///< A handle to PortManager
 	static std::string app_name_;                      ///< The name of the current application, to be used in logging and metrics
 	static int partition_number_;                      ///< The partition number of the current application
+	static int my_art_id_;                             ///< The ID number of the current art application. Used by art processes connected to the same rank
 
 	static std::mutex mftrace_mutex_;       ///< Mutex to protect mftrace_module_ and mftrace_iteration_
 	static std::string mftrace_module_;     ///< MessageFacility's module and iteration are thread-local, but we want to use them to represent global state in artdaq.

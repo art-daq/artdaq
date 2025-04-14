@@ -308,7 +308,7 @@ inline void art::ArtdaqOutput::send_init_message()
 	//
 	//  Construct and send the init message.
 	//
-	auto msg = prepareMessage(0, 0, artdaq::Fragment::InitFragmentType);
+	auto msg = prepareMessage(0, artdaq::Globals::my_art_id_, artdaq::Fragment::InitFragmentType);
 	//
 	//  Stream the message type code.
 	//
@@ -808,6 +808,8 @@ inline void art::ArtdaqOutput::extractProducts_(Principal const& principal [[gnu
 {
 	TLOG(TLVL_EXTRACTPRODUCTS, "ArtdaqOutput") << "Begin: ArtdaqOutput::extractProducts_(Principal const& principal) sz=" << principal.size();
 
+    bool newProducts = false;
+
 	for (auto I = principal.begin(), E = principal.end(); I != E; ++I)
 	{
 		auto const& productDescription = I->second->productDescription();
@@ -822,10 +824,17 @@ inline void art::ArtdaqOutput::extractProducts_(Principal const& principal [[gnu
 			                                                   << ", description: " << productDescription.wrappedName();
 
 			productList_[branchKey] = productDescription;
+			newProducts = true;
 		}
 	}
 
 	TLOG(TLVL_EXTRACTPRODUCTS, "ArtdaqOutput") << "End: ArtdaqOutput::extractProducts_(Principal const& principal) Product list sz=" << productList_.size();
+
+    if (newProducts && initMsgSent_) {
+		TLOG(TLVL_EXTRACTPRODUCTS, "ArtdaqOutput") << "New products added to list, sending new InitFragment";
+		send_init_message();
+
+    }
 }
 
 #endif  // ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQOUTPUT_HH_
