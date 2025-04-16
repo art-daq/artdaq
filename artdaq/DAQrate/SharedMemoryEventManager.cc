@@ -1018,8 +1018,8 @@ void artdaq::SharedMemoryEventManager::rolloverSubrun(sequence_id_t boundary, su
 	{
 		return;
 	}
-	TLOG(TLVL_INFO) << "Will roll over to subrun " << subrun << " when I reach Sequence ID " << boundary;
-	subrun_event_map_[boundary] = subrun;
+	TLOG(TLVL_INFO) << "Will roll over to subrun " << subrun << " when I reach Sequence ID " << (boundary+1);
+	subrun_event_map_[boundary+1] = subrun;
 	while (subrun_event_map_.size() > max_subrun_event_map_length_)
 	{
 		subrun_event_map_.erase(subrun_event_map_.begin());

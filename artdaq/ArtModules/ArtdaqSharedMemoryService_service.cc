@@ -258,7 +258,7 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 {
 	TLOG(TLVL_RECEIVEEVENT) << "ReceiveEvent BEGIN";
 	std::shared_ptr<ArtdaqEvent> output_event;
-	auto start_time = std::chrono::steady_clock::now();
+	// auto start_time = std::chrono::steady_clock::now();
 
 	while (output_event == nullptr)
 	{
@@ -287,10 +287,21 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 			}
 			if (current_subrun_ != 0 && event_ordering_.front()->header->subrun_id == current_subrun_)
 			{
-				TLOG(TLVL_RECEIVEEVENT) << "Returning Fragment due to subrun match";
-				output_event = event_ordering_.front();
-				event_ordering_.pop_front();
-				break;  // while(output_event == nullptr)
+				if (artdaq::Fragment::isUserFragmentType(event_ordering_.front()->FirstFragmentType()) || event_ordering_.front()->FirstFragmentType() == artdaq::Fragment::DataFragmentType)
+				{
+					TLOG(TLVL_RECEIVEEVENT) << "Returning Fragment due to subrun match";
+					output_event = event_ordering_.front();
+					event_ordering_.pop_front();
+					break;  // while(output_event == nullptr)
+				}
+				else if (event_ordering_.size() > 1)
+				{
+					// First Fragment is broadcast (begin/end run/subrun), but there's more in event ordering!
+					TLOG(TLVL_RECEIVEEVENT) << "Returning Broadcast Fragment due to subrun closure";
+					output_event = event_ordering_.front();
+					event_ordering_.pop_front();
+					break;  // while(output_event == nullptr)
+				}
 			}
 			if (current_subrun_ == 0)
 			{
@@ -299,6 +310,7 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 				event_ordering_.pop_front();
 				break;  // while(output_event == nullptr)
 			}
+#if 0
 			if (artdaq::Fragment::isUserFragmentType(event_ordering_.front()->FirstFragmentType()))
 			{
 				TLOG(TLVL_RECEIVEEVENT) << "Returning Fragment due to User type";
@@ -313,6 +325,7 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 				event_ordering_.pop_front();
 				break;  // while(output_event == nullptr)
 			}
+#endif
 		}
 
 		auto next_event = ReadEventFromSharedMemory(broadcast);
