@@ -22,15 +22,17 @@ struct ArtdaqEvent
 		return fragments.begin()->first;
 	}
 
-    size_t size() const {
+	size_t size() const
+	{
 		size_t output = 0;
 
-        for (auto& type_pair : fragments) {
+		for (auto& type_pair : fragments)
+		{
 			output += type_pair.second->size();
-        }
+		}
 
-        return output;
-    }
+		return output;
+	}
 };
 
 inline bool operator<(ArtdaqEvent const& l, ArtdaqEvent const& r)

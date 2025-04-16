@@ -169,7 +169,7 @@ private:
 
 	std::pair<bool, bool> readFragments(std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> const& eventMap, art::RunPrincipal* const theRun, art::SubRunPrincipal* const theSubRun, art::EventPrincipal* const theEvent);
 
-    void readInitMessage();
+	void readInitMessage();
 
 	bool shutdownMsgReceived_;
 	art::SourceHelper const& pm_;
@@ -360,8 +360,8 @@ void art::ArtdaqInputHelper<U>::readInitMessage()
 				{
 #ifndef __OPTIMIZE__
 					TLOG(TLVL_DEBUG + 50, "ArtdaqInputHelper") << "Branch key: class: '" << I->first.friendlyClassName_ << "' modlbl: '"
-					                              << I->first.moduleLabel_ << "' instnm: '" << I->first.productInstanceName_ << "' procnm: '"
-					                              << I->first.processName_ << "', branch description name: " << I->second.wrappedName();
+					                                           << I->first.moduleLabel_ << "' instnm: '" << I->first.productInstanceName_ << "' procnm: '"
+					                                           << I->first.processName_ << "', branch description name: " << I->second.wrappedName();
 #endif
 					if (productListInitialized)
 					{
@@ -423,14 +423,14 @@ void art::ArtdaqInputHelper<U>::readInitMessage()
 
 			TLOG(TLVL_DEBUG + 33, "ArtdaqInputHelper")
 			    << "ArtdaqInputHelper: Product list sz=" << productList_->size();
-            #if 0
+#if 0
 			for (auto I = productList_->begin(), E = productList_->end(); I != E; ++I)
 			{
 				TLOG(TLVL_DEBUG + 50, "ArtdaqInputHelper") << "Branch key: class: '" << I->first.friendlyClassName_ << "' modlbl: '"
 				                                           << I->first.moduleLabel_ << "' instnm: '" << I->first.productInstanceName_ << "' procnm: '"
 				                                           << I->first.processName_ << "', branch description name: " << I->second.wrappedName();
 			}
-            #endif
+#endif
 			// helper now owns productList_!
 
 			helper_.productList(std::unique_ptr<art::ProductList>(productList_));
@@ -972,17 +972,17 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 		return false;
 	}
 
-    if (eventMap->FirstFragmentType() == artdaq::Fragment::InitFragmentType) {
-        #if CAN_REINIT
+	if (eventMap->FirstFragmentType() == artdaq::Fragment::InitFragmentType)
+	{
+#if CAN_REINIT
 		TLOG(TLVL_INFO, "ArtdaqInputHelper") << "Additional Init Message received! Attempting to register new products...";
 		readInitMessage();
-        #else
+#else
 		TLOG(TLVL_WARNING, "ArtdaqInputHelper") << "Received additional Init Message! Check init_fragment_count configuration!";
-        #endif
+#endif
 		TLOG(TLVL_DEBUG + 45, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::readNext";
 		return true;
-
-    }
+	}
 
 	if (fragmentsOnlyMode_)
 	{
