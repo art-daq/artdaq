@@ -38,6 +38,10 @@ public:
 		fhicl::Atom<uint32_t> broadcast_shared_memory_key{fhicl::Name{"broadcast_shared_memory_key"}, fhicl::Comment{"Key to use when connecting to broadcast shared memory. Will default to 0xCEE70000 + getppid()."}, 0xCEE70000};
 		/// "rank" (OPTIONAL) : The rank of this applicaiton, for use by non - artdaq applications running NetMonTransportService
 		fhicl::Atom<int> rank{fhicl::Name{"rank"}, fhicl::Comment{"Rank of this artdaq application. Used for data transfers"}};
+		/// "subrun_closure_threshold" (Default: 1) Minimum number of events in event ordering list before releasing a subrun/run change event
+		fhicl::Atom<size_t> subrun_closure_threshold{fhicl::Name{"subrun_closure_threshold"}, fhicl::Comment{"Minimum number of events in event ordering list before releasing a subrun/run change event"}, 1};
+		/// "safety_valve_timeout_s" (Default: 10.0): Maximum time (in s) to wait before releasing the front of the event ordering list
+		fhicl::Atom<double> safety_valve_timeout_s{fhicl::Name{"safety_valve_timeout_s"}, fhicl::Comment{"Maximum time (in s) to wait before releasing the front of the event ordering list"}, 10.0};
 	};
 	/// Used for ParameterSet validation (if desired)
 	using Parameters = fhicl::WrappedTable<Config>;
@@ -90,6 +94,8 @@ private:
 	std::unique_ptr<artdaq::SharedMemoryEventReceiver> incoming_events_;
 	std::list<std::shared_ptr<ArtdaqEvent>> event_ordering_;
 	size_t read_timeout_;
+	size_t subrun_closure_threshold_{1};
+	double safety_valve_timeout_s_{10.0};
 	bool last_read_timeout_{false};
 	bool resume_after_timeout_;
 	bool printed_exit_message_{false};
@@ -116,6 +122,8 @@ ArtdaqSharedMemoryService::ArtdaqSharedMemoryService(fhicl::ParameterSet const& 
     : incoming_events_(nullptr)
     , event_ordering_()
     , read_timeout_(pset.get<size_t>("read_timeout_us", static_cast<size_t>(pset.get<double>("waiting_time", 600.0) * 1000000)))
+    , subrun_closure_threshold_(pset.get<size_t>("subrun_closure_threshold", 1))
+    , safety_valve_timeout_s_(pset.get<double>("safety_valve_timeout_s", 10.0))
     , resume_after_timeout_(pset.get<bool>("resume_after_timeout", true))
 {
 	TLOG(TLVL_CONSTRUCTOR) << "ArtdaqSharedMemoryService CONSTRUCTOR";
@@ -294,7 +302,7 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 					event_ordering_.pop_front();
 					break;  // while(output_event == nullptr)
 				}
-				else if (event_ordering_.size() > 1)
+				else if (event_ordering_.size() > subrun_closure_threshold_)
 				{
 					// First Fragment is broadcast (begin/end run/subrun), but there's more in event ordering!
 					TLOG(TLVL_RECEIVEEVENT) << "Returning Broadcast Fragment due to subrun closure";
@@ -319,7 +327,7 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 				break;  // while(output_event == nullptr)
 			}
 #endif
-			if (artdaq::TimeUtils::GetElapsedTime(start_time) > 10.0)
+			if (artdaq::TimeUtils::GetElapsedTime(start_time) > safety_valve_timeout_s_)
 			{
 				TLOG(TLVL_RECEIVEEVENT) << "Returning Fragment due to safety valve timeout";
 				output_event = event_ordering_.front();
