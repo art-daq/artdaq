@@ -65,6 +65,8 @@
 #include <utility>
 #include <vector>
 
+#define CAN_REINIT 0
+
 namespace art {
 template<typename U>
 class ArtdaqInputHelper;

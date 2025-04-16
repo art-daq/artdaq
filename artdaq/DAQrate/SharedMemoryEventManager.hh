@@ -460,7 +460,6 @@ private:
 	bool use_sequence_id_for_event_number_;
 	bool overwrite_mode_;
 	size_t init_fragment_count_;
-	size_t broadcast_fragment_count_;
 	std::atomic<bool> running_;
 
 	std::unordered_map<int, std::atomic<int>> buffer_writes_pending_;
