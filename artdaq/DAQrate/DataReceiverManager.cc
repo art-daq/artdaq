@@ -3,6 +3,7 @@
 
 #include "artdaq/DAQdata/HostMap.hh"
 #include "artdaq/DAQrate/DataReceiverManager.hh"
+#include "artdaq/DAQrate/detail/MergeParameterSets.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 
 #include "cetlib_except/exception.h"
@@ -52,8 +53,8 @@ artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset
 	}
 
 	hostMap_t host_map = MakeHostMap(pset);
-	auto tcp_receive_buffer_size = pset.get<size_t>("tcp_receive_buffer_size", 0);
 	auto max_fragment_size_words = pset.get<size_t>("max_fragment_size_words", 0);
+	auto transfer_parameters = pset.get<fhicl::ParameterSet>("transfer_parameters", fhicl::ParameterSet());
 
 	auto srcs = pset.get<fhicl::ParameterSet>("sources", fhicl::ParameterSet());
 	for (auto& s : srcs.get_pset_names())
@@ -69,16 +70,14 @@ artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset
 		src_pset.erase("host_map");
 		src_pset.put<std::vector<fhicl::ParameterSet>>("host_map", host_map_pset);
 
-		if (tcp_receive_buffer_size != 0 && !src_pset.has_key("tcp_receive_buffer_size"))
-		{
-			src_pset.put<size_t>("tcp_receive_buffer_size", tcp_receive_buffer_size);
-		}
 		if (max_fragment_size_words != 0 && !src_pset.has_key("max_fragment_size_words"))
 		{
 			src_pset.put<size_t>("max_fragment_size_words", max_fragment_size_words);
 		}
 
-		srcs_mod.put<fhicl::ParameterSet>(s, src_pset);
+		auto resultant_set = merge(transfer_parameters, src_pset);
+
+		srcs_mod.put<fhicl::ParameterSet>(s, resultant_set);
 	}
 
 	for (auto& s : srcs_mod.get_pset_names())
