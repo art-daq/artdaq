@@ -509,6 +509,7 @@ private:
 	struct BroadcastEntry
 	{
 		Fragment::type_t type;
+		Fragment::sequence_id_t sequence_id;
 		FragmentPtrs fragments;
 		std::chrono::steady_clock::time_point deadline;
 	};

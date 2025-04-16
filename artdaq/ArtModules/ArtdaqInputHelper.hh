@@ -357,10 +357,9 @@ void art::ArtdaqInputHelper<U>::readInitMessage()
 				for (auto I = thisProductList->begin(), E = thisProductList->end(); I != E; ++I)
 				{
 #ifndef __OPTIMIZE__
-					TLOG(50, "ArtdaqInputHelper") << "Branch key: class: '" << I->first.friendlyClassName_ << "' modlbl: '"
+					TLOG(TLVL_DEBUG + 50, "ArtdaqInputHelper") << "Branch key: class: '" << I->first.friendlyClassName_ << "' modlbl: '"
 					                              << I->first.moduleLabel_ << "' instnm: '" << I->first.productInstanceName_ << "' procnm: '"
-					                              << I->first.processName_ << "', branch description name: " << I->second.wrappedName()
-					                              << ", TClass = " << static_cast<void*>(TClass::GetClass(I->second.wrappedName().c_str()));
+					                              << I->first.processName_ << "', branch description name: " << I->second.wrappedName();
 #endif
 					if (productListInitialized)
 					{
@@ -422,10 +421,18 @@ void art::ArtdaqInputHelper<U>::readInitMessage()
 
 			TLOG(TLVL_DEBUG + 33, "ArtdaqInputHelper")
 			    << "ArtdaqInputHelper: Product list sz=" << productList_->size();
-
+            #if 0
+			for (auto I = productList_->begin(), E = productList_->end(); I != E; ++I)
+			{
+				TLOG(TLVL_DEBUG + 50, "ArtdaqInputHelper") << "Branch key: class: '" << I->first.friendlyClassName_ << "' modlbl: '"
+				                                           << I->first.moduleLabel_ << "' instnm: '" << I->first.productInstanceName_ << "' procnm: '"
+				                                           << I->first.processName_ << "', branch description name: " << I->second.wrappedName();
+			}
+            #endif
 			// helper now owns productList_!
 
 			helper_.productList(std::unique_ptr<art::ProductList>(productList_));
+
 			TLOG(TLVL_DEBUG + 33, "ArtdaqInputHelper") << "ArtdaqInputHelper: got product list";
 		}
 	}
@@ -964,8 +971,12 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 	}
 
     if (eventMap->FirstFragmentType() == artdaq::Fragment::InitFragmentType) {
+        #if CAN_REINIT
 		TLOG(TLVL_INFO, "ArtdaqInputHelper") << "Additional Init Message received! Attempting to register new products...";
 		readInitMessage();
+        #else
+		TLOG(TLVL_WARNING, "ArtdaqInputHelper") << "Received additional Init Message! Check init_fragment_count configuration!";
+        #endif
 		TLOG(TLVL_DEBUG + 45, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::readNext";
 		return true;
 

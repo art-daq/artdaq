@@ -1,5 +1,4 @@
 #include "TRACE/tracemf.h"
-#define TRACE_NAME "ArtdaqSharedMemoryService"
 
 #include "artdaq/ArtModules/ArtdaqSharedMemoryServiceInterface.h"
 #include "artdaq/DAQdata/Globals.hh"
@@ -17,6 +16,7 @@
 #include <cstdint>
 #include <memory>
 
+#define TRACE_NAME "ArtdaqSharedMemoryService"
 // ----------------------------------------------------------------------
 
 /**
@@ -101,13 +101,24 @@ DECLARE_ART_SERVICE_INTERFACE_IMPL(ArtdaqSharedMemoryService, ArtdaqSharedMemory
 
 static fhicl::ParameterSet empty_pset;
 
+// clang-format off
+#define TLVL_CONSTRUCTOR    TLVL_DEBUG + 32
+#define TLVL_READEVENT      TLVL_DEBUG + 33
+#define TLVL_READEVENT_2    TLVL_DEBUG + 34
+#define TLVL_READEVENT_3    TLVL_DEBUG + 35
+#define TLVL_RECEIVEEVENT   TLVL_DEBUG + 36
+#define TLVL_RECEIVEEVENT_2 TLVL_DEBUG + 37
+#define TLVL_RECEIVEEVENT_3 TLVL_DEBUG + 38
+#define TLVL_RECEIVEEVENT_4 TLVL_DEBUG + 39
+// clang-format on
+
 ArtdaqSharedMemoryService::ArtdaqSharedMemoryService(fhicl::ParameterSet const& pset, art::ActivityRegistry& /*unused*/)
     : incoming_events_(nullptr)
     , event_ordering_()
     , read_timeout_(pset.get<size_t>("read_timeout_us", static_cast<size_t>(pset.get<double>("waiting_time", 600.0) * 1000000)))
     , resume_after_timeout_(pset.get<bool>("resume_after_timeout", true))
 {
-	TLOG(TLVL_DEBUG + 33) << "ArtdaqSharedMemoryService CONSTRUCTOR";
+	TLOG(TLVL_CONSTRUCTOR) << "ArtdaqSharedMemoryService CONSTRUCTOR";
 
 	incoming_events_ = std::make_unique<artdaq::SharedMemoryEventReceiver>(
 	    pset.get<int>("shared_memory_key", artdaq::Globals::SharedMemoryKey(0xEE000000, true)),
@@ -120,7 +131,7 @@ ArtdaqSharedMemoryService::ArtdaqSharedMemoryService(fhicl::ParameterSet const& 
 		artapp_str = std::string(artapp_env) + "_";
 	}
 
-	TLOG(TLVL_DEBUG + 33) << "Setting app_name";
+	TLOG(TLVL_CONSTRUCTOR) << "Setting app_name";
 	artdaq::Globals::my_art_id_ = incoming_events_->GetMyId();
 	app_name = artapp_str + "art" + std::to_string(artdaq::Globals::my_art_id_);
 	// artdaq::configureMessageFacility(app_name.c_str()); // ELF 11/20/2020: MessageFacility already configured by initialization pset
@@ -128,12 +139,12 @@ ArtdaqSharedMemoryService::ArtdaqSharedMemoryService(fhicl::ParameterSet const& 
 	artapp_env = getenv("ARTDAQ_RANK");
 	if (artapp_env != nullptr && my_rank < 0)
 	{
-		TLOG(TLVL_DEBUG + 33) << "Setting rank from envrionment";
+		TLOG(TLVL_CONSTRUCTOR) << "Setting rank from envrionment";
 		my_rank = strtol(artapp_env, nullptr, 10);
 	}
 	else
 	{
-		TLOG(TLVL_DEBUG + 33) << "Setting my_rank from shared memory";
+		TLOG(TLVL_CONSTRUCTOR) << "Setting my_rank from shared memory";
 		my_rank = incoming_events_->GetRank();
 	}
 
@@ -160,12 +171,12 @@ ArtdaqSharedMemoryService::~ArtdaqSharedMemoryService()
 
 std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReadEventFromSharedMemory(bool broadcast)
 {
-	TLOG(TLVL_DEBUG + 33) << "ReadEventFromSharedMemory BEGIN";
+	TLOG(TLVL_READEVENT) << "ReadEventFromSharedMemory BEGIN";
 	std::shared_ptr<ArtdaqEvent> output_event;
 
 	while (output_event == nullptr)
 	{
-		TLOG(TLVL_DEBUG + 33) << "ReadEventFromSharedMemory: Waiting for available buffer";
+		TLOG(TLVL_READEVENT_2) << "ReadEventFromSharedMemory: Waiting for available buffer";
 		bool got_event = false;
 		auto start_time = std::chrono::steady_clock::now();
 		auto read_timeout_to_use = read_timeout_ > 100000 ? 100000 : read_timeout_;
@@ -181,7 +192,7 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReadEventFromSharedMemor
 			}
 			if (!got_event && artdaq::TimeUtils::GetElapsedTimeMicroseconds(start_time) > read_timeout_)
 			{
-				TLOG(TLVL_DEBUG + 30) << "Timeout occurred! No data received after " << artdaq::TimeUtils::GetElapsedTimeMicroseconds(start_time) << " us. Retrying.";
+				TLOG(TLVL_READEVENT_2) << "Timeout occurred! No data received after " << artdaq::TimeUtils::GetElapsedTimeMicroseconds(start_time) << " us. Retrying.";
 				last_read_timeout_ = true;
 			}
 		}
@@ -196,7 +207,7 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReadEventFromSharedMemor
 			return nullptr;
 		}
 
-		TLOG(TLVL_DEBUG + 33) << "ReadEventFromSharedMemory: Reading buffer header";
+		TLOG(TLVL_READEVENT) << "ReadEventFromSharedMemory: Reading buffer header";
 		last_read_timeout_ = false;
 		output_event = std::make_shared<ArtdaqEvent>();
 		auto errflag = false;
@@ -207,7 +218,7 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReadEventFromSharedMemor
 			continue;  // retry
 		}
 		output_event->header = std::make_shared<artdaq::detail::RawEventHeader>(*hdrPtr);
-		TLOG(TLVL_DEBUG + 33) << "ReadEventFromSharedMemory: Getting Fragment types";
+		TLOG(TLVL_READEVENT) << "ReadEventFromSharedMemory: Getting Fragment types";
 		auto fragmentTypes = incoming_events_->GetFragmentTypes(errflag);
 		if (errflag)
 		{  // Buffer was changed out from under reader!
@@ -223,7 +234,7 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReadEventFromSharedMemor
 
 		for (auto const& type : fragmentTypes)
 		{
-			TLOG(TLVL_DEBUG + 33) << "ReadEventFromSharedMemory: Getting all Fragments of type " << static_cast<int>(type);
+			TLOG(TLVL_READEVENT_3) << "ReadEventFromSharedMemory: Getting all Fragments of type " << static_cast<int>(type);
 			output_event->fragments[type] = incoming_events_->GetFragmentsByType(errflag, type);
 			if (!output_event->fragments[type])
 			{
@@ -235,17 +246,17 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReadEventFromSharedMemor
 			// Events coming out of the EventStore are not sorted but need to be sorted by sequence ID before they can be passed to art.
 			std::sort(output_event->fragments[type]->begin(), output_event->fragments[type]->end(), artdaq::fragmentSequenceIDCompare);
 		}
-		TLOG(TLVL_DEBUG + 33) << "ReadEventFromSharedMemory: Releasing buffer";
+		TLOG(TLVL_READEVENT) << "ReadEventFromSharedMemory: Releasing buffer";
 		incoming_events_->ReleaseBuffer();
 	}
 
-	TLOG(TLVL_DEBUG + 33) << "ReadEventFromSharedMemory END";
+	TLOG(TLVL_READEVENT) << "ReadEventFromSharedMemory END";
 	return output_event;
 }
 
 std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadcast)
 {
-	TLOG(TLVL_DEBUG + 33) << "ReceiveEvent BEGIN";
+	TLOG(TLVL_RECEIVEEVENT) << "ReceiveEvent BEGIN";
 	std::shared_ptr<ArtdaqEvent> output_event;
 	auto start_time = std::chrono::steady_clock::now();
 
@@ -269,35 +280,35 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 			// If there is an Init Fragment, return it
 			if (event_ordering_.front()->FirstFragmentType() == artdaq::Fragment::InitFragmentType)
 			{
-				TLOG(TLVL_DEBUG + 34) << "Returning Init Fragment";
+				TLOG(TLVL_RECEIVEEVENT) << "Returning Init Fragment";
 				output_event = event_ordering_.front();
 				event_ordering_.pop_front();
 				break;  // while(output_event == nullptr)
 			}
 			if (current_subrun_ != 0 && event_ordering_.front()->header->subrun_id == current_subrun_)
 			{
-				TLOG(TLVL_DEBUG + 34) << "Returning Fragment due to subrun match";
+				TLOG(TLVL_RECEIVEEVENT) << "Returning Fragment due to subrun match";
 				output_event = event_ordering_.front();
 				event_ordering_.pop_front();
 				break;  // while(output_event == nullptr)
 			}
 			if (current_subrun_ == 0)
 			{
-				TLOG(TLVL_DEBUG + 34) << "Returning Fragment due to unset subrun";
+				TLOG(TLVL_RECEIVEEVENT) << "Returning Fragment due to unset subrun";
 				output_event = event_ordering_.front();
 				event_ordering_.pop_front();
 				break;  // while(output_event == nullptr)
 			}
 			if (artdaq::Fragment::isUserFragmentType(event_ordering_.front()->FirstFragmentType()))
 			{
-				TLOG(TLVL_DEBUG + 34) << "Returning Fragment due to User type";
+				TLOG(TLVL_RECEIVEEVENT) << "Returning Fragment due to User type";
 				output_event = event_ordering_.front();
 				event_ordering_.pop_front();
 				break;  // while(output_event == nullptr)
 			}
-			if (artdaq::TimeUtils::GetElapsedTime(start_time) > 1.0)
+			if (artdaq::TimeUtils::GetElapsedTime(start_time) > 10.0)
 			{
-				TLOG(TLVL_DEBUG + 34) << "Returning Fragment due to safety valve timeout";
+				TLOG(TLVL_RECEIVEEVENT) << "Returning Fragment due to safety valve timeout";
 				output_event = event_ordering_.front();
 				event_ordering_.pop_front();
 				break;  // while(output_event == nullptr)
@@ -320,24 +331,26 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 		}
 		else
 		{
-			TLOG(TLVL_DEBUG + 33) << "Adding ArtdaqEvent with run=" << next_event->header->run_id << ", subrun=" << next_event->header->subrun_id << ", seq=" << next_event->header->sequence_id << ", and type " << static_cast<int>(next_event->FirstFragmentType()) << " to event ordering list";
+			TLOG(TLVL_RECEIVEEVENT_2) << "Adding ArtdaqEvent with run=" << next_event->header->run_id << ", subrun=" << next_event->header->subrun_id << ", seq=" << next_event->header->sequence_id << ", and type " << static_cast<int>(next_event->FirstFragmentType()) << " to event ordering list";
 			if (next_event->FirstFragmentType() == artdaq::Fragment::EndOfDataFragmentType) { end_of_data_received_ = true; }
 			event_ordering_.push_back(next_event);
 			event_ordering_.sort();
 		}
 	}
-	TLOG(TLVL_DEBUG + 33) << "ReceiveEvent END";
+
 	if (output_event != nullptr)
 	{
-		TLOG(TLVL_DEBUG + 33) << "Returning ArtdaqEvent with run=" << output_event->header->run_id << ", subrun=" << output_event->header->subrun_id
-		                      << ", seq=" << output_event->header->sequence_id << ", and type " << static_cast<int>(output_event->FirstFragmentType());
+		TLOG(TLVL_RECEIVEEVENT_3) << "Returning ArtdaqEvent with run=" << output_event->header->run_id << ", subrun=" << output_event->header->subrun_id
+		                          << ", seq=" << output_event->header->sequence_id << ", and type " << static_cast<int>(output_event->FirstFragmentType());
 		current_subrun_ = output_event->header->subrun_id;
 		if (output_event->FirstFragmentType() == artdaq::Fragment::EndOfSubrunFragmentType || output_event->FirstFragmentType() == artdaq::Fragment::SubrunDataFragmentType || output_event->FirstFragmentType() == artdaq::Fragment::StartOfRunFragmentType || output_event->FirstFragmentType() == artdaq::Fragment::EndOfRunFragmentType || output_event->FirstFragmentType() == artdaq::Fragment::RunDataFragmentType || output_event->FirstFragmentType() == artdaq::Fragment::InitFragmentType)
 		{
-			TLOG(TLVL_DEBUG + 34) << "Due to run/subrun/control conditions, setting current_subrun to 0";
+			TLOG(TLVL_RECEIVEEVENT_4) << "Due to run/subrun/control conditions, setting current_subrun to 0";
 			current_subrun_ = 0;
 		}
 	}
+
+	TLOG(TLVL_RECEIVEEVENT) << "ReceiveEvent END";
 
 	return output_event;
 }

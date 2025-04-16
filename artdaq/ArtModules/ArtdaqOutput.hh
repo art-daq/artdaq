@@ -65,6 +65,8 @@
 #define TLVL_WRITESUBRUN_VERBOSE 48
 #define TLVL_EXTRACTPRODUCTS 49
 #define TLVL_EXTRACTPRODUCTS_VERBOSE 50
+#define TLVL_BEGINJOB 51
+#define TLVL_BEGINJOB_VERBOSE 52
 
 namespace art {
 class ArtdaqOutput;
@@ -135,6 +137,8 @@ protected:
 		                                                       "respondToCloseOutputFiles(FileBlock const&)";
 	}
 
+    virtual void beginJob();
+
 	/// <summary>
 	/// Perform End-of-Job actions. No-op, but derived classes may override
 	/// </summary>
@@ -149,7 +153,7 @@ protected:
 	/// <param name="rp">RunPrincipal of new run</param>
 	void beginRun(RunPrincipal const& rp) final
 	{
-		extractProducts_(rp);
+		//extractProducts_(rp);
 		beginRun_(rp);
 	}
 	/// <summary>
@@ -163,7 +167,7 @@ protected:
 	/// <param name="srp">SubRunPrincipal of new subrun</param>
 	void beginSubRun(SubRunPrincipal const& srp) final
 	{
-		extractProducts_(srp);
+		//extractProducts_(srp);
 		beginSubRun_(srp);
 	}
 	/// <summary>
@@ -177,7 +181,7 @@ protected:
 	/// <param name="ep">EventPrincipal of event</param>
 	void event(EventPrincipal const& ep) final
 	{
-		extractProducts_(ep);
+		//extractProducts_(ep);
 		event_(ep);
 	}
 	/// <summary>
@@ -637,10 +641,10 @@ inline void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 	TLOG(TLVL_WRITESUBRUN, "ArtdaqOutput") << "Begin: ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)";
 	if (!initMsgSent_)
 	{
-		TLOG(TLVL_WARNING, "ArtdaqOutput") << "Not sending Subrun message before Event!";
-		return;
-		// send_init_message();
-		// initMsgSent_ = true;
+		//TLOG(TLVL_WARNING, "ArtdaqOutput") << "Not sending Subrun message before Event!";
+		//return;
+		 send_init_message();
+		 initMsgSent_ = true;
 	}
 
 	//
@@ -754,10 +758,10 @@ inline void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 	(void)rp;
 	if (!initMsgSent_)
 	{
-		TLOG(TLVL_WARNING, "ArtdaqOutput") << "Not sending Run message before Event!";
-		return;
-		// send_init_message();
-		// initMsgSent_ = true;
+		//TLOG(TLVL_WARNING, "ArtdaqOutput") << "Not sending Run message before Event!";
+		//return;
+		 send_init_message();
+		 initMsgSent_ = true;
 	}
 
 	//
@@ -802,6 +806,42 @@ inline void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 		*I = 0;
 	}
 	TLOG(TLVL_WRITERUN, "ArtdaqOutput") << "End: ArtdaqOutput::writeRun(RunPrincipal& rp)";
+}
+
+inline void art::ArtdaqOutput::beginJob()
+{
+	TLOG(TLVL_BEGINJOB, "ArtdaqOutput") << "Begin: ArtdaqOutput::beginJob()";
+	bool newProducts = false;
+	auto const& products = keptProducts();
+
+    // std::array<Selections, NumBranchTypes>
+	for (auto const& selections : products)
+	{
+        // Selections = std::map<ProductID, BranchDescription>
+        for (auto const& prod_pair : selections) {
+			auto const& productDescription = prod_pair.second;
+			auto const& branchKey = BranchKey(productDescription);
+
+			if (!productList_.count(branchKey))
+			{
+				TLOG(TLVL_BEGINJOB_VERBOSE, "ArtdaqOutput") << "ArtdaqOutput::extractProducts_:"
+				                                                   << "Adding branch key to productList of class: '"
+				                                                   << branchKey.friendlyClassName_ << "' modlbl: '" << branchKey.moduleLabel_ << "' instnm: '"
+				                                                   << branchKey.productInstanceName_ << "' procnm: '" << branchKey.processName_ << "'"
+				                                                   << ", description: " << productDescription.wrappedName();
+
+				productList_[branchKey] = productDescription;
+				newProducts = true;
+			}
+        }
+	}
+	TLOG(TLVL_BEGINJOB, "ArtdaqOutput") << "End: ArtdaqOutput::extractProducts_(Principal const& principal) Product list sz=" << productList_.size();
+
+	if (newProducts && initMsgSent_)
+	{
+		TLOG(TLVL_BEGINJOB, "ArtdaqOutput") << "New products added to list, sending new InitFragment";
+		send_init_message();
+	}
 }
 
 inline void art::ArtdaqOutput::extractProducts_(Principal const& principal [[gnu::unused]])
