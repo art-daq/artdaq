@@ -258,7 +258,7 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 {
 	TLOG(TLVL_RECEIVEEVENT) << "ReceiveEvent BEGIN";
 	std::shared_ptr<ArtdaqEvent> output_event;
-	// auto start_time = std::chrono::steady_clock::now();
+	auto start_time = std::chrono::steady_clock::now();
 
 	while (output_event == nullptr)
 	{
