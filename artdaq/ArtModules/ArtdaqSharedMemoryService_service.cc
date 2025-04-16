@@ -318,6 +318,7 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 				event_ordering_.pop_front();
 				break;  // while(output_event == nullptr)
 			}
+#endif
 			if (artdaq::TimeUtils::GetElapsedTime(start_time) > 10.0)
 			{
 				TLOG(TLVL_RECEIVEEVENT) << "Returning Fragment due to safety valve timeout";
@@ -325,7 +326,6 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 				event_ordering_.pop_front();
 				break;  // while(output_event == nullptr)
 			}
-#endif
 		}
 
 		auto next_event = ReadEventFromSharedMemory(broadcast);
