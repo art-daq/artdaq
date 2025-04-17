@@ -1299,7 +1299,7 @@ void artdaq::SharedMemoryEventManager::complete_buffer_(int buffer)
 
 bool artdaq::SharedMemoryEventManager::bufferComparator(int bufA, int bufB)
 {
-	return getEventHeader_(bufA)->sequence_id < getEventHeader_(bufB)->sequence_id;
+	return getEventHeader_(bufA) < getEventHeader_(bufB);
 }
 
 void artdaq::SharedMemoryEventManager::CheckPendingBuffers()
@@ -1374,7 +1374,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		auto hdr = getEventHeader_(buf);
 		auto thisEventSize = BufferDataSize(buf);
 
-		TLOG(TLVL_CHECKPENDINGBUFFERS) << "Releasing event " << std::to_string(hdr->sequence_id) << " in buffer " << buf << " to art, "
+		TLOG(TLVL_CHECKPENDINGBUFFERS) << "Releasing event " << std::to_string(hdr->sequence_id) << " (sr=" << hdr->subrun_id << ") in buffer " << buf << " to art, "
 		                               << "event_size=" << thisEventSize << ", buffer_size=" << BufferSize();
 		statsHelper_.addSample(EVENTS_RELEASED_STAT_KEY, thisEventSize);
 
