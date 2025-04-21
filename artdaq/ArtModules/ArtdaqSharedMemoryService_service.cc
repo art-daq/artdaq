@@ -293,7 +293,7 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 				event_ordering_.pop_front();
 				break;  // while(output_event == nullptr)
 			}
-			if (current_subrun_ != 0 && event_ordering_.front()->header->subrun_id == current_subrun_)
+			if (current_subrun_ != 0 && event_ordering_.front()->header->subrun_id <= current_subrun_)
 			{
 				if (artdaq::Fragment::isUserFragmentType(event_ordering_.front()->FirstFragmentType()) || event_ordering_.front()->FirstFragmentType() == artdaq::Fragment::DataFragmentType)
 				{
@@ -361,7 +361,6 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 		auto type = output_event->FirstFragmentType();
 		TLOG(TLVL_RECEIVEEVENT_3) << "Returning ArtdaqEvent with run=" << output_event->header->run_id << ", subrun=" << output_event->header->subrun_id
 		                          << ", seq=" << output_event->header->sequence_id << ", and type " << static_cast<int>(type);
-		current_subrun_ = output_event->header->subrun_id;
 		if (type == artdaq::Fragment::EndOfSubrunFragmentType || type == artdaq::Fragment::SubrunDataFragmentType || type == artdaq::Fragment::StartOfRunFragmentType || type == artdaq::Fragment::EndOfRunFragmentType || type == artdaq::Fragment::RunDataFragmentType || type == artdaq::Fragment::InitFragmentType)
 		{
 			if (type == artdaq::Fragment::EndOfSubrunFragmentType || type == artdaq::Fragment::SubrunDataFragmentType)
