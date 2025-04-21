@@ -348,7 +348,8 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 			if (next_event->FirstFragmentType() == artdaq::Fragment::EndOfDataFragmentType) { end_of_data_received_ = true; }
 			else if (next_event->header->subrun_id < current_subrun_)
 			{
-				TLOG(TLVL_WARNING) << "ArtdaqEvent with run = " << next_event->header->run_id << ", subrun = " << next_event->header->subrun_id << ", seq = " << next_event->header->sequence_id << ", and type " << static_cast<int>(next_event->FirstFragmentType()) << " is from a previous subrun! (current=" << current_subrun_ << ")";
+				auto seq_mask = 0xFFFFFFFF & next_event->header->sequence_id;
+				TLOG(TLVL_WARNING) << "ArtdaqEvent with run = " << next_event->header->run_id << ", subrun = " << next_event->header->subrun_id << ", seq = " << next_event->header->sequence_id << " (32b mask " << seq_mask << "), and type " << static_cast<int>(next_event->FirstFragmentType()) << " is from a previous subrun! (current=" << current_subrun_ << ")";
 			}
 			event_ordering_.push_back(next_event);
 			event_ordering_.sort();
