@@ -361,6 +361,10 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 		auto type = output_event->FirstFragmentType();
 		TLOG(TLVL_RECEIVEEVENT_3) << "Returning ArtdaqEvent with run=" << output_event->header->run_id << ", subrun=" << output_event->header->subrun_id
 		                          << ", seq=" << output_event->header->sequence_id << ", and type " << static_cast<int>(type);
+        if (output_event->header->subrun_id > current_subrun_) {
+			TLOG(TLVL_WARNING) << "Event subrun " << output_event->header->subrun_id << " is greater than current_subrun_ (" << current_subrun_ << "), incrementing";
+			current_subrun_ = output_event->header->subrun_id;
+        }
 		if (type == artdaq::Fragment::EndOfSubrunFragmentType || type == artdaq::Fragment::SubrunDataFragmentType || type == artdaq::Fragment::StartOfRunFragmentType || type == artdaq::Fragment::EndOfRunFragmentType || type == artdaq::Fragment::RunDataFragmentType || type == artdaq::Fragment::InitFragmentType)
 		{
 			if (type == artdaq::Fragment::EndOfSubrunFragmentType || type == artdaq::Fragment::SubrunDataFragmentType)
