@@ -361,7 +361,7 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 		}
 		else
 		{
-            // Reset start time when new event arrives
+			// Reset start time when new event arrives
 			start_time = std::chrono::steady_clock::now();
 			TLOG(TLVL_RECEIVEEVENT_2) << "Adding ArtdaqEvent with run=" << next_event->header->run_id << ", subrun=" << next_event->header->subrun_id << ", seq=" << next_event->header->sequence_id << ", and type " << static_cast<int>(next_event->FirstFragmentType()) << " to event ordering list";
 			if (next_event->FirstFragmentType() == artdaq::Fragment::EndOfDataFragmentType) { end_of_data_received_ = true; }
