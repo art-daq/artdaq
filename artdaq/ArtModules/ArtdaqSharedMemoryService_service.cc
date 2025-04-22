@@ -313,10 +313,14 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 			}
 			if (current_subrun_ == 0)
 			{
-				TLOG(TLVL_RECEIVEEVENT) << "Returning Fragment due to unset subrun";
-				output_event = event_ordering_.front();
-				event_ordering_.pop_front();
-				break;  // while(output_event == nullptr)
+				if (artdaq::Fragment::isUserFragmentType(event_ordering_.front()->FirstFragmentType()) || event_ordering_.front()->FirstFragmentType() == artdaq::Fragment::DataFragmentType)
+				{
+					TLOG(TLVL_RECEIVEEVENT) << "Returning Fragment due to unset subrun";
+					output_event = event_ordering_.front();
+					event_ordering_.pop_front();
+					break;  // while(output_event == nullptr)
+				}
+                // We cannot close a subrun that has not yet been opened
 			}
 
 			if (artdaq::TimeUtils::GetElapsedTime(start_time) > safety_valve_timeout_s_)
@@ -346,7 +350,7 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 		{
 			TLOG(TLVL_RECEIVEEVENT_2) << "Adding ArtdaqEvent with run=" << next_event->header->run_id << ", subrun=" << next_event->header->subrun_id << ", seq=" << next_event->header->sequence_id << ", and type " << static_cast<int>(next_event->FirstFragmentType()) << " to event ordering list";
 			if (next_event->FirstFragmentType() == artdaq::Fragment::EndOfDataFragmentType) { end_of_data_received_ = true; }
-			else if (next_event->header->subrun_id < current_subrun_)
+			else if (next_event->header->subrun_id < current_subrun_ && next_event->FirstFragmentType() != artdaq::Fragment::RunDataFragmentType && next_event->FirstFragmentType() == artdaq::Fragment::EndOfRunFragmentType)
 			{
 				auto seq_mask = 0xFFFFFFFF & next_event->header->sequence_id;
 				TLOG(TLVL_WARNING) << "ArtdaqEvent with run = " << next_event->header->run_id << ", subrun = " << next_event->header->subrun_id << ", seq = " << next_event->header->sequence_id << " (32b mask " << seq_mask << "), and type " << static_cast<int>(next_event->FirstFragmentType()) << " is from a previous subrun! (current=" << current_subrun_ << ")";
