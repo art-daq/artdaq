@@ -64,6 +64,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(const fhicl::Paramete
     , num_fragments_per_event_(pset.get<size_t>("expected_fragments_per_event"))
     , queue_size_(pset.get<size_t>("buffer_count"))
     , run_id_(0)
+    , subrun_id_(0)
     , max_subrun_event_map_length_(pset.get<size_t>("max_subrun_lookup_table_size", 100))
     , max_event_list_length_(pset.get<size_t>("max_event_list_length", 100))
     , update_run_ids_(pset.get<bool>("update_run_ids_on_new_fragment", true))
@@ -199,6 +200,7 @@ bool artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader fra
 	if (update_run_ids_)
 	{
 		hdr->run_id = run_id_;
+		hdr->subrun_id = subrun_id_;
 	}
 	hdr->subrun_id = GetSubrunForSequenceID(frag.sequence_id, frag.type);
 
@@ -378,6 +380,7 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 		if (update_run_ids_)
 		{
 			hdr->run_id = run_id_;
+			hdr->subrun_id = subrun_id_;
 		}
 		hdr->subrun_id = GetSubrunForSequenceID(frag.sequence_id, frag.type);
 
@@ -950,6 +953,7 @@ void artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 	released_incomplete_events_.clear();
 	StartArt();
 	run_id_ = runID;
+	subrun_id_ = 0;
 	{
 		std::unique_lock<std::mutex> lk(subrun_event_map_mutex_);
 		subrun_event_map_.clear();
@@ -1377,6 +1381,16 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		TLOG(TLVL_CHECKPENDINGBUFFERS) << "Releasing event " << std::to_string(hdr->sequence_id) << " (sr=" << hdr->subrun_id << ") in buffer " << buf << " to art, "
 		                               << "event_size=" << thisEventSize << ", buffer_size=" << BufferSize();
 		statsHelper_.addSample(EVENTS_RELEASED_STAT_KEY, thisEventSize);
+
+		// Update "current" subrun if needed
+		if (hdr->subrun_id > subrun_id_)
+		{
+			subrun_id_ = hdr->subrun_id;
+		}
+		else if (update_run_ids_ && hdr->subrun_id < subrun_id_)
+		{
+			hdr->subrun_id = subrun_id_;
+		}
 
 		TLOG(TLVL_BUFFER) << "check_pending_buffers_ removing buffer " << buf << " moving from pending to full";
 		MarkBufferFull(buf);
