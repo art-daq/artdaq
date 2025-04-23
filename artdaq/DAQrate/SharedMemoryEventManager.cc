@@ -1498,7 +1498,7 @@ void artdaq::SharedMemoryEventManager::check_pending_broadcasts_()
 	auto now = std::chrono::steady_clock::now();
 	while (entry != pending_broadcasts_.end())
 	{
-		if (!init_frags_sent_ || entry->fragments.size() == 0 || (entry->fragments.size() < init_fragment_count_ /* && now < entry->deadline*/))
+		if (running_ && (!init_frags_sent_ || entry->fragments.size() == 0 || (entry->fragments.size() < init_fragment_count_ /* && now < entry->deadline*/)))
 		{
 			entry++;
 			continue;
