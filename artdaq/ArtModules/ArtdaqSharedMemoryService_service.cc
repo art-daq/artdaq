@@ -38,7 +38,7 @@ public:
 		fhicl::Atom<uint32_t> broadcast_shared_memory_key{fhicl::Name{"broadcast_shared_memory_key"}, fhicl::Comment{"Key to use when connecting to broadcast shared memory. Will default to 0xCEE70000 + getppid()."}, 0xCEE70000};
 		/// "rank" (OPTIONAL) : The rank of this applicaiton, for use by non - artdaq applications running NetMonTransportService
 		fhicl::Atom<int> rank{fhicl::Name{"rank"}, fhicl::Comment{"Rank of this artdaq application. Used for data transfers"}};
-		/// "subrun_closure_threshold" (Default: 1) Minimum number of events in event ordering list before releasing a subrun/run change event
+		/// "subrun_closure_threshold" (Default: 5) Minimum number of events in event ordering list before releasing a subrun/run change event
 		fhicl::Atom<size_t> subrun_closure_threshold{fhicl::Name{"subrun_closure_threshold"}, fhicl::Comment{"Minimum number of events in event ordering list before releasing a subrun/run change event"}, 1};
 		/// "safety_valve_timeout_s" (Default: 10.0): Maximum time (in s) to wait before releasing the front of the event ordering list
 		fhicl::Atom<double> safety_valve_timeout_s{fhicl::Name{"safety_valve_timeout_s"}, fhicl::Comment{"Maximum time (in s) to wait before releasing the front of the event ordering list"}, 10.0};
@@ -122,7 +122,7 @@ ArtdaqSharedMemoryService::ArtdaqSharedMemoryService(fhicl::ParameterSet const& 
     : incoming_events_(nullptr)
     , event_ordering_()
     , read_timeout_(pset.get<size_t>("read_timeout_us", static_cast<size_t>(pset.get<double>("waiting_time", 600.0) * 1000000)))
-    , subrun_closure_threshold_(pset.get<size_t>("subrun_closure_threshold", 1))
+    , subrun_closure_threshold_(pset.get<size_t>("subrun_closure_threshold", artdaq::SharedMemoryManager::GetCatchUpFactor() + 2))  // +2, one for ESRF itself, one for extra padding to ensure that no catch-up is being performed
     , safety_valve_timeout_s_(pset.get<double>("safety_valve_timeout_s", 10.0))
     , resume_after_timeout_(pset.get<bool>("resume_after_timeout", true))
 {
