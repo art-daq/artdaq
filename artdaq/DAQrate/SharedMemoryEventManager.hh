@@ -447,6 +447,7 @@ private:
 	run_id_t run_id_;
 
 	std::map<sequence_id_t, subrun_id_t> subrun_event_map_;
+	subrun_id_t subrun_id_;
 	size_t max_subrun_event_map_length_;
 	static std::mutex subrun_event_map_mutex_;
 
@@ -500,15 +501,15 @@ private:
 	fhicl::ParameterSet data_pset_;
 
 	std::mutex init_fragments_mutex_;
-	FragmentPtrs init_fragments_;
+	std::unordered_map<Fragment::fragment_id_t, std::unordered_map<int, FragmentPtr>> init_fragment_map_;
 	bool init_frags_sent_{false};
-	std::set<Fragment::fragment_id_t> received_init_frags_;
 	std::list<std::pair<detail::RawFragmentHeader, FragmentPtr>> dropped_data_;
 
 	mutable std::mutex broadcast_mutex_;
 	struct BroadcastEntry
 	{
 		Fragment::type_t type;
+		Fragment::sequence_id_t sequence_id;
 		FragmentPtrs fragments;
 		std::chrono::steady_clock::time_point deadline;
 	};
@@ -527,6 +528,7 @@ private:
 	std::vector<char*> parse_art_command_line_(const std::shared_ptr<art_config_file>& config_file, size_t process_index);
 
 	void send_init_frags_();
+	size_t init_fragment_map_size_() const;
 	SharedMemoryManager broadcasts_;
 };
 }  // namespace artdaq
