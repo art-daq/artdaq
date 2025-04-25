@@ -1,7 +1,7 @@
 #ifndef artdaq_ArtModules_ArtdaqSharedMemoryServiceInterface_h
 #define artdaq_ArtModules_ArtdaqSharedMemoryServiceInterface_h
 
-#include "art/Framework/Services/Registry/ServiceMacros.h"
+#include "art/Framework/Services/Registry/ServiceDeclarationMacros.h"
 #include "artdaq-core/Data/RawEvent.hh"
 #include "artdaq/ArtModules/ArtdaqEvent.hh"
 #include "fhiclcpp/types/Atom.h"
