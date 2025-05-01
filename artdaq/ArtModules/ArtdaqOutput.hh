@@ -811,7 +811,6 @@ inline void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 inline void art::ArtdaqOutput::beginJob()
 {
 	TLOG(TLVL_BEGINJOB, "ArtdaqOutput") << "Begin: ArtdaqOutput::beginJob()";
-	bool newProducts = false;
 	auto const& products = keptProducts();
 
 	// std::array<Selections, NumBranchTypes>
