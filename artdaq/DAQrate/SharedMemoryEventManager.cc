@@ -1330,7 +1330,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 	{
 		if (ResetBuffer(buf) && (pending_buffers_.count(buf) == 0u))
 		{
-			TLOG(TLVL_CHECKPENDINGBUFFERS_2) << "check_pending_buffers_ Incomplete buffer detected, buf=" << buf << " active_bufers_.count(buf)=" << active_buffers_.count(buf) << " buffer_writes_pending_[buf]=" << buffer_writes_pending_[buf].load();
+			TLOG(TLVL_CHECKPENDINGBUFFERS) << "check_pending_buffers_ Incomplete buffer detected, buf=" << buf << " active_bufers_.count(buf)=" << active_buffers_.count(buf) << " buffer_writes_pending_[buf]=" << buffer_writes_pending_[buf].load();
 			auto hdr = getEventHeader_(buf);
 			if ((active_buffers_.count(buf) != 0u) && buffer_writes_pending_[buf].load() == 0)
 			{
@@ -1393,13 +1393,13 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		}
         else if (init_fragment_count_ > 0) {
             if (available_buffers > 0 && hdr->subrun_id > subrun_id_) {
-				TLOG(TLVL_CHECKPENDINGBUFFERS) << "Holding event " << std::to_string(hdr->sequence_id) << " (sr=" << hdr->subrun_id << ") in buffer " << buf << ", "
+				TLOG(TLVL_CHECKPENDINGBUFFERS_4) << "Holding event " << std::to_string(hdr->sequence_id) << " (sr=" << hdr->subrun_id << ") in buffer " << buf << ", "
 				                               << "event_size=" << thisEventSize << ", buffer_size=" << BufferSize();
 				continue;
             }
         }
 
-		TLOG(TLVL_CHECKPENDINGBUFFERS) << "Releasing event " << std::to_string(hdr->sequence_id) << " (sr=" << hdr->subrun_id << ") in buffer " << buf << " to art, "
+		TLOG(TLVL_CHECKPENDINGBUFFERS_4) << "Releasing event " << std::to_string(hdr->sequence_id) << " (sr=" << hdr->subrun_id << ") in buffer " << buf << " to art, "
 		                               << "event_size=" << thisEventSize << ", buffer_size=" << BufferSize();
 		statsHelper_.addSample(EVENTS_RELEASED_STAT_KEY, thisEventSize);
 
@@ -1485,7 +1485,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 			}
 		}
 		auto total = size();
-		TLOG(TLVL_CHECKPENDINGBUFFERS_4) << "Buffer usage: full=" << full << ", empty=" << empty << ", writing=" << writing << ", reading=" << reading << ", total=" << total;
+		TLOG(TLVL_CHECKPENDINGBUFFERS_2) << "Buffer usage: full=" << full << ", empty=" << empty << ", writing=" << writing << ", reading=" << reading << ", total=" << total;
 
 		metricMan->sendMetric("Shared Memory Full Buffers", full, "buffers", 2, MetricMode::LastPoint);
 		metricMan->sendMetric("Shared Memory Available Buffers", empty, "buffers", 2, MetricMode::LastPoint);
