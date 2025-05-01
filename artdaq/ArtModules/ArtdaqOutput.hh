@@ -838,11 +838,8 @@ inline void art::ArtdaqOutput::beginJob()
 	}
 	TLOG(TLVL_BEGINJOB, "ArtdaqOutput") << "End: ArtdaqOutput::extractProducts_(Principal const& principal) Product list sz=" << productList_.size();
 
-	if (newProducts && initMsgSent_)
-	{
-		TLOG(TLVL_BEGINJOB, "ArtdaqOutput") << "New products added to list, sending new InitFragment";
-		send_init_message();
-	}
+	send_init_message();
+	initMsgSent_ = true;
 }
 
 inline void art::ArtdaqOutput::extractProducts_(Principal const& principal [[gnu::unused]])
