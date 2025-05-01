@@ -184,7 +184,7 @@ bool artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader fra
 
 	TLOG(TLVL_ADDFRAGMENT) << "AddFragment(Header, ptr) BEGIN frag.word_count=" << frag.word_count
 	                       << ", sequence_id=" << frag.sequence_id;
-	auto buffer = getBufferForSequenceID_(frag.sequence_id, true, frag.timestamp, frag.type);
+	auto buffer = getBufferForSequenceID_(frag.sequence_id, true, frag.timestamp);
 	TLOG(TLVL_ADDFRAGMENT) << "Using buffer " << buffer << " for seqid=" << frag.sequence_id;
 	if (buffer == -1)
 	{
@@ -202,7 +202,7 @@ bool artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader fra
 		hdr->run_id = run_id_;
 		hdr->subrun_id = subrun_id_;
 	}
-	hdr->subrun_id = GetSubrunForSequenceID(frag.sequence_id, frag.type);
+	hdr->subrun_id = GetSubrunForSequenceID(frag.sequence_id);
 
 	TLOG(TLVL_ADDFRAGMENT) << "AddFragment before Write calls";
 	Write(buffer, dataPtr, frag.word_count * sizeof(RawDataType));
@@ -253,7 +253,7 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 {
 	if (!running_) return nullptr;
 	TLOG(TLVL_WRITEFRAGMENTHEADER) << "WriteFragmentHeader BEGIN, seqID=" << frag.sequence_id;
-	auto buffer = getBufferForSequenceID_(frag.sequence_id, true, frag.timestamp, frag.type);
+	auto buffer = getBufferForSequenceID_(frag.sequence_id, true, frag.timestamp);
 
 	if (buffer < 0)
 	{
@@ -343,7 +343,7 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 {
 	TLOG(TLVL_DONEWRITINGFRAGMENT) << "DoneWritingFragment BEGIN";
 
-	auto buffer = getBufferForSequenceID_(frag.sequence_id, false, frag.timestamp, frag.type);
+	auto buffer = getBufferForSequenceID_(frag.sequence_id, false, frag.timestamp);
 	if (buffer < 0)
 	{
 		for (auto it = dropped_data_.begin(); it != dropped_data_.end(); ++it)
@@ -382,7 +382,7 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 			hdr->run_id = run_id_;
 			hdr->subrun_id = subrun_id_;
 		}
-		hdr->subrun_id = GetSubrunForSequenceID(frag.sequence_id, frag.type);
+		hdr->subrun_id = GetSubrunForSequenceID(frag.sequence_id);
 
 		TLOG(TLVL_DONEWRITINGFRAGMENT) << "DoneWritingFragment: Updating buffer touch time";
 		TouchBuffer(buffer);
@@ -953,7 +953,7 @@ void artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 	released_incomplete_events_.clear();
 	StartArt();
 	run_id_ = runID;
-	subrun_id_ = 0;
+	subrun_id_ = 1;
 	{
 		std::unique_lock<std::mutex> lk(subrun_event_map_mutex_);
 		subrun_event_map_.clear();
@@ -1018,7 +1018,7 @@ void artdaq::SharedMemoryEventManager::rolloverSubrun(sequence_id_t boundary, su
 	std::unique_lock<std::mutex> lk(subrun_event_map_mutex_);
 
 	// Don't re-rollover to an already-defined subrun
-	if (!subrun_event_map_.empty() && subrun_event_map_.rbegin()->second == subrun)
+	if (!subrun_event_map_.empty() && subrun_event_map_.rbegin()->second >= subrun)
 	{
 		return;
 	}
@@ -1111,10 +1111,14 @@ bool artdaq::SharedMemoryEventManager::broadcastFragments_(FragmentPtrs& frags)
 	TLOG(TLVL_BROADCASTFRAGMENTS) << "broadcastFragments_: Filling in RawEventHeader";
 	auto hdr = reinterpret_cast<detail::RawEventHeader*>(broadcasts_.GetBufferStart(buffer));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 	hdr->run_id = run_id_;
-	hdr->subrun_id = GetSubrunForSequenceID(frags.front()->sequenceID(), frags.front()->type());
+	hdr->subrun_id = GetSubrunForSequenceID(frags.front()->sequenceID());
 	hdr->sequence_id = frags.front()->sequenceID();
 	hdr->is_complete = true;
 	broadcasts_.IncrementWritePos(buffer, sizeof(detail::RawEventHeader));
+
+    if (frags.front()->type() == artdaq::Fragment::EndOfSubrunFragmentType || frags.front()->type() == artdaq::Fragment::SubrunDataFragmentType) {
+		subrun_id_ = hdr->subrun_id + 1;
+    }
 
 	for (auto& frag : frags)
 	{
@@ -1138,12 +1142,12 @@ artdaq::detail::RawEventHeader* artdaq::SharedMemoryEventManager::getEventHeader
 	return reinterpret_cast<detail::RawEventHeader*>(GetBufferStart(buffer));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 }
 
-artdaq::SharedMemoryEventManager::subrun_id_t artdaq::SharedMemoryEventManager::GetSubrunForSequenceID(Fragment::sequence_id_t seqID, Fragment::type_t type)
+artdaq::SharedMemoryEventManager::subrun_id_t artdaq::SharedMemoryEventManager::GetSubrunForSequenceID(Fragment::sequence_id_t seqID)
 {
 	subrun_id_t subrun = 1;
-	if (type == Fragment::DataFragmentType || type == Fragment::SubrunDataFragmentType)
+	if (init_fragment_count_ > 0)
 	{
-		TLOG(TLVL_GETSUBRUN_2) << "DataFragment or SubrunDataFragment: Decoding subrun from sequenceID " << seqID;
+		TLOG(TLVL_GETSUBRUN_2) << "init_fragment_count > 0 (processing art events): Decoding subrun from sequenceID " << seqID;
 		subrun = seqID >> 32;
 	}
 	else
@@ -1165,7 +1169,7 @@ artdaq::SharedMemoryEventManager::subrun_id_t artdaq::SharedMemoryEventManager::
 	return subrun;
 }
 
-int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence_id_t seqID, bool create_new, Fragment::timestamp_t timestamp, Fragment::type_t type)
+int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence_id_t seqID, bool create_new, Fragment::timestamp_t timestamp)
 {
 	TLOG(TLVL_GETBUFFER) << "getBufferForSequenceID " << seqID << " BEGIN";
 	std::unique_lock<std::mutex> lk(sequence_id_mutex_);
@@ -1222,7 +1226,7 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 	auto hdr = getEventHeader_(new_buffer);
 	hdr->is_complete = false;
 	hdr->run_id = run_id_;
-	hdr->subrun_id = GetSubrunForSequenceID(seqID, type);
+	hdr->subrun_id = GetSubrunForSequenceID(seqID);
 	hdr->event_id = use_sequence_id_for_event_number_ ? static_cast<uint32_t>(seqID) : static_cast<uint32_t>(timestamp);
 	hdr->sequence_id = seqID;
 	hdr->timestamp = timestamp;
@@ -1370,6 +1374,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 	std::list<int> sorted_buffers(pending_buffers_.begin(), pending_buffers_.end());
 	sorted_buffers.sort([this](int a, int b) { return bufferComparator(a, b); });
 
+	auto available_buffers = WriteReadyCount(overwrite_mode_);
 	auto counter = 0;
 	double eventSize = 0;
 	double eventTime = 0;
@@ -1378,19 +1383,25 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		auto hdr = getEventHeader_(buf);
 		auto thisEventSize = BufferDataSize(buf);
 
-		TLOG(TLVL_CHECKPENDINGBUFFERS) << "Releasing event " << std::to_string(hdr->sequence_id) << " (sr=" << hdr->subrun_id << ") in buffer " << buf << " to art, "
-		                               << "event_size=" << thisEventSize << ", buffer_size=" << BufferSize();
-		statsHelper_.addSample(EVENTS_RELEASED_STAT_KEY, thisEventSize);
-
-		// Update "current" subrun if needed
-		if (hdr->subrun_id > subrun_id_)
-		{
-			subrun_id_ = hdr->subrun_id;
-		}
-		else if (update_run_ids_ && hdr->subrun_id < subrun_id_)
+        if (update_run_ids_ && hdr->subrun_id < subrun_id_)
 		{
 			hdr->subrun_id = subrun_id_;
 		}
+
+        if (init_fragment_count_ == 0 && hdr->subrun_id > subrun_id_) {
+			subrun_id_ = hdr->subrun_id;
+		}
+        else if (init_fragment_count_ > 0) {
+            if (available_buffers > 0 && hdr->subrun_id > subrun_id_) {
+				TLOG(TLVL_CHECKPENDINGBUFFERS) << "Holding event " << std::to_string(hdr->sequence_id) << " (sr=" << hdr->subrun_id << ") in buffer " << buf << ", "
+				                               << "event_size=" << thisEventSize << ", buffer_size=" << BufferSize();
+				continue;
+            }
+        }
+
+		TLOG(TLVL_CHECKPENDINGBUFFERS) << "Releasing event " << std::to_string(hdr->sequence_id) << " (sr=" << hdr->subrun_id << ") in buffer " << buf << " to art, "
+		                               << "event_size=" << thisEventSize << ", buffer_size=" << BufferSize();
+		statsHelper_.addSample(EVENTS_RELEASED_STAT_KEY, thisEventSize);
 
 		TLOG(TLVL_BUFFER) << "check_pending_buffers_ removing buffer " << buf << " moving from pending to full";
 		MarkBufferFull(buf);
@@ -1399,20 +1410,19 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		eventSize += thisEventSize;
 		eventTime += TimeUtils::GetElapsedTime(event_timing_[buf]);
 		pending_buffers_.erase(buf);
-		TLOG(TLVL_BUFFER) << "Buffer occupancy now (total,full,reading,empty,pending,active)=("
-		                  << size() << ","
-		                  << ReadReadyCount() << ","
-		                  << WriteReadyCount(true) - WriteReadyCount(false) - ReadReadyCount() << ","
-		                  << WriteReadyCount(false) << ","
-		                  << pending_buffers_.size() << ","
-		                  << active_buffers_.size() << ")";
 	}
+	TLOG(TLVL_BUFFER) << "Buffer occupancy now (total,full,reading,empty,pending,active)=("
+	                  << size() << ","
+	                  << ReadReadyCount() << ","
+	                  << WriteReadyCount(true) - WriteReadyCount(false) - ReadReadyCount() << ","
+	                  << WriteReadyCount(false) << ","
+	                  << pending_buffers_.size() << ","
+	                  << active_buffers_.size() << ")";
 
 	if (tokens_ && tokens_->RoutingTokenSendsEnabled())
 	{
 		TLOG(TLVL_CHECKPENDINGBUFFERS_3) << "Sent tokens: " << tokens_->GetSentTokenCount() << ", Event count: " << run_event_count_;
 		auto outstanding_tokens = tokens_->GetSentTokenCount() - run_event_count_;
-		auto available_buffers = WriteReadyCount(overwrite_mode_);
 
 		TLOG(TLVL_CHECKPENDINGBUFFERS_3) << "check_pending_buffers_: outstanding_tokens: " << outstanding_tokens << ", available_buffers: " << available_buffers
 		                                 << ", tokens_to_send: " << available_buffers - outstanding_tokens;

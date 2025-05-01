@@ -413,16 +413,15 @@ public:
 	/**
 	 * \brief Get the subrun number that the given Sequence ID would be assigned to
 	 * \param seqID Sequence ID to check
-	 * \param type Type of Fragment (Data and SubrunData fragments encode Subrun in Sequence ID)
 	 * \return Subrun number that the given sequence ID will be associated with
 	 */
-	subrun_id_t GetSubrunForSequenceID(Fragment::sequence_id_t seqID, Fragment::type_t type);
+	subrun_id_t GetSubrunForSequenceID(Fragment::sequence_id_t seqID);
 
 	/**
 	 * \brief Get the current subrun number (Gets the last defined subrun)
 	 * \return Number of the subrun that corresponds to events with the maximum possible sequence ID.
 	 */
-	subrun_id_t GetCurrentSubrun() { return GetSubrunForSequenceID(Fragment::InvalidSequenceID, Fragment::InvalidFragmentType); }
+	subrun_id_t GetCurrentSubrun() { return GetSubrunForSequenceID(Fragment::InvalidSequenceID); }
 
 	std::string BuildStatisticsString() const { return buildStatisticsString_(); };
 
@@ -520,7 +519,7 @@ private:
 
 	detail::RawEventHeader* getEventHeader_(int buffer);
 
-	int getBufferForSequenceID_(Fragment::sequence_id_t seqID, bool create_new, Fragment::timestamp_t timestamp = Fragment::InvalidTimestamp, Fragment::type_t type = Fragment::InvalidFragmentType);
+	int getBufferForSequenceID_(Fragment::sequence_id_t seqID, bool create_new, Fragment::timestamp_t timestamp = Fragment::InvalidTimestamp);
 	bool hasFragments_(int buffer);
 	void complete_buffer_(int buffer);
 	bool bufferComparator(int bufA, int bufB);

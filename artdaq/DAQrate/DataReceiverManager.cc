@@ -410,7 +410,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 		}
 		else if (Fragment::isBroadcastFragmentType(header.type))
 		{
-			TLOG(TLVL_DEBUG + 32) << "Received System Fragment from rank " << source_rank << " of type " << detail::RawFragmentHeader::SystemTypeToString(header.type) << ".";
+			TLOG(TLVL_DEBUG + 32) << "Received System Fragment broadcast " << header.sequence_id << " from rank " << source_rank << " of type " << detail::RawFragmentHeader::SystemTypeToString(header.type) << ".";
 
 			FragmentPtr frag(new Fragment(header.word_count - header.num_words()));
 			memcpy(frag->headerAddress(), &header, header.num_words() * sizeof(RawDataType));

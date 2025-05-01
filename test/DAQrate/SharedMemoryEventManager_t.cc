@@ -28,7 +28,7 @@ BOOST_AUTO_TEST_CASE(Construct)
 	artdaq::SharedMemoryEventManager t(pset, pset);
 
 	BOOST_REQUIRE_EQUAL(t.runID(), 0);
-	BOOST_REQUIRE_EQUAL(t.GetSubrunForSequenceID(1, artdaq::Fragment::InvalidFragmentType), 1);
+	BOOST_REQUIRE_EQUAL(t.GetSubrunForSequenceID(1), 1);
 	BOOST_REQUIRE_EQUAL(t.GetLockedBufferCount(), 0);
 	t.startRun(1);
 	BOOST_REQUIRE_EQUAL(t.runID(), 1);
