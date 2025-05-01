@@ -410,6 +410,7 @@ inline void art::ArtdaqOutput::send_init_message()
 	TLOG(TLVL_SENDINIT, "ArtdaqOutput") << "ArtdaqOutput::send_init_message(): Done sending init message";
 
 	TLOG(TLVL_SENDINIT, "ArtdaqOutput") << "ArtdaqOutput::send_init_message(): END";
+	initMsgSent_ = true;
 }
 
 inline void art::ArtdaqOutput::writeDataProducts(std::unique_ptr<TBufferFile>& msg, const Principal& principal, std::vector<BranchKey*>& bkv)
@@ -536,7 +537,6 @@ inline void art::ArtdaqOutput::write(EventPrincipal& ep)
 	if (!initMsgSent_)
 	{
 		send_init_message();
-		initMsgSent_ = true;
 	}
 	//
 	//  Get root classes needed for I/O.
@@ -644,7 +644,6 @@ inline void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 		// TLOG(TLVL_WARNING, "ArtdaqOutput") << "Not sending Subrun message before Event!";
 		// return;
 		send_init_message();
-		initMsgSent_ = true;
 	}
 
 	//
@@ -761,7 +760,6 @@ inline void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 		// TLOG(TLVL_WARNING, "ArtdaqOutput") << "Not sending Run message before Event!";
 		// return;
 		send_init_message();
-		initMsgSent_ = true;
 	}
 
 	//
@@ -837,7 +835,6 @@ inline void art::ArtdaqOutput::beginJob()
 	TLOG(TLVL_BEGINJOB, "ArtdaqOutput") << "End: ArtdaqOutput::extractProducts_(Principal const& principal) Product list sz=" << productList_.size();
 
 	send_init_message();
-	initMsgSent_ = true;
 }
 
 inline void art::ArtdaqOutput::extractProducts_(Principal const& principal [[gnu::unused]])
