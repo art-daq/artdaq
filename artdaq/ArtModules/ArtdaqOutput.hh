@@ -831,7 +831,6 @@ inline void art::ArtdaqOutput::beginJob()
 				                                            << ", description: " << productDescription.wrappedName();
 
 				productList_[branchKey] = productDescription;
-				newProducts = true;
 			}
 		}
 	}
