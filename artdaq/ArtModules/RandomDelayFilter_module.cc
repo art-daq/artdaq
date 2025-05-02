@@ -230,7 +230,7 @@ bool artdaq::RandomDelayFilter::filter(art::Event& e)
 				break;
 		}
 
-        // Retry if we pulled over-max
+		// Retry if we pulled over-max
 		if (delay > max_ms_) delay = min_ms_ - 1;
 	} while (delay < min_ms_);
 	TLOG(TLVL_DEBUG) << "Simulating processing of event " << e.event() << " by delaying " << delay << "ms.";

@@ -453,17 +453,17 @@ BOOST_AUTO_TEST_CASE(RunNumbers)
 	t.startRun(1);
 	BOOST_REQUIRE_EQUAL(t.runID(), 1);
 	BOOST_REQUIRE_EQUAL(t.GetCurrentSubrun(), 1);
-	t.rolloverSubrun();
+	t.rolloverSubrun(false);
 	BOOST_REQUIRE_EQUAL(t.runID(), 1);
 	BOOST_REQUIRE_EQUAL(t.GetCurrentSubrun(), 2);
-	t.rolloverSubrun();
+	t.rolloverSubrun(false);
 	BOOST_REQUIRE_EQUAL(t.runID(), 1);
 	BOOST_REQUIRE_EQUAL(t.GetCurrentSubrun(), 3);
 
 	// Check repeated requests for same subrun
-	t.rolloverSubrun(3, 4);
-	t.rolloverSubrun(4, 4);
-	t.rolloverSubrun(5, 4);
+	t.rolloverSubrun(3, 4, false);
+	t.rolloverSubrun(4, 4, false);
+	t.rolloverSubrun(5, 4, false);
 
 	t.startRun(3);
 	BOOST_REQUIRE_EQUAL(t.runID(), 3);

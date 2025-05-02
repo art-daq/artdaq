@@ -185,7 +185,7 @@ bool artdaq::DataReceiverCore::resume()
 	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG + 32)) << "Resuming run " << event_store_ptr_->runID();
 	pause_requested_.store(false);
 	metricMan->do_start();
-	event_store_ptr_->rolloverSubrun();
+	event_store_ptr_->rolloverSubrun(true);
 	run_is_paused_.store(false);
 	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG + 32)) << "Completed the Resume transition for run " << event_store_ptr_->runID();
 	return true;
@@ -246,7 +246,7 @@ bool artdaq::DataReceiverCore::rollover_subrun(uint64_t boundary, uint32_t subru
 {
 	if (event_store_ptr_)
 	{
-		event_store_ptr_->rolloverSubrun(boundary, subrun);
+		event_store_ptr_->rolloverSubrun(boundary, subrun, true);
 		return true;
 	}
 	return false;

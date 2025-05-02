@@ -332,13 +332,14 @@ public:
 	 * \brief Rollover the subrun after the specified event
 	 * \param boundary sequence ID of the boundary (Event with seqID == boundary will be in new subrun)
 	 * \param subrun Subrun number of subrun after boundary
+	 * \param sendFragment Create and send an EndOfSubrun Fragment for this transition
 	 */
-	void rolloverSubrun(sequence_id_t boundary, subrun_id_t subrun);
+	void rolloverSubrun(sequence_id_t boundary, subrun_id_t subrun, bool sendFragment);
 
 	/**
 	 * \brief Add a subrun transition immediately after the highest currently define sequence ID
 	 */
-	void rolloverSubrun();
+	void rolloverSubrun(bool sendFragment);
 
 	/**
 	 * \brief Send metrics to the MetricManager, if one has been instantiated in the application
@@ -449,6 +450,8 @@ private:
 	subrun_id_t subrun_id_;
 	size_t max_subrun_event_map_length_;
 	static std::mutex subrun_event_map_mutex_;
+	double subrun_transition_hold_time_s_;
+	std::chrono::steady_clock::time_point last_event_time_;
 
 	std::set<int> active_buffers_;
 	std::set<int> pending_buffers_;
@@ -509,6 +512,7 @@ private:
 	{
 		Fragment::type_t type;
 		Fragment::sequence_id_t sequence_id;
+		subrun_id_t subrun_id;
 		FragmentPtrs fragments;
 		std::chrono::steady_clock::time_point deadline;
 	};

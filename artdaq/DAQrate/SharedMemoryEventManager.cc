@@ -66,6 +66,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(const fhicl::Paramete
     , run_id_(0)
     , subrun_id_(0)
     , max_subrun_event_map_length_(pset.get<size_t>("max_subrun_lookup_table_size", 100))
+    , subrun_transition_hold_time_s_(pset.get<double>("subrun_transition_hold_time_s", 0.001))
     , max_event_list_length_(pset.get<size_t>("max_event_list_length", 100))
     , update_run_ids_(pset.get<bool>("update_run_ids_on_new_fragment", true))
     , use_sequence_id_for_event_number_(pset.get<bool>("use_sequence_id_for_event_number", true))
@@ -1007,7 +1008,7 @@ bool artdaq::SharedMemoryEventManager::endRun()
 	return true;
 }
 
-void artdaq::SharedMemoryEventManager::rolloverSubrun(sequence_id_t boundary, subrun_id_t subrun)
+void artdaq::SharedMemoryEventManager::rolloverSubrun(sequence_id_t boundary, subrun_id_t subrun, bool sendFragment)
 {
 	// Generated EndOfSubrun Fragments have Sequence ID 0 and should be ignored
 	if (boundary == 0 || boundary == Fragment::InvalidSequenceID)
@@ -1028,9 +1029,15 @@ void artdaq::SharedMemoryEventManager::rolloverSubrun(sequence_id_t boundary, su
 	{
 		subrun_event_map_.erase(subrun_event_map_.begin());
 	}
+
+	if (sendFragment)
+	{
+		auto endOfSubrunFrag = artdaq::MetadataFragment::CreateEndOfSubrunFragment(my_rank, boundary, subrun, 0);
+		BroadcastFragment(endOfSubrunFrag);
+	}
 }
 
-void artdaq::SharedMemoryEventManager::rolloverSubrun()
+void artdaq::SharedMemoryEventManager::rolloverSubrun(bool sendFragment)
 {
 	Fragment::sequence_id_t seqID = 0;
 	subrun_id_t subrun = 0;
@@ -1048,7 +1055,7 @@ void artdaq::SharedMemoryEventManager::rolloverSubrun()
 			}
 		}
 	}
-	rolloverSubrun(seqID, subrun);
+	rolloverSubrun(seqID, subrun, sendFragment);
 }
 
 void artdaq::SharedMemoryEventManager::sendMetrics()
@@ -1076,65 +1083,6 @@ void artdaq::SharedMemoryEventManager::sendMetrics()
 		}
 		TLOG(TLVL_SENDMETRICS) << oss.str();
 	}
-}
-
-bool artdaq::SharedMemoryEventManager::broadcastFragments_(FragmentPtrs& frags)
-{
-	if (frags.empty())
-	{
-		TLOG(TLVL_ERROR) << "Requested broadcast but no Fragments given!";
-		return false;
-	}
-	if (!broadcasts_.IsValid())
-	{
-		TLOG(TLVL_ERROR) << "Broadcast attempted but broadcast shared memory is unavailable!";
-		return false;
-	}
-	TLOG(TLVL_BROADCASTFRAGMENTS) << "Broadcasting " << frags.size() << " Fragments with lead seqID=" << frags.front()->sequenceID()
-	                              << ", type " << detail::RawFragmentHeader::SystemTypeToString(frags.front()->type())
-	                              << ", size=" << frags.front()->sizeBytes() << "B.";
-	auto buffer = broadcasts_.GetBufferForWriting(false);
-	TLOG(TLVL_BROADCASTFRAGMENTS) << "broadcastFragments_: after getting buffer 1st buffer=" << buffer;
-	auto start_time = std::chrono::steady_clock::now();
-	while (buffer == -1 && TimeUtils::GetElapsedTimeMilliseconds(start_time) < static_cast<size_t>(broadcast_timeout_ms_))
-	{
-		usleep(10000);
-		buffer = broadcasts_.GetBufferForWriting(true);  // Go into overwrite mode
-	}
-	TLOG(TLVL_BROADCASTFRAGMENTS) << "broadcastFragments_: after getting buffer w/timeout, buffer=" << buffer << ", elapsed time=" << TimeUtils::GetElapsedTime(start_time) << " s.";
-	if (buffer == -1)
-	{
-		TLOG(TLVL_ERROR) << "Broadcast of fragment type " << frags.front()->typeString() << " failed due to timeout waiting for buffer!";
-		return false;
-	}
-
-	TLOG(TLVL_BROADCASTFRAGMENTS) << "broadcastFragments_: Filling in RawEventHeader";
-	auto hdr = reinterpret_cast<detail::RawEventHeader*>(broadcasts_.GetBufferStart(buffer));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-	hdr->run_id = run_id_;
-	hdr->subrun_id = GetSubrunForSequenceID(frags.front()->sequenceID());
-	hdr->sequence_id = frags.front()->sequenceID();
-	hdr->is_complete = true;
-	broadcasts_.IncrementWritePos(buffer, sizeof(detail::RawEventHeader));
-
-    if (frags.front()->type() == artdaq::Fragment::EndOfSubrunFragmentType || frags.front()->type() == artdaq::Fragment::SubrunDataFragmentType) {
-		subrun_id_ = hdr->subrun_id + 1;
-    }
-
-	for (auto& frag : frags)
-	{
-		if (frag->sequenceID() != hdr->sequence_id || frag->type() != frags.front()->type())
-		{
-			TLOG(TLVL_WARNING) << "Skipping fragment due to Type/SeqID mismatch! seqID=" << frag->sequenceID() << " (expected " << hdr->sequence_id << "), type=" << static_cast<int>(frag->type()) << " (" << static_cast<int>(frags.front()->type()) << ")";
-			continue;
-		}
-		TLOG(TLVL_BROADCASTFRAGMENTS_2) << "broadcastFragments_ before Fragment Write call seqID=" << frag->sequenceID() << ", fragID=" << frag->fragmentID() << ", type=" << static_cast<int>(frag->type());
-		broadcasts_.Write(buffer, frag->headerAddress(), frag->size() * sizeof(RawDataType));
-	}
-
-	TLOG(TLVL_BROADCASTFRAGMENTS) << "broadcastFragments_ Marking buffer full";
-	broadcasts_.MarkBufferFull(buffer, -1);
-	TLOG(TLVL_BROADCASTFRAGMENTS) << "broadcastFragments_ Complete";
-	return true;
 }
 
 artdaq::detail::RawEventHeader* artdaq::SharedMemoryEventManager::getEventHeader_(int buffer)
@@ -1319,6 +1267,7 @@ void artdaq::SharedMemoryEventManager::CheckPendingBuffers()
 
 		check_pending_buffers_(lk);
 	}
+	check_pending_broadcasts_();
 }
 
 void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<std::mutex> const& lock)
@@ -1383,24 +1332,21 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		auto hdr = getEventHeader_(buf);
 		auto thisEventSize = BufferDataSize(buf);
 
-        if (update_run_ids_ && hdr->subrun_id < subrun_id_)
+		if (update_run_ids_ && hdr->subrun_id < subrun_id_)
 		{
 			hdr->subrun_id = subrun_id_;
 		}
+		bool currentSubrun = hdr->subrun_id == subrun_id_;
 
-        if (init_fragment_count_ == 0 && hdr->subrun_id > subrun_id_) {
-			subrun_id_ = hdr->subrun_id;
+		if (hdr->subrun_id > subrun_id_ && (available_buffers > 0 || TimeUtils::GetElapsedTime(last_event_time_) < subrun_transition_hold_time_s_))
+		{
+			TLOG(TLVL_CHECKPENDINGBUFFERS_4) << "Holding event " << std::to_string(hdr->sequence_id) << " (sr=" << hdr->subrun_id << ") in buffer " << buf << ", "
+			                                 << "event_size=" << thisEventSize << ", buffer_size=" << BufferSize();
+			continue;
 		}
-        else if (init_fragment_count_ > 0) {
-            if (available_buffers > 0 && hdr->subrun_id > subrun_id_) {
-				TLOG(TLVL_CHECKPENDINGBUFFERS_4) << "Holding event " << std::to_string(hdr->sequence_id) << " (sr=" << hdr->subrun_id << ") in buffer " << buf << ", "
-				                               << "event_size=" << thisEventSize << ", buffer_size=" << BufferSize();
-				continue;
-            }
-        }
 
 		TLOG(TLVL_CHECKPENDINGBUFFERS_4) << "Releasing event " << std::to_string(hdr->sequence_id) << " (sr=" << hdr->subrun_id << ") in buffer " << buf << " to art, "
-		                               << "event_size=" << thisEventSize << ", buffer_size=" << BufferSize();
+		                                 << "event_size=" << thisEventSize << ", buffer_size=" << BufferSize();
 		statsHelper_.addSample(EVENTS_RELEASED_STAT_KEY, thisEventSize);
 
 		TLOG(TLVL_BUFFER) << "check_pending_buffers_ removing buffer " << buf << " moving from pending to full";
@@ -1410,6 +1356,10 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		eventSize += thisEventSize;
 		eventTime += TimeUtils::GetElapsedTime(event_timing_[buf]);
 		pending_buffers_.erase(buf);
+		if (currentSubrun)
+		{
+			last_event_time_ = std::chrono::steady_clock::now();
+		}
 	}
 	TLOG(TLVL_BUFFER) << "Buffer occupancy now (total,full,reading,empty,pending,active)=("
 	                  << size() << ","
@@ -1500,26 +1450,6 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 	TLOG(TLVL_CHECKPENDINGBUFFERS) << "check_pending_buffers_ END";
 }
 
-void artdaq::SharedMemoryEventManager::check_pending_broadcasts_()
-{
-	std::lock_guard<std::mutex> lk(broadcast_mutex_);
-
-	auto entry = pending_broadcasts_.begin();
-	auto now = std::chrono::steady_clock::now();
-	while (entry != pending_broadcasts_.end())
-	{
-		if (running_ && (!init_frags_sent_ || entry->fragments.size() == 0 || (entry->fragments.size() < init_fragment_count_ && now < entry->deadline)))
-		{
-			entry++;
-			continue;
-		}
-
-		TLOG(TLVL_CHECKPENDINGBROADCASTS) << "Broadcasting entry init_frags_sent_=" << init_frags_sent_ << ", size=" << entry->fragments.size() << "/" << init_fragment_count_ << ", lead SeqID=" << entry->fragments.front()->sequenceID() << " deadline delta=" << std::chrono::duration_cast<std::chrono::microseconds>(now - entry->deadline).count() << " us";
-		broadcastFragments_(entry->fragments);
-		entry = pending_broadcasts_.erase(entry);
-	}
-}
-
 void artdaq::SharedMemoryEventManager::BroadcastFragment(FragmentPtr& frag)
 {
 	{
@@ -1543,10 +1473,100 @@ void artdaq::SharedMemoryEventManager::BroadcastFragment(FragmentPtr& frag)
 			pending_broadcasts_.back().deadline = std::chrono::steady_clock::now() + std::chrono::microseconds(GetBufferTimeout());
 			pending_broadcasts_.back().type = frag->type();
 			pending_broadcasts_.back().sequence_id = frag->sequenceID();
+			pending_broadcasts_.back().subrun_id = GetSubrunForSequenceID(frag->sequenceID());
 			pending_broadcasts_.back().fragments.push_back(std::move(frag));
 		}
 	}
 	check_pending_broadcasts_();
+}
+
+void artdaq::SharedMemoryEventManager::check_pending_broadcasts_()
+{
+	std::lock_guard<std::mutex> lk(broadcast_mutex_);
+
+	auto entry = pending_broadcasts_.begin();
+	auto now = std::chrono::steady_clock::now();
+	while (entry != pending_broadcasts_.end())
+	{
+		if (running_ && (!init_frags_sent_ || entry->fragments.size() == 0 || (entry->fragments.size() < init_fragment_count_ && now < entry->deadline)))
+		{
+			entry++;
+			continue;
+		}
+		if (entry->fragments.front()->type() == Fragment::EndOfSubrunFragmentType || entry->fragments.front()->type() == artdaq::Fragment::SubrunDataFragmentType)
+		{
+			if (entry->subrun_id == subrun_id_ && TimeUtils::GetElapsedTime(last_event_time_) < subrun_transition_hold_time_s_)
+			{
+				TLOG(TLVL_CHECKPENDINGBROADCASTS) << "Holding entry size = " << entry->fragments.size() << " / " << init_fragment_count_ << ", lead SeqID = " << entry->fragments.front()->sequenceID() << ", subrun=" << entry->subrun_id << " because it is EndOfSubrun and hold time has not expired";
+				entry++;
+				continue;
+			}
+		}
+
+		TLOG(TLVL_CHECKPENDINGBROADCASTS) << "Broadcasting entry init_frags_sent_=" << init_frags_sent_ << ", size=" << entry->fragments.size() << "/" << init_fragment_count_ << ", subrun=" << entry->subrun_id << ", lead SeqID=" << entry->fragments.front()->sequenceID() << " deadline delta=" << std::chrono::duration_cast<std::chrono::microseconds>(now - entry->deadline).count() << " us";
+		broadcastFragments_(entry->fragments);
+		entry = pending_broadcasts_.erase(entry);
+	}
+}
+
+bool artdaq::SharedMemoryEventManager::broadcastFragments_(FragmentPtrs& frags)
+{
+	if (frags.empty())
+	{
+		TLOG(TLVL_ERROR) << "Requested broadcast but no Fragments given!";
+		return false;
+	}
+	if (!broadcasts_.IsValid())
+	{
+		TLOG(TLVL_ERROR) << "Broadcast attempted but broadcast shared memory is unavailable!";
+		return false;
+	}
+	TLOG(TLVL_BROADCASTFRAGMENTS) << "Broadcasting " << frags.size() << " Fragments with lead seqID=" << frags.front()->sequenceID()
+	                              << ", type " << detail::RawFragmentHeader::SystemTypeToString(frags.front()->type())
+	                              << ", size=" << frags.front()->sizeBytes() << "B.";
+	auto buffer = broadcasts_.GetBufferForWriting(false);
+	TLOG(TLVL_BROADCASTFRAGMENTS) << "broadcastFragments_: after getting buffer 1st buffer=" << buffer;
+	auto start_time = std::chrono::steady_clock::now();
+	while (buffer == -1 && TimeUtils::GetElapsedTimeMilliseconds(start_time) < static_cast<size_t>(broadcast_timeout_ms_))
+	{
+		usleep(10000);
+		buffer = broadcasts_.GetBufferForWriting(true);  // Go into overwrite mode
+	}
+	TLOG(TLVL_BROADCASTFRAGMENTS) << "broadcastFragments_: after getting buffer w/timeout, buffer=" << buffer << ", elapsed time=" << TimeUtils::GetElapsedTime(start_time) << " s.";
+	if (buffer == -1)
+	{
+		TLOG(TLVL_ERROR) << "Broadcast of fragment type " << frags.front()->typeString() << " failed due to timeout waiting for buffer!";
+		return false;
+	}
+
+	TLOG(TLVL_BROADCASTFRAGMENTS) << "broadcastFragments_: Filling in RawEventHeader";
+	auto hdr = reinterpret_cast<detail::RawEventHeader*>(broadcasts_.GetBufferStart(buffer));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+	hdr->run_id = run_id_;
+	hdr->subrun_id = GetSubrunForSequenceID(frags.front()->sequenceID());
+	hdr->sequence_id = frags.front()->sequenceID();
+	hdr->is_complete = true;
+	broadcasts_.IncrementWritePos(buffer, sizeof(detail::RawEventHeader));
+
+	if (frags.front()->type() == artdaq::Fragment::EndOfSubrunFragmentType || frags.front()->type() == artdaq::Fragment::SubrunDataFragmentType)
+	{
+		subrun_id_ = hdr->subrun_id + 1;
+	}
+
+	for (auto& frag : frags)
+	{
+		if (frag->sequenceID() != hdr->sequence_id || frag->type() != frags.front()->type())
+		{
+			TLOG(TLVL_WARNING) << "Skipping fragment due to Type/SeqID mismatch! seqID=" << frag->sequenceID() << " (expected " << hdr->sequence_id << "), type=" << static_cast<int>(frag->type()) << " (" << static_cast<int>(frags.front()->type()) << ")";
+			continue;
+		}
+		TLOG(TLVL_BROADCASTFRAGMENTS_2) << "broadcastFragments_ before Fragment Write call seqID=" << frag->sequenceID() << ", fragID=" << frag->fragmentID() << ", type=" << static_cast<int>(frag->type());
+		broadcasts_.Write(buffer, frag->headerAddress(), frag->size() * sizeof(RawDataType));
+	}
+
+	TLOG(TLVL_BROADCASTFRAGMENTS) << "broadcastFragments_ Marking buffer full";
+	broadcasts_.MarkBufferFull(buffer, -1);
+	TLOG(TLVL_BROADCASTFRAGMENTS) << "broadcastFragments_ Complete";
+	return true;
 }
 
 std::vector<char*> artdaq::SharedMemoryEventManager::parse_art_command_line_(const std::shared_ptr<art_config_file>& config_file, size_t process_index)
