@@ -1488,18 +1488,21 @@ void artdaq::SharedMemoryEventManager::check_pending_broadcasts_()
 	auto now = std::chrono::steady_clock::now();
 	while (entry != pending_broadcasts_.end())
 	{
-		if (running_ && (!init_frags_sent_ || entry->fragments.size() == 0 || (entry->fragments.size() < init_fragment_count_ && now < entry->deadline)))
+		if (running_)
 		{
-			entry++;
-			continue;
-		}
-		if (entry->fragments.front()->type() == Fragment::EndOfSubrunFragmentType || entry->fragments.front()->type() == artdaq::Fragment::SubrunDataFragmentType)
-		{
-			if (entry->subrun_id == subrun_id_ && TimeUtils::GetElapsedTime(last_event_time_) < subrun_transition_hold_time_s_)
+			if ((!init_frags_sent_ || entry->fragments.size() == 0 || (entry->fragments.size() < init_fragment_count_ && now < entry->deadline)))
 			{
-				TLOG(TLVL_CHECKPENDINGBROADCASTS) << "Holding entry size = " << entry->fragments.size() << " / " << init_fragment_count_ << ", lead SeqID = " << entry->fragments.front()->sequenceID() << ", subrun=" << entry->subrun_id << " because it is EndOfSubrun and hold time has not expired";
 				entry++;
 				continue;
+			}
+			if (entry->fragments.front()->type() == Fragment::EndOfSubrunFragmentType || entry->fragments.front()->type() == artdaq::Fragment::SubrunDataFragmentType)
+			{
+				if (entry->subrun_id == subrun_id_ && TimeUtils::GetElapsedTime(last_event_time_) < subrun_transition_hold_time_s_)
+				{
+					TLOG(TLVL_CHECKPENDINGBROADCASTS) << "Holding entry size = " << entry->fragments.size() << " / " << init_fragment_count_ << ", lead SeqID = " << entry->fragments.front()->sequenceID() << ", subrun=" << entry->subrun_id << " because it is EndOfSubrun and hold time has not expired";
+					entry++;
+					continue;
+				}
 			}
 		}
 
