@@ -410,7 +410,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 		}
 		else if (Fragment::isBroadcastFragmentType(header.type))
 		{
-			TLOG(TLVL_DEBUG + 32) << "Received System Fragment from rank " << source_rank << " of type " << detail::RawFragmentHeader::SystemTypeToString(header.type) << ".";
+			TLOG(TLVL_DEBUG + 32) << "Received System Fragment broadcast " << header.sequence_id << " from rank " << source_rank << " of type " << detail::RawFragmentHeader::SystemTypeToString(header.type) << ".";
 
 			FragmentPtr frag(new Fragment(header.word_count - header.num_words()));
 			memcpy(frag->headerAddress(), &header, header.num_words() * sizeof(RawDataType));
@@ -451,11 +451,11 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 					                      << " with sequence_id " << header.sequence_id << " and timestamp " << header.timestamp << ".";
 					if (header.sequence_id != Fragment::InvalidSequenceID)
 					{
-						shm_manager_->rolloverSubrun(header.sequence_id, header.timestamp);
+						shm_manager_->rolloverSubrun(header.sequence_id, header.timestamp, false);
 					}
 					else
 					{
-						shm_manager_->rolloverSubrun(recv_seq_count_.slotCount(source_rank), header.timestamp);
+						shm_manager_->rolloverSubrun(recv_seq_count_.slotCount(source_rank), header.timestamp, false);
 					}
 					break;
 				case Fragment::ShutdownFragmentType:

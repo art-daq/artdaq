@@ -44,6 +44,7 @@
 #include <iostream>
 #include <iterator>
 #include <memory>
+#include <mutex>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -73,6 +74,7 @@ class ArtdaqOutput;
 }  // namespace art
 
 static artdaq::FragmentPtr outputFrag = nullptr;
+static std::mutex outputFragMutex;
 inline char* Fragment_ReAllocChar(char* dataPtr, size_t size, size_t /*oldsize*/)
 {
 	if (outputFrag != nullptr && dataPtr == reinterpret_cast<char*>(outputFrag->dataBegin()))  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
@@ -248,6 +250,7 @@ private:
 	std::unique_ptr<TBufferFile> prepareMessage(artdaq::Fragment::sequence_id_t seqID, artdaq::Fragment::timestamp_t ts, artdaq::Fragment::type_t type)
 	{
 		artdaq::NetMonHeader hdr{};
+		outputFragMutex.lock();
 		outputFrag = std::make_unique<artdaq::Fragment>(last_fragment_size_, seqID, my_rank, type, hdr, ts);
 		auto msg = std::make_unique<TBufferFile>(TBuffer::kWrite, last_fragment_size_ * sizeof(artdaq::RawDataType), outputFrag->dataBegin(), kFALSE, &Fragment_ReAllocChar);
 		msg->SetWriteMode();
@@ -265,7 +268,9 @@ private:
 		outputFrag->updateMetadata(hdr);
 		outputFrag->resizeBytes(hdr.data_length);
 		last_fragment_size_ = std::ceil(msg->Length() / static_cast<double>(sizeof(artdaq::RawDataType)));
+
 		SendMessage(outputFrag);
+		outputFragMutex.unlock();
 	}
 };
 
@@ -410,6 +415,7 @@ inline void art::ArtdaqOutput::send_init_message()
 	TLOG(TLVL_SENDINIT, "ArtdaqOutput") << "ArtdaqOutput::send_init_message(): Done sending init message";
 
 	TLOG(TLVL_SENDINIT, "ArtdaqOutput") << "ArtdaqOutput::send_init_message(): END";
+	initMsgSent_ = true;
 }
 
 inline void art::ArtdaqOutput::writeDataProducts(std::unique_ptr<TBufferFile>& msg, const Principal& principal, std::vector<BranchKey*>& bkv)
@@ -536,7 +542,6 @@ inline void art::ArtdaqOutput::write(EventPrincipal& ep)
 	if (!initMsgSent_)
 	{
 		send_init_message();
-		initMsgSent_ = true;
 	}
 	//
 	//  Get root classes needed for I/O.
@@ -644,7 +649,6 @@ inline void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 		// TLOG(TLVL_WARNING, "ArtdaqOutput") << "Not sending Subrun message before Event!";
 		// return;
 		send_init_message();
-		initMsgSent_ = true;
 	}
 
 	//
@@ -761,7 +765,6 @@ inline void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 		// TLOG(TLVL_WARNING, "ArtdaqOutput") << "Not sending Run message before Event!";
 		// return;
 		send_init_message();
-		initMsgSent_ = true;
 	}
 
 	//
@@ -811,7 +814,6 @@ inline void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 inline void art::ArtdaqOutput::beginJob()
 {
 	TLOG(TLVL_BEGINJOB, "ArtdaqOutput") << "Begin: ArtdaqOutput::beginJob()";
-	bool newProducts = false;
 	auto const& products = keptProducts();
 
 	// std::array<Selections, NumBranchTypes>
@@ -825,24 +827,19 @@ inline void art::ArtdaqOutput::beginJob()
 
 			if (!productList_.count(branchKey))
 			{
-				TLOG(TLVL_BEGINJOB_VERBOSE, "ArtdaqOutput") << "ArtdaqOutput::extractProducts_:"
+				TLOG(TLVL_BEGINJOB_VERBOSE, "ArtdaqOutput") << "ArtdaqOutput::beginJob:"
 				                                            << "Adding branch key to productList of class: '"
 				                                            << branchKey.friendlyClassName_ << "' modlbl: '" << branchKey.moduleLabel_ << "' instnm: '"
 				                                            << branchKey.productInstanceName_ << "' procnm: '" << branchKey.processName_ << "'"
 				                                            << ", description: " << productDescription.wrappedName();
 
 				productList_[branchKey] = productDescription;
-				newProducts = true;
 			}
 		}
 	}
-	TLOG(TLVL_BEGINJOB, "ArtdaqOutput") << "End: ArtdaqOutput::extractProducts_(Principal const& principal) Product list sz=" << productList_.size();
+	TLOG(TLVL_BEGINJOB, "ArtdaqOutput") << "End: ArtdaqOutput::beginJob() Product list sz=" << productList_.size();
 
-	if (newProducts && initMsgSent_)
-	{
-		TLOG(TLVL_BEGINJOB, "ArtdaqOutput") << "New products added to list, sending new InitFragment";
-		send_init_message();
-	}
+	// send_init_message();
 }
 
 inline void art::ArtdaqOutput::extractProducts_(Principal const& principal [[gnu::unused]])

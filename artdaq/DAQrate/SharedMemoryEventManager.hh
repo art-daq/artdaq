@@ -332,13 +332,14 @@ public:
 	 * \brief Rollover the subrun after the specified event
 	 * \param boundary sequence ID of the boundary (Event with seqID == boundary will be in new subrun)
 	 * \param subrun Subrun number of subrun after boundary
+	 * \param sendFragment Create and send an EndOfSubrun Fragment for this transition
 	 */
-	void rolloverSubrun(sequence_id_t boundary, subrun_id_t subrun);
+	void rolloverSubrun(sequence_id_t boundary, subrun_id_t subrun, bool sendFragment);
 
 	/**
 	 * \brief Add a subrun transition immediately after the highest currently define sequence ID
 	 */
-	void rolloverSubrun();
+	void rolloverSubrun(bool sendFragment);
 
 	/**
 	 * \brief Send metrics to the MetricManager, if one has been instantiated in the application
@@ -413,16 +414,15 @@ public:
 	/**
 	 * \brief Get the subrun number that the given Sequence ID would be assigned to
 	 * \param seqID Sequence ID to check
-	 * \param type Type of Fragment (Data and SubrunData fragments encode Subrun in Sequence ID)
 	 * \return Subrun number that the given sequence ID will be associated with
 	 */
-	subrun_id_t GetSubrunForSequenceID(Fragment::sequence_id_t seqID, Fragment::type_t type);
+	subrun_id_t GetSubrunForSequenceID(Fragment::sequence_id_t seqID);
 
 	/**
 	 * \brief Get the current subrun number (Gets the last defined subrun)
 	 * \return Number of the subrun that corresponds to events with the maximum possible sequence ID.
 	 */
-	subrun_id_t GetCurrentSubrun() { return GetSubrunForSequenceID(Fragment::InvalidSequenceID, Fragment::InvalidFragmentType); }
+	subrun_id_t GetCurrentSubrun() { return GetSubrunForSequenceID(Fragment::InvalidSequenceID); }
 
 	std::string BuildStatisticsString() const { return buildStatisticsString_(); };
 
@@ -450,6 +450,8 @@ private:
 	subrun_id_t subrun_id_;
 	size_t max_subrun_event_map_length_;
 	static std::mutex subrun_event_map_mutex_;
+	double subrun_transition_hold_time_s_;
+	std::chrono::steady_clock::time_point last_event_time_;
 
 	std::set<int> active_buffers_;
 	std::set<int> pending_buffers_;
@@ -510,6 +512,7 @@ private:
 	{
 		Fragment::type_t type;
 		Fragment::sequence_id_t sequence_id;
+		subrun_id_t subrun_id;
 		FragmentPtrs fragments;
 		std::chrono::steady_clock::time_point deadline;
 	};
@@ -520,7 +523,7 @@ private:
 
 	detail::RawEventHeader* getEventHeader_(int buffer);
 
-	int getBufferForSequenceID_(Fragment::sequence_id_t seqID, bool create_new, Fragment::timestamp_t timestamp = Fragment::InvalidTimestamp, Fragment::type_t type = Fragment::InvalidFragmentType);
+	int getBufferForSequenceID_(Fragment::sequence_id_t seqID, bool create_new, Fragment::timestamp_t timestamp = Fragment::InvalidTimestamp);
 	bool hasFragments_(int buffer);
 	void complete_buffer_(int buffer);
 	bool bufferComparator(int bufA, int bufB);
