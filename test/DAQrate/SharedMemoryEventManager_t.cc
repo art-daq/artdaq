@@ -22,6 +22,7 @@ BOOST_AUTO_TEST_CASE(Construct)
 	TLOG(TLVL_INFO) << "Test Construct BEGIN";
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
+	pset.put("init_fragment_count", 0);
 	pset.put("buffer_count", 2);
 	pset.put("max_event_size_bytes", 1000);
 	pset.put("expected_fragments_per_event", 2);
@@ -32,6 +33,7 @@ BOOST_AUTO_TEST_CASE(Construct)
 	BOOST_REQUIRE_EQUAL(t.GetLockedBufferCount(), 0);
 	t.startRun(1);
 	BOOST_REQUIRE_EQUAL(t.runID(), 1);
+	BOOST_REQUIRE_EQUAL(t.GetSubrunForSequenceID(1), 1);
 	TLOG(TLVL_INFO) << "Test Construct END";
 }
 
@@ -41,6 +43,7 @@ BOOST_AUTO_TEST_CASE(AddFragment)
 
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
+	pset.put("init_fragment_count", 0);
 	pset.put("buffer_count", 2);
 	pset.put("max_event_size_bytes", 1000);
 	pset.put("expected_fragments_per_event", 2);
@@ -66,6 +69,7 @@ BOOST_AUTO_TEST_CASE(DataFlow)
 	TLOG(TLVL_INFO) << "Test DataFlow BEGIN";
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
+	pset.put("init_fragment_count", 0);
 	pset.put("buffer_count", 2);
 	pset.put("max_event_size_bytes", 1000);
 	pset.put("expected_fragments_per_event", 3);
@@ -112,6 +116,7 @@ BOOST_AUTO_TEST_CASE(EndOfData)
 	TLOG(TLVL_INFO) << "Test EndOfData BEGIN";
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
+	pset.put("init_fragment_count", 0);
 	pset.put("buffer_count", 2);
 	pset.put("max_event_size_bytes", 1000);
 	pset.put("expected_fragments_per_event", 1);
@@ -166,6 +171,7 @@ BOOST_AUTO_TEST_CASE(TooManyFragments_InterleavedWrites)
 	TLOG(TLVL_INFO) << "Test TooManyFragments_InterleavedWrites BEGIN";
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
+	pset.put("init_fragment_count", 0);
 	pset.put("buffer_count", 2);
 	pset.put("max_event_size_bytes", 1000);
 	pset.put("expected_fragments_per_event", 3);
@@ -243,6 +249,7 @@ BOOST_AUTO_TEST_CASE(TooManyFragments_DiscreteWrites)
 	TLOG(TLVL_INFO) << "Test TooManyFragments_DiscreteWrites BEGIN";
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
+	pset.put("init_fragment_count", 0);
 	pset.put("buffer_count", 2);
 	pset.put("max_event_size_bytes", 1000);
 	pset.put("expected_fragments_per_event", 3);
@@ -321,6 +328,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 	TLOG(TLVL_INFO) << "Test ConsumeDroppedData_Active BEGIN";
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
+	pset.put("init_fragment_count", 0);
 	pset.put("buffer_count", 20);
 	pset.put("max_event_size_bytes", 1000);
 	pset.put("expected_fragments_per_event", 2);
@@ -445,6 +453,7 @@ BOOST_AUTO_TEST_CASE(RunNumbers)
 	TLOG(TLVL_INFO) << "Test RunNumbers BEGIN";
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
+	pset.put("init_fragment_count", 0);
 	pset.put("buffer_count", 2);
 	pset.put("max_event_size_bytes", 1000);
 	pset.put("expected_fragments_per_event", 2);
