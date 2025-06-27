@@ -776,7 +776,7 @@ inline void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 	//
 	//  Begin preparing message.
 	//
-	auto msg = prepareMessage(static_cast<uint64_t>(rp.run()) << 32, rp.run() + 1, artdaq::Fragment::RunDataFragmentType);
+	auto msg = prepareMessage(0, rp.run() + 1, artdaq::Fragment::RunDataFragmentType);
 	//
 	//  Write message type code.
 	//
