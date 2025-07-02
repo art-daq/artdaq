@@ -412,8 +412,8 @@ inline void art::ArtdaqOutput::send_init_message()
 
 	TLOG(TLVL_SENDINIT, "ArtdaqOutput") << "ArtdaqOutput::send_init_message(): Sending init message";
 	sendMessage(msg);
-	TLOG(TLVL_SENDINIT, "ArtdaqOutput") << "ArtdaqOutput::send_init_message(): Done sending init message";
-
+	TLOG(TLVL_SENDINIT, "ArtdaqOutput") << "ArtdaqOutput::send_init_message(): Done sending init message, sleeping to ensure delivery";
+	usleep(1000000); // Sleep to allow peer init messages to be sent/received
 	TLOG(TLVL_SENDINIT, "ArtdaqOutput") << "ArtdaqOutput::send_init_message(): END";
 	initMsgSent_ = true;
 }
