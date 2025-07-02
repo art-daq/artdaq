@@ -313,6 +313,13 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 					break;  // while(output_event == nullptr)
 				}
 			}
+			else if (current_subrun_ != 0 && first_sr > current_subrun_ + 1)
+			{
+				TLOG(TLVL_RECEIVEEVENT) << "Returning Fragment due to stale current_subrun_ (first_sr=" << first_sr << ", current_subrun_=" << current_subrun_ << ")";
+				output_event = event_ordering_.front();
+				event_ordering_.pop_front();
+				break;  // while(output_event == nullptr)
+			}
 
 			if (event_ordering_.size() == 1 && (first_type == artdaq::Fragment::EndOfRunFragmentType || first_type == artdaq::Fragment::RunDataFragmentType))
 			{
@@ -385,6 +392,10 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 			if (current_subrun_ != 0)
 			{
 				TLOG(TLVL_WARNING) << "Event subrun " << output_event->header->subrun_id << " is greater than current_subrun_ (" << current_subrun_ << "), incrementing";
+			}
+			else
+			{
+				TLOG(TLVL_RECEIVEEVENT_4) << "Incrementing current_subrun_ from 0 to " << output_event->header->subrun_id << " due to unset subrun";
 			}
 			current_subrun_ = output_event->header->subrun_id;
 		}
