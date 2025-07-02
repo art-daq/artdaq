@@ -386,10 +386,10 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 					done = true;  // no more polls
 					              // break; // no more read of ready fds
 
-                    {
+					{
 						std::lock_guard<std::mutex> lk(fd_mutex_);
 						first_fragment_received_[source_rank()].insert(fd);
-                    }
+					}
 				}
 			}
 		}

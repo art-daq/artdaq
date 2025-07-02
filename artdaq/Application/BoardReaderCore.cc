@@ -217,7 +217,7 @@ bool artdaq::BoardReaderCore::start(art::RunID id, uint64_t timeout, uint64_t ti
 
 	metricMan->do_start();
 
-    TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG + 32)) << "Pausing for 1s";
+	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG + 32)) << "Pausing for 1s";
 	usleep(1000000);
 
 	generator_ptr_->StartCmd(id.run(), timeout, timestamp);
