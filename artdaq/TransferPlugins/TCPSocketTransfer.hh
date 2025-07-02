@@ -112,6 +112,7 @@ private:
 	static std::mutex listen_thread_mutex_;
 	static std::unique_ptr<boost::thread> listen_thread_;
 	static std::map<int, std::set<int>> connected_fds_;
+	static std::map<int, std::set<int>> first_fragment_received_;
 	static std::mutex fd_mutex_;
 	int send_fd_;
 	std::map<int, int> active_receive_fds_;

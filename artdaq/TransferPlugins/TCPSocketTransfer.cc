@@ -39,6 +39,7 @@
 std::atomic<int> artdaq::TCPSocketTransfer::listen_thread_refcount_(0);
 std::unique_ptr<boost::thread> artdaq::TCPSocketTransfer::listen_thread_ = nullptr;
 std::map<int, std::set<int>> artdaq::TCPSocketTransfer::connected_fds_ = std::map<int, std::set<int>>();
+std::map<int, std::set<int>> artdaq::TCPSocketTransfer::first_fragment_received_ = std::map<int, std::set<int>>();
 std::mutex artdaq::TCPSocketTransfer::listen_thread_mutex_;
 std::mutex artdaq::TCPSocketTransfer::fd_mutex_;
 
@@ -191,10 +192,20 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 			{
 				std::lock_guard<std::mutex> lk(fd_mutex_);
 				fd_count = connected_fds_[source_rank()].size();
+				bool first = false;
+				if (first_fragment_received_[source_rank()].size() < connected_fds_[source_rank()].size())
+				{
+					fd_count -= first_fragment_received_[source_rank()].size();
+					first = true;
+				}
 				pollfds.resize(fd_count);
 				auto iter = connected_fds_[source_rank()].begin();
 				for (size_t ii = 0; ii < fd_count; ++ii)
 				{
+					while (first && first_fragment_received_[source_rank()].count(*iter))
+					{
+						++iter;
+					}
 					pollfds[ii].events = POLLIN | POLLPRI | POLLERR;
 					pollfds[ii].fd = *iter;
 					++iter;
@@ -374,6 +385,11 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 
 					done = true;  // no more polls
 					              // break; // no more read of ready fds
+
+                    {
+						std::lock_guard<std::mutex> lk(fd_mutex_);
+						first_fragment_received_[source_rank()].insert(fd);
+                    }
 				}
 			}
 		}
@@ -393,6 +409,10 @@ void artdaq::TCPSocketTransfer::disconnect_receive_socket_(const std::string& ms
 	if (connected_fds_.count(source_rank()) != 0u)
 	{
 		connected_fds_[source_rank()].erase(fd);
+	}
+	if (first_fragment_received_.count(source_rank()) != 0)
+	{
+		first_fragment_received_[source_rank()].erase(fd);
 	}
 	active_receive_fds_[source_rank()] = -1;
 	TLOG(TLVL_DEBUG + 32) << GetTraceName() << "disconnect_receive_socket_: There are now " << connected_fds_[source_rank()].size() << " active senders.";
@@ -612,6 +632,10 @@ void artdaq::TCPSocketTransfer::flush_buffers()
 		{
 			fds = connected_fds_[rank];
 			connected_fds_.erase(rank);
+		}
+		if (first_fragment_received_.count(rank))
+		{
+			first_fragment_received_.erase(rank);
 		}
 	}
 
@@ -1159,6 +1183,7 @@ void artdaq::TCPSocketTransfer::listen_(int port, size_t rcvbuf)
 		}
 		it = connected_fds_.erase(it);
 	}
+	first_fragment_received_.clear();
 
 }  // do_connect_
 
