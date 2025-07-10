@@ -49,11 +49,7 @@
 #include <string>
 #include <vector>
 
-#define TLVL_OPENFILE 34
-#define TLVL_CLOSEFILE 35
-#define TLVL_RESPONDTOCLOSEINPUTFILE 36
-#define TLVL_RESPONDTOCLOSEOUTPUTFILE 37
-#define TLVL_ENDJOB 38
+#define TLVL_ENTER_EXIT 33
 #define TLVL_SENDINIT 39
 #define TLVL_SENDINIT_VERBOSE1 40
 #define TLVL_SENDINIT_VERBOSE2 41
@@ -113,20 +109,20 @@ protected:
 	/// </summary>
 	virtual void openFile(FileBlock const&)
 	{
-		TLOG(TLVL_OPENFILE, "ArtdaqOutput") << "Begin/End: ArtdaqOutput::openFile(const FileBlock&)";
+		TLOG(TLVL_ENTER_EXIT, "ArtdaqOutput") << "Begin/End: ArtdaqOutput::openFile(const FileBlock&)";
 	}
 
 	/// <summary>
 	/// Perform actions necessary for closing files. No-op, but derived classes may override
 	/// </summary>
-	virtual void closeFile() { TLOG(TLVL_CLOSEFILE, "ArtdaqOutput") << "Begin/End: ArtdaqOutput::closeFile()"; }
+	virtual void closeFile() { TLOG(TLVL_ENTER_EXIT, "ArtdaqOutput") << "Begin/End: ArtdaqOutput::closeFile()"; }
 
 	/// <summary>
 	/// Perform actions nesessary after closing the input file. No-op, but derived classes may override
 	/// </summary>
 	virtual void respondToCloseInputFile(FileBlock const&)
 	{
-		TLOG(TLVL_RESPONDTOCLOSEINPUTFILE, "ArtdaqOutput") << "Begin/End: ArtdaqOutput::"
+		TLOG(TLVL_ENTER_EXIT, "ArtdaqOutput") << "Begin/End: ArtdaqOutput::"
 		                                                      "respondToCloseOutputFiles(FileBlock const&)";
 	}
 
@@ -135,7 +131,7 @@ protected:
 	/// </summary>
 	virtual void respondToCloseOutputFiles(FileBlock const&)
 	{
-		TLOG(TLVL_RESPONDTOCLOSEOUTPUTFILE, "ArtdaqOutput") << "Begin/End: ArtdaqOutput::"
+		TLOG(TLVL_ENTER_EXIT, "ArtdaqOutput") << "Begin/End: ArtdaqOutput::"
 		                                                       "respondToCloseOutputFiles(FileBlock const&)";
 	}
 
@@ -146,7 +142,7 @@ protected:
 	/// </summary>
 	virtual void endJob()
 	{
-		TLOG(TLVL_ENDJOB, "ArtdaqOutput") << "Begin/End: ArtdaqOutput::endJob()";
+		TLOG(TLVL_ENTER_EXIT, "ArtdaqOutput") << "Begin/End: ArtdaqOutput::endJob()";
 	}
 
 	/// <summary>
@@ -155,7 +151,6 @@ protected:
 	/// <param name="rp">RunPrincipal of new run</param>
 	void beginRun(RunPrincipal const& rp) final
 	{
-		// extractProducts_(rp);
 		beginRun_(rp);
 	}
 	/// <summary>
@@ -169,7 +164,6 @@ protected:
 	/// <param name="srp">SubRunPrincipal of new subrun</param>
 	void beginSubRun(SubRunPrincipal const& srp) final
 	{
-		// extractProducts_(srp);
 		beginSubRun_(srp);
 	}
 	/// <summary>
@@ -183,7 +177,6 @@ protected:
 	/// <param name="ep">EventPrincipal of event</param>
 	void event(EventPrincipal const& ep) final
 	{
-		// extractProducts_(ep);
 		event_(ep);
 	}
 	/// <summary>
@@ -216,12 +209,6 @@ protected:
 	/// <param name="principal">Principal from which to extract products</param>
 	/// <param name="bkv">Branch Keys for data products</param>
 	void writeDataProducts(std::unique_ptr<TBufferFile>& msg, const Principal& principal, std::vector<BranchKey*>& bkv);
-
-	/// <summary>
-	/// Extract the list of Products from the given Principal
-	/// </summary>
-	/// <param name="principal">Principal to extract products from</param>
-	void extractProducts_(Principal const& principal);
 
 	/// <summary>
 	/// Send an init message downstream.
@@ -276,7 +263,7 @@ private:
 
 inline void art::ArtdaqOutput::send_init_message()
 {
-	TLOG(TLVL_SENDINIT, "ArtdaqOutput") << "Begin: ArtdaqOutput::send_init_message()";
+	TLOG(TLVL_ENTER_EXIT, "ArtdaqOutput") << "Begin: ArtdaqOutput::send_init_message()";
 	//
 	//  Get the classes we will need.
 	//
@@ -414,7 +401,7 @@ inline void art::ArtdaqOutput::send_init_message()
 	sendMessage(msg);
 	TLOG(TLVL_SENDINIT, "ArtdaqOutput") << "ArtdaqOutput::send_init_message(): Done sending init message, sleeping to ensure delivery";
 	usleep(1000000);  // Sleep to allow peer init messages to be sent/received
-	TLOG(TLVL_SENDINIT, "ArtdaqOutput") << "ArtdaqOutput::send_init_message(): END";
+	TLOG(TLVL_ENTER_EXIT, "ArtdaqOutput") << "ArtdaqOutput::send_init_message(): END";
 	initMsgSent_ = true;
 }
 
@@ -538,7 +525,7 @@ inline void art::ArtdaqOutput::write(EventPrincipal& ep)
 	//
 	//  Write an Event message.
 	//
-	TLOG(TLVL_WRITE, "ArtdaqOutput") << "Begin: ArtdaqOutput::write(EventPrincipal& ep)";
+	TLOG(TLVL_ENTER_EXIT, "ArtdaqOutput") << "Begin: ArtdaqOutput::write(EventPrincipal& ep)";
 	if (!initMsgSent_)
 	{
 		send_init_message();
@@ -636,14 +623,14 @@ inline void art::ArtdaqOutput::write(EventPrincipal& ep)
 		delete *I;
 		*I = 0;
 	}
-	TLOG(TLVL_WRITE, "ArtdaqOutput") << "End: ArtdaqOutput::write(EventPrincipal& ep)";
+	TLOG(TLVL_ENTER_EXIT, "ArtdaqOutput") << "End: ArtdaqOutput::write(EventPrincipal& ep)";
 }
 
 inline void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 {  //
 	//  Write an SubRun message.
 	//
-	TLOG(TLVL_WRITESUBRUN, "ArtdaqOutput") << "Begin: ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)";
+	TLOG(TLVL_ENTER_EXIT, "ArtdaqOutput") << "Begin: ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)";
 	if (!initMsgSent_)
 	{
 		// TLOG(TLVL_WARNING, "ArtdaqOutput") << "Not sending Subrun message before Event!";
@@ -751,14 +738,14 @@ inline void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 		delete *I;
 		*I = 0;
 	}
-	TLOG(TLVL_WRITESUBRUN, "ArtdaqOutput") << "End: ArtdaqOutput::writeSubRun(const SubRunPrincipal& srp)";
+	TLOG(TLVL_ENTER_EXIT, "ArtdaqOutput") << "End: ArtdaqOutput::writeSubRun(const SubRunPrincipal& srp)";
 }
 
 inline void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 {  //
 	//  Write an Run message.
 	//
-	TLOG(TLVL_WRITERUN, "ArtdaqOutput") << "Begin: ArtdaqOutput::writeRun(const RunPrincipal& rp)";
+	TLOG(TLVL_ENTER_EXIT, "ArtdaqOutput") << "Begin: ArtdaqOutput::writeRun(const RunPrincipal& rp)";
 	(void)rp;
 	if (!initMsgSent_)
 	{
@@ -776,7 +763,7 @@ inline void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 	//
 	//  Begin preparing message.
 	//
-	auto msg = prepareMessage(0, rp.run() + 1, artdaq::Fragment::RunDataFragmentType);
+	auto msg = prepareMessage(artdaq::Fragment::InvalidSequenceID - 1, rp.run() + 1, artdaq::Fragment::RunDataFragmentType);
 	//
 	//  Write message type code.
 	//
@@ -808,12 +795,12 @@ inline void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 		delete *I;
 		*I = 0;
 	}
-	TLOG(TLVL_WRITERUN, "ArtdaqOutput") << "End: ArtdaqOutput::writeRun(RunPrincipal& rp)";
+	TLOG(TLVL_ENTER_EXIT, "ArtdaqOutput") << "End: ArtdaqOutput::writeRun(RunPrincipal& rp)";
 }
 
 inline void art::ArtdaqOutput::beginJob()
 {
-	TLOG(TLVL_BEGINJOB, "ArtdaqOutput") << "Begin: ArtdaqOutput::beginJob()";
+	TLOG(TLVL_ENTER_EXIT, "ArtdaqOutput") << "Begin: ArtdaqOutput::beginJob()";
 	auto const& products = keptProducts();
 
 	// std::array<Selections, NumBranchTypes>
@@ -837,42 +824,9 @@ inline void art::ArtdaqOutput::beginJob()
 			}
 		}
 	}
-	TLOG(TLVL_BEGINJOB, "ArtdaqOutput") << "End: ArtdaqOutput::beginJob() Product list sz=" << productList_.size();
+	TLOG(TLVL_ENTER_EXIT, "ArtdaqOutput") << "End: ArtdaqOutput::beginJob() Product list sz=" << productList_.size();
 
 	// send_init_message();
-}
-
-inline void art::ArtdaqOutput::extractProducts_(Principal const& principal [[gnu::unused]])
-{
-	TLOG(TLVL_EXTRACTPRODUCTS, "ArtdaqOutput") << "Begin: ArtdaqOutput::extractProducts_(Principal const& principal) sz=" << principal.size();
-
-	bool newProducts = false;
-
-	for (auto I = principal.begin(), E = principal.end(); I != E; ++I)
-	{
-		auto const& productDescription = I->second->productDescription();
-		auto const& branchKey = BranchKey(productDescription);
-
-		if (!productList_.count(branchKey))
-		{
-			TLOG(TLVL_EXTRACTPRODUCTS_VERBOSE, "ArtdaqOutput") << "ArtdaqOutput::extractProducts_:"
-			                                                   << "Adding branch key to productList of class: '"
-			                                                   << branchKey.friendlyClassName_ << "' modlbl: '" << branchKey.moduleLabel_ << "' instnm: '"
-			                                                   << branchKey.productInstanceName_ << "' procnm: '" << branchKey.processName_ << "'"
-			                                                   << ", description: " << productDescription.wrappedName();
-
-			productList_[branchKey] = productDescription;
-			newProducts = true;
-		}
-	}
-
-	TLOG(TLVL_EXTRACTPRODUCTS, "ArtdaqOutput") << "End: ArtdaqOutput::extractProducts_(Principal const& principal) Product list sz=" << productList_.size();
-
-	if (newProducts && initMsgSent_)
-	{
-		TLOG(TLVL_EXTRACTPRODUCTS, "ArtdaqOutput") << "New products added to list, sending new InitFragment";
-		send_init_message();
-	}
 }
 
 #endif  // ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQOUTPUT_HH_

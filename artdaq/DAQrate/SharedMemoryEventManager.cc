@@ -1750,7 +1750,7 @@ std::string artdaq::SharedMemoryEventManager::buildStatisticsString_() const
 		nbb[flag]++;
 	}
 
-	oss << "Shared Memory:"
+	oss << "  Shared Memory: "
 	    << nbuff << " buffers of " << bsize << " B, "
 	    << nbb[0] << " Empty, " << nbb[1] << " Writing, " << nbb[2] << " Full, " << nbb[3] << " reading"
 	    << std::endl;

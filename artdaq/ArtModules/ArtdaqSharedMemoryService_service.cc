@@ -403,7 +403,7 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 			}
 			current_subrun_ = output_event->header->subrun_id;
 		}
-		if (type == artdaq::Fragment::EndOfSubrunFragmentType || type == artdaq::Fragment::SubrunDataFragmentType || type == artdaq::Fragment::StartOfRunFragmentType || type == artdaq::Fragment::EndOfRunFragmentType || type == artdaq::Fragment::RunDataFragmentType || type == artdaq::Fragment::InitFragmentType)
+		if (type == artdaq::Fragment::EndOfSubrunFragmentType || type == artdaq::Fragment::SubrunDataFragmentType || type == artdaq::Fragment::EndOfRunFragmentType || type == artdaq::Fragment::RunDataFragmentType || type == artdaq::Fragment::InitFragmentType)
 		{
 			if (type == artdaq::Fragment::EndOfSubrunFragmentType || type == artdaq::Fragment::SubrunDataFragmentType)
 			{
