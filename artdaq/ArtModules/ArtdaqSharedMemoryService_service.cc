@@ -339,10 +339,11 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 					break;  // while(output_event == nullptr)
 				}
 				// We cannot close a subrun that has not yet been opened
-                if (first_type == artdaq::Fragment::EndOfSubrunFragmentType || first_type == artdaq::Fragment::SubrunDataFragmentType) {
+				if (first_type == artdaq::Fragment::EndOfSubrunFragmentType || first_type == artdaq::Fragment::SubrunDataFragmentType)
+				{
 					TLOG(TLVL_WARNING) << "Subrun is unset, discarding EndOfSubrun Fragment(s) for subrun " << first_sr;
 					event_ordering_.pop_front();
-                }
+				}
 			}
 
 			if (artdaq::TimeUtils::GetElapsedTime(start_time) > safety_valve_timeout_s_)

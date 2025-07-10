@@ -997,7 +997,6 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 		{
 			readFragments(eventMap->fragments, outR ? outR : inR, outSR ? outSR : inSR, outE);
 		}
-
 	}
 	else
 	{

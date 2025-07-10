@@ -123,7 +123,7 @@ protected:
 	virtual void respondToCloseInputFile(FileBlock const&)
 	{
 		TLOG(TLVL_ENTER_EXIT, "ArtdaqOutput") << "Begin/End: ArtdaqOutput::"
-		                                                      "respondToCloseOutputFiles(FileBlock const&)";
+		                                         "respondToCloseOutputFiles(FileBlock const&)";
 	}
 
 	/// <summary>
@@ -132,7 +132,7 @@ protected:
 	virtual void respondToCloseOutputFiles(FileBlock const&)
 	{
 		TLOG(TLVL_ENTER_EXIT, "ArtdaqOutput") << "Begin/End: ArtdaqOutput::"
-		                                                       "respondToCloseOutputFiles(FileBlock const&)";
+		                                         "respondToCloseOutputFiles(FileBlock const&)";
 	}
 
 	virtual void beginJob();
