@@ -41,6 +41,8 @@ cet_build_plugin(Multicast artdaq::transfer)
 cet_build_plugin(TCPSocket artdaq::transfer
   IMPL_SOURCE TCPSocketTransfer.cc)
 
+cet_build_plugin(TCPSocketWithAcks artdaq::Transfer IMPL_SOURCE TCPSocketTransfer.cc)
+
 cet_build_plugin(Bundle artdaq::transfer
   LIBRARIES PRIVATE
   artdaq::TransferPlugins_TCPSocket_transfer
