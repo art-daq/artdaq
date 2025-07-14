@@ -344,6 +344,12 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 					TLOG(TLVL_WARNING) << "Subrun is unset, discarding EndOfSubrun Fragment(s) for subrun " << first_sr;
 					event_ordering_.pop_front();
 				}
+				// Likewise, we cannot close a run that is not open
+				if (first_type == artdaq::Fragment::EndOfRunFragmentType || first_type == artdaq::Fragment::RunDataFragmentType)
+				{
+					TLOG(TLVL_WARNING) << "Subrun is unset, discarding EndOfRun Fragment(s) for run " << event_ordering_.front()->header->run_id;
+					event_ordering_.pop_front();
+				}
 			}
 
 			if (artdaq::TimeUtils::GetElapsedTime(start_time) > safety_valve_timeout_s_)
@@ -394,13 +400,13 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 		                          << ", seq=" << output_event->header->sequence_id << ", and type " << static_cast<int>(type);
 		if (output_event->header->subrun_id > current_subrun_)
 		{
-			if (current_subrun_ != 0)
+			if (current_subrun_ != 0 && output_event->header->subrun_id != 65535)  // EndOfRun Fragments have subrun -1
 			{
 				TLOG(TLVL_WARNING) << "Event subrun " << output_event->header->subrun_id << " is greater than current_subrun_ (" << current_subrun_ << "), incrementing";
 			}
 			else
 			{
-				TLOG(TLVL_RECEIVEEVENT_4) << "Incrementing current_subrun_ from 0 to " << output_event->header->subrun_id << " due to unset subrun";
+				TLOG(TLVL_INFO) << "Incrementing current_subrun_ from 0 to " << output_event->header->subrun_id << " due to unset subrun";
 			}
 			current_subrun_ = output_event->header->subrun_id;
 		}
@@ -413,7 +419,7 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 			}
 			else
 			{
-				TLOG(TLVL_RECEIVEEVENT_4) << "Due to run/subrun/control conditions, setting current_subrun to 0";
+				TLOG(TLVL_INFO) << "Due to run/subrun/control conditions, setting current_subrun to 0";
 				current_subrun_ = 0;
 			}
 		}
