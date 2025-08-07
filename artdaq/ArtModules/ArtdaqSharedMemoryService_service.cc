@@ -100,6 +100,7 @@ private:
 	bool resume_after_timeout_;
 	bool printed_exit_message_{false};
 	bool end_of_data_received_{false};
+	bool subrun_has_events_{false};
 	uint32_t current_subrun_{0};
 };
 
@@ -396,17 +397,17 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 	if (output_event != nullptr)
 	{
 		auto type = output_event->FirstFragmentType();
-		TLOG(TLVL_RECEIVEEVENT_3) << "Returning ArtdaqEvent with run=" << output_event->header->run_id << ", subrun=" << output_event->header->subrun_id
+		TLOG(subrun_has_events_ ? TLVL_RECEIVEEVENT_3 : TLVL_INFO) << "Returning ArtdaqEvent with run=" << output_event->header->run_id << ", subrun=" << output_event->header->subrun_id
 		                          << ", seq=" << output_event->header->sequence_id << ", and type " << static_cast<int>(type);
-		if (output_event->header->subrun_id > current_subrun_)
+		if (output_event->header->subrun_id > current_subrun_ && output_event->header->subrun_id != 65535) // EndOfRun Fragments have subrun -1
 		{
-			if (current_subrun_ != 0 && output_event->header->subrun_id != 65535)  // EndOfRun Fragments have subrun -1
+			if (current_subrun_ != 0)
 			{
 				TLOG(TLVL_WARNING) << "Event subrun " << output_event->header->subrun_id << " is greater than current_subrun_ (" << current_subrun_ << "), incrementing";
 			}
 			else
 			{
-				TLOG(TLVL_INFO) << "Incrementing current_subrun_ from 0 to " << output_event->header->subrun_id << " due to unset subrun";
+				TLOG(TLVL_DEBUG) << "Incrementing current_subrun_ from 0 to " << output_event->header->subrun_id << " due to unset subrun";
 			}
 			current_subrun_ = output_event->header->subrun_id;
 		}
@@ -416,13 +417,18 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 			{
 				TLOG(TLVL_RECEIVEEVENT_4) << "EndOfSubrun or SubrunData Fragment recieved, incrementing current_subrun from " << current_subrun_ << " to " << (current_subrun_ + 1);
 				current_subrun_++;
+				subrun_has_events_ = false;
 			}
 			else
 			{
-				TLOG(TLVL_INFO) << "Due to run/subrun/control conditions, setting current_subrun to 0";
+				TLOG(TLVL_DEBUG) << "Due to run/subrun/control conditions, setting current_subrun to 0";
 				current_subrun_ = 0;
+				subrun_has_events_ = false;
 			}
 		}
+        else {
+			subrun_has_events_ = true;
+        }
 	}
 
 	TLOG(TLVL_RECEIVEEVENT) << "ReceiveEvent END";
