@@ -622,7 +622,8 @@ void artdaq::SharedMemoryEventManager::StartArt()
 		StartArtProcess(current_art_pset_, ii);
 	}
 	auto startTime = std::chrono::steady_clock::now();
-	while (GetAttachedCount() - initialCount != num_art_processes_) {
+	while (GetAttachedCount() - initialCount != num_art_processes_)
+	{
 		TLOG(TLVL_INFO) << "Waiting for all art processes to connect to shared memory, " << TimeUtils::GetElapsedTime(startTime) << " s elapsed.";
 		std::this_thread::sleep_for(std::chrono::seconds(1));
 	}
