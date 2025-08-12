@@ -7,6 +7,10 @@
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "artdaq/DAQdata/PortManager.hh"
 
+#ifndef ARTDAQ
+#define ARTDAQ
+#endif
+
 #define my_rank artdaq::Globals::my_rank_
 #define app_name artdaq::Globals::app_name_
 #define metricMan artdaq::Globals::metricMan_
