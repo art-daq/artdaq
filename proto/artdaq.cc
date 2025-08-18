@@ -33,6 +33,11 @@ try
 
 	return 0;
 }
+catch (std::exception& ex)
+{
+	std::cerr << "Exception caught: " << ex.what() << std::endl;
+	return -1;
+}
 catch (...)
 {
 	return -1;

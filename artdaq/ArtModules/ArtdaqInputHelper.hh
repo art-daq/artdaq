@@ -823,7 +823,7 @@ std::pair<bool, bool> art::ArtdaqInputHelper<U>::readFragments(std::unordered_ma
 		auto type_code = fragmentTypePair.first;
 		if (artdaq::Fragment::isSystemFragmentType(type_code) && type_code != artdaq::Fragment::ContainerFragmentType && type_code != artdaq::Fragment::EmptyFragmentType)
 		{
-			if (type_code == artdaq::Fragment::EndOfRunFragmentType || type_code == artdaq::Fragment::StartOfRunFragmentType)
+			if (type_code == artdaq::Fragment::EndOfRunFragmentType)
 			{
 				std::unordered_map<std::string, std::unique_ptr<std::vector<artdaq::ArtdaqMetadata>>> metadata_coll;
 				for (auto& frag : *fragmentTypePair.second)
@@ -855,7 +855,7 @@ std::pair<bool, bool> art::ArtdaqInputHelper<U>::readFragments(std::unordered_ma
 					put_product_in_principal(std::move(type.second), *theRun, pretend_module_name, type.first);
 				}
 			}
-			else if (type_code == artdaq::Fragment::EndOfSubrunFragmentType || type_code == artdaq::Fragment::StartOfSubrunFragmentType)
+			else if (type_code == artdaq::Fragment::EndOfSubrunFragmentType)
 			{
 				std::unordered_map<std::string, std::unique_ptr<std::vector<artdaq::ArtdaqMetadata>>> metadata_coll;
 				for (auto& frag : *fragmentTypePair.second)

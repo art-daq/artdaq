@@ -296,7 +296,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 
 		if (Fragment::isUserFragmentType(header.type) || header.type == Fragment::DataFragmentType || header.type == Fragment::EmptyFragmentType || header.type == Fragment::ContainerFragmentType)
 		{
-			TLOG(TLVL_DEBUG + 33) << "Received Fragment Header from rank " << source_rank << ", sequence ID " << header.sequence_id << ", timestamp " << header.timestamp;
+			TLOG(TLVL_DEBUG + 33) << "Received Fragment Header from rank " << source_rank << ", sequence ID " << header.sequence_id << ", timestamp " << header.timestamp << ", type " << header.type;
 			RawDataType* loc = nullptr;
 			size_t retries = 0;
 			auto latency_s = header.getLatency(true);

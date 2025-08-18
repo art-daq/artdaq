@@ -611,6 +611,7 @@ void artdaq::SharedMemoryEventManager::RunArt(size_t process_index, const std::s
 
 void artdaq::SharedMemoryEventManager::StartArt()
 {
+	size_t initialCount = GetAttachedCount();
 	restart_art_ = always_restart_art_;
 	if (num_art_processes_ == 0)
 	{
@@ -619,6 +620,12 @@ void artdaq::SharedMemoryEventManager::StartArt()
 	for (size_t ii = 0; ii < num_art_processes_; ++ii)
 	{
 		StartArtProcess(current_art_pset_, ii);
+	}
+	auto startTime = std::chrono::steady_clock::now();
+	while (GetAttachedCount() - initialCount != num_art_processes_)
+	{
+		TLOG(TLVL_INFO) << "Waiting for all art processes to connect to shared memory, " << TimeUtils::GetElapsedTime(startTime) << " s elapsed.";
+		std::this_thread::sleep_for(std::chrono::seconds(1));
 	}
 }
 
@@ -1750,7 +1757,7 @@ std::string artdaq::SharedMemoryEventManager::buildStatisticsString_() const
 		nbb[flag]++;
 	}
 
-	oss << "Shared Memory:"
+	oss << "  Shared Memory: "
 	    << nbuff << " buffers of " << bsize << " B, "
 	    << nbb[0] << " Empty, " << nbb[1] << " Writing, " << nbb[2] << " Full, " << nbb[3] << " reading"
 	    << std::endl;

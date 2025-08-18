@@ -62,7 +62,21 @@ public:
 		}
 		of << ps.to_string();
 
-		if (!ps.has_key("services") || !ps.has_key("services.message"))
+		if (ps.has_key("services") && ps.has_key("services.message"))
+		{
+			auto existing_message_config = ps.get<fhicl::ParameterSet>("services.message");
+			auto existing_destinations = existing_message_config.get<fhicl::ParameterSet>("destinations");
+			auto generated_message_config = generateMessageFacilityConfiguration(mf::GetApplicationName().c_str(), true, false, "-art");
+			auto generated_message_pset = fhicl::ParameterSet::make(generated_message_config);
+			auto generated_destinations = generated_message_pset.get<fhicl::ParameterSet>("destinations");
+			for (auto& dest : generated_destinations.get_pset_names())
+			{
+				existing_destinations.put(dest, generated_destinations.get<fhicl::ParameterSet>(dest));
+			}
+			existing_message_config.put_or_replace("destinations", existing_destinations);
+			of << " services.message: { " + existing_message_config.to_string() << "} ";
+		}
+		else
 		{
 			of << " services.message: { " << generateMessageFacilityConfiguration(mf::GetApplicationName().c_str(), true, false, "-art") << "} ";
 		}
