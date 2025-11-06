@@ -288,7 +288,7 @@ public:
 	void RunArt(size_t process_index, const std::shared_ptr<std::atomic<pid_t>>& pid_out);
 	/**
 	 * \brief Start all the art processes
-     * \return Whether all art processes started correctly
+	 * \return Whether all art processes started correctly
 	 */
 	bool StartArt();
 
