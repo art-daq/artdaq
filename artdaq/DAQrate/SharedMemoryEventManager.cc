@@ -263,8 +263,12 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 			std::unique_lock<std::mutex> bp_lk(sequence_id_mutex_);
 			if (TimeUtils::GetElapsedTime(last_backpressure_report_time_) > 1.0)
 			{
-				TLOG(TLVL_WARNING) << app_name << ": Back-pressure condition: All Shared Memory buffers have been full for " << TimeUtils::GetElapsedTime(last_fragment_header_write_time_) << " s!";
+				TLOG(TLVL_WARNING) << app_name << ": Back-pressure condition: All Shared Memory buffers have been full for " << TimeUtils::GetElapsedTime(last_fragment_header_write_time_) << " s! There are " << (GetAttachedCount()-1) << " art processes connected.";
 				last_backpressure_report_time_ = std::chrono::steady_clock::now();
+                if (GetAttachedCount() == 1 && !restart_art_) {
+					TLOG(TLVL_ERROR) << "All art processes have died, and restarting was unsuccessful. Check PMT log file for error messages";
+					throw cet::exception(app_name + "_SharedMemoryEventManager") << "All art processes have died, and restarting was unsuccessful. Check PMT log file for error messages";  // NOLINT(cert-err60-cpp)
+                }
 			}
 			if (metricMan)
 			{
@@ -609,13 +613,13 @@ void artdaq::SharedMemoryEventManager::RunArt(size_t process_index, const std::s
 	} while (restart_art_);
 }
 
-void artdaq::SharedMemoryEventManager::StartArt()
+bool artdaq::SharedMemoryEventManager::StartArt()
 {
 	size_t initialCount = GetAttachedCount();
 	restart_art_ = always_restart_art_;
 	if (num_art_processes_ == 0)
 	{
-		return;
+		return true;
 	}
 	for (size_t ii = 0; ii < num_art_processes_; ++ii)
 	{
@@ -626,7 +630,12 @@ void artdaq::SharedMemoryEventManager::StartArt()
 	{
 		TLOG(TLVL_INFO) << "Waiting for all art processes to connect to shared memory, " << TimeUtils::GetElapsedTime(startTime) << " s elapsed.";
 		std::this_thread::sleep_for(std::chrono::seconds(1));
+        if (!restart_art_) {
+			TLOG(TLVL_ERROR) << "Error occurred while starting art processes, aborting. Check PMT log for error messages.";
+			return false;
+        }
 	}
+	return true;
 }
 
 pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset, size_t process_index)
@@ -943,7 +952,7 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 	return true;
 }
 
-void artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
+bool artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 {
 	running_ = true;
 	{
@@ -959,7 +968,10 @@ void artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 	}
 	released_events_.clear();
 	released_incomplete_events_.clear();
-	StartArt();
+    // If we fail to start the art processes, abort Start
+    if (!StartArt()) {
+		return false;
+    }
 	run_id_ = runID;
 	subrun_id_ = 1;
 	{
@@ -993,6 +1005,7 @@ void artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 	{
 		metricMan->sendMetric("Run Number", static_cast<uint64_t>(run_id_), "Run", 1, MetricMode::LastPoint | MetricMode::Persist);
 	}
+	return true;
 }
 
 bool artdaq::SharedMemoryEventManager::endRun()
