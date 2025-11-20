@@ -56,6 +56,7 @@
 
 #include "TFile.h"
 #include "TTree.h"
+#include "TSystem.h"
 
 #include <fcntl.h>        // posix_fadvise POSIX_FADV_DONTNEED
 #include <sys/sysinfo.h>  // sysinfo(sysinfo*)
@@ -353,6 +354,7 @@ RootDAQOutFile::RootDAQOutFile(OutputModule* om,
     , dropMetaDataForDroppedData_{dropMetaDataForDroppedData}
     , filePtr_{TFile::Open(file_.c_str(), "recreate", "", compressionLevel)}
 {
+	gSystem->Chmod(file_.c_str(), 0664);
 	using std::make_unique;
 	// Don't split metadata tree or event description tree
 	metaDataTree_ = RootOutputTree::makeTTree(
