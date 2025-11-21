@@ -55,6 +55,7 @@
 #define TRACE_NAME (app_name + "_RootDAQOutFile").c_str()
 
 #include "TFile.h"
+#include "TSystem.h"
 #include "TTree.h"
 
 #include <fcntl.h>        // posix_fadvise POSIX_FADV_DONTNEED
@@ -353,6 +354,7 @@ RootDAQOutFile::RootDAQOutFile(OutputModule* om,
     , dropMetaDataForDroppedData_{dropMetaDataForDroppedData}
     , filePtr_{TFile::Open(file_.c_str(), "recreate", "", compressionLevel)}
 {
+	gSystem->Chmod(file_.c_str(), 0664);
 	using std::make_unique;
 	// Don't split metadata tree or event description tree
 	metaDataTree_ = RootOutputTree::makeTTree(
