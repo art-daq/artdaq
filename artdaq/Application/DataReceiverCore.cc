@@ -120,7 +120,8 @@ bool artdaq::DataReceiverCore::start(art::RunID id)
 	pause_requested_.store(false);
 	run_is_paused_.store(false);
 	metricMan->do_start();
-	event_store_ptr_->startRun(id.run());
+	auto res = event_store_ptr_->startRun(id.run());
+	if (!res) { return false; }
 	receiver_ptr_->start_threads();
 
 	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG + 32)) << "Completed the Start transition for run " << event_store_ptr_->runID();

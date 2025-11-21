@@ -288,8 +288,9 @@ public:
 	void RunArt(size_t process_index, const std::shared_ptr<std::atomic<pid_t>>& pid_out);
 	/**
 	 * \brief Start all the art processes
+	 * \return Whether all art processes started correctly
 	 */
-	void StartArt();
+	bool StartArt();
 
 	/**
 	 * \brief Start one art process
@@ -328,7 +329,7 @@ public:
 	 * \brief Start a Run
 	 * \param runID Run number of the new run
 	 */
-	void startRun(run_id_t runID);
+	bool startRun(run_id_t runID);
 
 	/**
 	 * \brief Get the current Run number
