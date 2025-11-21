@@ -55,8 +55,8 @@
 #define TRACE_NAME (app_name + "_RootDAQOutFile").c_str()
 
 #include "TFile.h"
-#include "TTree.h"
 #include "TSystem.h"
+#include "TTree.h"
 
 #include <fcntl.h>        // posix_fadvise POSIX_FADV_DONTNEED
 #include <sys/sysinfo.h>  // sysinfo(sysinfo*)
