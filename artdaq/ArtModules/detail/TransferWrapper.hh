@@ -81,6 +81,12 @@ public:
 		return receiveMessage();
 	}
 
+	void detachMonitor() { monitorRegistered_ = false; }
+
+	void registerMonitor(bool setup_transfer = true);
+	void unregisterMonitor(bool force = false, std::string label = "");
+	std::string getDispatcherStatus();
+
 private:
 	TransferWrapper(TransferWrapper const&) = delete;
 	TransferWrapper(TransferWrapper&&) = delete;
@@ -88,10 +94,6 @@ private:
 	TransferWrapper& operator=(TransferWrapper&&) = delete;
 
 	void checkIntegrity(const artdaq::Fragment&) const;
-
-	void registerMonitor();
-	void unregisterMonitor();
-	std::string getDispatcherStatus();
 
 	std::size_t timeoutInUsecs_;
 	std::chrono::steady_clock::time_point last_received_data_;

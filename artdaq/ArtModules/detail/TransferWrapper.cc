@@ -275,17 +275,20 @@ void artdaq::TransferWrapper::checkIntegrity(const artdaq::Fragment& fragment) c
 	}
 }
 
-void artdaq::TransferWrapper::registerMonitor()
+void artdaq::TransferWrapper::registerMonitor(bool setup_transfer)
 {
-	try
+	if (setup_transfer)
 	{
-		transfer_.reset(nullptr);
-		transfer_ = MakeTransferPlugin(pset_, "transfer_plugin", TransferInterface::Role::kReceive);
-	}
-	catch (...)
-	{
-		ExceptionHandler(ExceptionHandlerRethrow::yes,
-		                 "TransferWrapper: failure in call to MakeTransferPlugin");
+		try
+		{
+			transfer_.reset(nullptr);
+			transfer_ = MakeTransferPlugin(pset_, "transfer_plugin", TransferInterface::Role::kReceive);
+		}
+		catch (...)
+		{
+			ExceptionHandler(ExceptionHandlerRethrow::yes,
+			                 "TransferWrapper: failure in call to MakeTransferPlugin");
+		}
 	}
 
 	auto start = std::chrono::steady_clock::now();
@@ -336,12 +339,16 @@ void artdaq::TransferWrapper::registerMonitor()
 	}
 }
 
-void artdaq::TransferWrapper::unregisterMonitor()
+void artdaq::TransferWrapper::unregisterMonitor(bool force, std::string label)
 {
-	if (!monitorRegistered_)
+	if (!monitorRegistered_ && !force)
 	{
 		TLOG(TLVL_WARNING) << "The function to unregister the monitor was called, but the monitor doesn't appear to be registered";
 		return;
+	}
+
+    if (label == "")     {
+        label = label_;
 	}
 
 	auto start_time = std::chrono::steady_clock::now();
@@ -376,10 +383,10 @@ void artdaq::TransferWrapper::unregisterMonitor()
 	int retry = 3;
 	while (retry > 0)
 	{
-		TLOG(TLVL_INFO) << "Requesting that this monitor (" << label_
+		TLOG(TLVL_INFO) << "Requesting that this monitor (" << label
 		                << ") be unregistered from the dispatcher aggregator";
 
-		auto status = commander_->send_unregister_monitor(label_);
+		auto status = commander_->send_unregister_monitor(label);
 
 		TLOG(TLVL_INFO) << "Response from dispatcher is \"" << status << "\"";
 

@@ -27,6 +27,12 @@ cet_make_exec(NAME simple_metric_sender
   artdaq::Application # needed for messagefacility
 )
 
+cet_make_exec(NAME dispatcher_art_job
+	LIBRARIES PRIVATE
+  artdaq::Application
+  artdaq::ArtModules
+)
+
 cet_make_exec(NAME artdaq
   LIBRARIES PRIVATE
   artdaq_plugin_support::commanderMaker
