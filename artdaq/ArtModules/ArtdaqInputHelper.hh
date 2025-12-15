@@ -966,7 +966,7 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 
 	if (eventMap->FirstFragmentType() == artdaq::Fragment::EndOfDataFragmentType)
 	{
-		TLOG(TLVL_ERROR, "ArtdaqInputHelper") << "Shutdown message received!";
+		TLOG(TLVL_DEBUG + 45, "ArtdaqInputHelper") << "Shutdown message received!";
 		shutdownMsgReceived_ = true;
 		TLOG(TLVL_DEBUG + 45, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::readNext";
 		return false;
