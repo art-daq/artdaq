@@ -347,8 +347,9 @@ void artdaq::TransferWrapper::unregisterMonitor(bool force, std::string label)
 		return;
 	}
 
-    if (label == "")     {
-        label = label_;
+	if (label == "")
+	{
+		label = label_;
 	}
 
 	auto start_time = std::chrono::steady_clock::now();
