@@ -238,13 +238,13 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 			try
 			{
 				auto name = filter.get<std::string>("name");
-				auto path = filter.get<std::vector<std::string>>("path");
+				auto filter_path = filter.get<std::vector<std::string>>("path");
 				if (generated_physics_filter_paths.count(name) != 0u)
 				{
-					bool matched = generated_physics_filter_paths[name].size() == path.size();
+					bool matched = generated_physics_filter_paths[name].size() == filter_path.size();
 					for (size_t ii = 0; matched && ii < generated_physics_filter_paths[name].size(); ++ii)
 					{
-						matched = matched && path[ii] == generated_physics_filter_paths[name][ii];
+						matched = matched && filter_path[ii] == generated_physics_filter_paths[name][ii];
 					}
 
 					if (matched)
@@ -254,11 +254,11 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 					}
 
 					auto newname = label + name;
-					generated_physics_filter_paths[newname] = path;
+					generated_physics_filter_paths[newname] = filter_path;
 				}
 				else
 				{
-					generated_physics_filter_paths[name] = path;
+					generated_physics_filter_paths[name] = filter_path;
 				}
 			}
 			catch (...)
@@ -394,9 +394,9 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 	generated_physics.put("producers", generated_physics_producers);
 	generated_physics.put("filters", generated_physics_filters);
 
-	for (auto& path : generated_physics_filter_paths)
+	for (auto& filter_path : generated_physics_filter_paths)
 	{
-		generated_physics.put(path.first, path.second);
+		generated_physics.put(filter_path.first, filter_path.second);
 	}
 
 	generated_pset.put("physics", generated_physics);
