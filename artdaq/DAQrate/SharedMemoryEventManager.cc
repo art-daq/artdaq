@@ -599,7 +599,7 @@ void artdaq::SharedMemoryEventManager::RunArt(size_t process_index, const std::s
 				fds[0].events = POLLIN;
 				fds[1].fd = stderrpipefd[0];
 				fds[1].events = POLLIN;
-                
+
 				do
 				{
 					sts = waitid(P_PID, pid, &status, WEXITED | WNOHANG);
