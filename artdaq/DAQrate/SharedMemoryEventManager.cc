@@ -2,6 +2,7 @@
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 #include <sys/wait.h>
 
+#include <poll.h>
 #include <memory>
 #include <numeric>
 
@@ -492,12 +493,35 @@ void artdaq::SharedMemoryEventManager::RunArt(size_t process_index, const std::s
 		TLOG(TLVL_INFO) << "Starting art process with config file " << current_art_config_file_->getFileName();
 
 		pid_t pid = 0;
+		bool piped_output = true;
+		int stdoutpipefd[2];
+		int stderrpipefd[2];
 
 		if (!manual_art_)
 		{
+			if (pipe(stdoutpipefd) == -1)
+			{
+				TLOG(TLVL_ERROR) << "Error creating pipe for art process stdout: " << errno << " (" << strerror(errno) << ").";
+				piped_output = false;
+			}
+			if (piped_output && pipe(stderrpipefd) == -1)
+			{
+				TLOG(TLVL_ERROR) << "Error creating pipe for art process stderr: " << errno << " (" << strerror(errno) << ").";
+				close(stdoutpipefd[0]);
+				close(stdoutpipefd[1]);
+				piped_output = false;
+			}
 			pid = fork();
 			if (pid == 0)
 			{ /* child */
+				if (piped_output)
+				{
+					close(stdoutpipefd[0]);                // Close read end of stdout pipe
+					close(stderrpipefd[0]);                // Close read end of stderr pipe
+					dup2(stdoutpipefd[1], STDOUT_FILENO);  // Redirect stdout to pipe
+					dup2(stderrpipefd[1], STDERR_FILENO);  // Redirect stderr to pipe
+				}
+
 				// 23-May-2018, KAB: added the setting of the partition number env var
 				// in the environment of the child art process so that Globals.hh
 				// will pick it up there and provide it to the artdaq classes that
@@ -562,7 +586,46 @@ void artdaq::SharedMemoryEventManager::RunArt(size_t process_index, const std::s
 		auto sts = 0;
 		if (!manual_art_)
 		{
-			sts = waitid(P_PID, pid, &status, WEXITED);
+			// Read output from art process and report it to TRACE
+			if (piped_output)
+			{
+				close(stdoutpipefd[1]);  // Close write end of stdout pipe
+				close(stderrpipefd[1]);  // Close write end of stderr pipe
+
+				std::string art_tname = "art[" + std::to_string(pid) + "]";
+				char buf[PIPE_BUF];
+				struct pollfd fds[2];
+				fds[0].fd = stdoutpipefd[0];
+				fds[0].events = POLLIN;
+				fds[1].fd = stderrpipefd[0];
+				fds[1].events = POLLIN;
+
+				do
+				{
+					sts = waitid(P_PID, pid, &status, WEXITED | WNOHANG);
+					poll(fds, 2, 1000);
+					if (fds[0].revents & POLLIN)
+					{
+						ssize_t count = read(stdoutpipefd[0], buf, sizeof(buf) - 1);
+						if (count > 0)
+						{
+							TLOG(TLVL_INFO, art_tname) << std::string(buf, count);
+						}
+					}
+					if (fds[1].revents & POLLIN)
+					{
+						ssize_t count = read(stderrpipefd[0], buf, sizeof(buf) - 1);
+						if (count > 0)
+						{
+							TLOG(TLVL_ERROR, art_tname) << std::string(buf, count);
+						}
+					}
+				} while (status.si_code != CLD_DUMPED && status.si_code != CLD_KILLED && status.si_code != CLD_EXITED && sts == 0);
+			}
+			else
+			{
+				sts = waitid(P_PID, pid, &status, WEXITED);
+			}
 		}
 		else
 		{
