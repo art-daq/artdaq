@@ -104,14 +104,28 @@ build_codeql_database() {
             print_info "Trying alternative build command..."
             
             # Alternative: trace the entire CMake configure and build
+            # Use a temporary script to avoid shell injection issues
+            local TEMP_BUILD_SCRIPT="/tmp/codeql-build-$$.sh"
+            cat > "${TEMP_BUILD_SCRIPT}" << 'EOF'
+#!/bin/bash
+set -e
+cd "$1"
+cmake "$2" -DCMAKE_BUILD_TYPE=Release
+make -j$(nproc)
+EOF
+            chmod +x "${TEMP_BUILD_SCRIPT}"
+            
             cd "${SOURCE_DIR}"
             codeql database create \
                 "${CODEQL_DB_PATH}" \
                 --language=cpp \
                 --source-root="${SOURCE_DIR}" \
                 "${CONFIG_ARGS[@]}" \
-                --command="bash -c 'cd ${BUILD_DIR} && cmake ${SOURCE_DIR} -DCMAKE_BUILD_TYPE=Release && make -j\$(nproc)'" \
+                --command="${TEMP_BUILD_SCRIPT} ${BUILD_DIR} ${SOURCE_DIR}" \
                 --overwrite
+            
+            # Clean up temporary script
+            rm -f "${TEMP_BUILD_SCRIPT}"
         }
     
     print_info "CodeQL database created successfully at ${CODEQL_DB_PATH}"
