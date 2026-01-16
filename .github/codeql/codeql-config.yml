@@ -1,0 +1,22 @@
+name: "CodeQL Config for artdaq"
+
+# Paths to include/exclude from CodeQL analysis
+paths:
+  - artdaq
+  - tools
+  - test
+
+paths-ignore:
+  - doc
+  - proto
+
+# Query configuration
+queries:
+  - uses: security-and-quality
+
+# Language-specific configuration for C++
+cpp:
+  # Configure the build command for artdaq
+  # This will be used by CodeQL to understand the build process
+  after-prepare:
+    - echo "CodeQL database preparation complete"
