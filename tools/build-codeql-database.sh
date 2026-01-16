@@ -82,10 +82,10 @@ build_codeql_database() {
     print_info "Source directory: ${SOURCE_DIR}"
     
     # Prepare CodeQL command with optional config
-    local CONFIG_ARG=""
+    local CONFIG_ARGS=()
     if [ -f "${CODEQL_CONFIG}" ]; then
         print_info "Using CodeQL config: ${CODEQL_CONFIG}"
-        CONFIG_ARG="--codescanning-config=${CODEQL_CONFIG}"
+        CONFIG_ARGS=("--codescanning-config=${CODEQL_CONFIG}")
     fi
     
     # Build the database
@@ -96,7 +96,7 @@ build_codeql_database() {
         "${CODEQL_DB_PATH}" \
         --language=cpp \
         --source-root="${SOURCE_DIR}" \
-        ${CONFIG_ARG} \
+        "${CONFIG_ARGS[@]}" \
         --command="cmake --build . --config Release" \
         --overwrite \
         || {
@@ -109,7 +109,7 @@ build_codeql_database() {
                 "${CODEQL_DB_PATH}" \
                 --language=cpp \
                 --source-root="${SOURCE_DIR}" \
-                ${CONFIG_ARG} \
+                "${CONFIG_ARGS[@]}" \
                 --command="bash -c 'cd ${BUILD_DIR} && cmake ${SOURCE_DIR} -DCMAKE_BUILD_TYPE=Release && make -j\$(nproc)'" \
                 --overwrite
         }
@@ -192,22 +192,42 @@ main() {
                 exit 0
                 ;;
             -n|--name)
+                if [ -z "$2" ] || [[ "$2" == -* ]]; then
+                    print_error "Option $1 requires a value"
+                    exit 1
+                fi
                 CODEQL_DB_NAME="$2"
                 shift 2
                 ;;
             -o|--output)
+                if [ -z "$2" ] || [[ "$2" == -* ]]; then
+                    print_error "Option $1 requires a value"
+                    exit 1
+                fi
                 CODEQL_DB_PATH="$2"
                 shift 2
                 ;;
             -b|--build-dir)
+                if [ -z "$2" ] || [[ "$2" == -* ]]; then
+                    print_error "Option $1 requires a value"
+                    exit 1
+                fi
                 BUILD_DIR="$2"
                 shift 2
                 ;;
             -s|--source-dir)
+                if [ -z "$2" ] || [[ "$2" == -* ]]; then
+                    print_error "Option $1 requires a value"
+                    exit 1
+                fi
                 SOURCE_DIR="$2"
                 shift 2
                 ;;
             -c|--config)
+                if [ -z "$2" ] || [[ "$2" == -* ]]; then
+                    print_error "Option $1 requires a value"
+                    exit 1
+                fi
                 CODEQL_CONFIG="$2"
                 shift 2
                 ;;
