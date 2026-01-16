@@ -106,6 +106,9 @@ build_codeql_database() {
             # Alternative: trace the entire CMake configure and build
             # Use a temporary script to avoid shell injection issues
             local TEMP_BUILD_SCRIPT=$(mktemp)
+            # Set up trap to ensure cleanup on exit
+            trap "rm -f '${TEMP_BUILD_SCRIPT}'" EXIT
+            
             cat > "${TEMP_BUILD_SCRIPT}" << 'EOF'
 #!/bin/bash
 set -e
@@ -132,8 +135,9 @@ EOF
                 --command="${TEMP_BUILD_SCRIPT} ${BUILD_DIR} ${SOURCE_DIR}" \
                 --overwrite
             
-            # Clean up temporary script
+            # Clean up temporary script (trap will also handle this)
             rm -f "${TEMP_BUILD_SCRIPT}"
+            trap - EXIT
         }
     
     print_info "CodeQL database created successfully at ${CODEQL_DB_PATH}"
@@ -141,20 +145,21 @@ EOF
 
 # Function to analyze the database (optional)
 analyze_database() {
-    if [ "$1" = "--analyze" ]; then
-        print_info "Running CodeQL analysis..."
-        
-        local RESULTS_DIR="${CODEQL_DB_PATH}-results"
-        mkdir -p "${RESULTS_DIR}"
-        
-        codeql database analyze \
-            "${CODEQL_DB_PATH}" \
-            --format=sarif-latest \
-            --output="${RESULTS_DIR}/results.sarif" \
-            cpp-security-and-quality
-        
-        print_info "Analysis results saved to ${RESULTS_DIR}/results.sarif"
-    fi
+    print_info "Running CodeQL analysis..."
+    
+    # Construct results directory path safely
+    local DB_DIR=$(dirname "${CODEQL_DB_PATH}")
+    local DB_NAME=$(basename "${CODEQL_DB_PATH}")
+    local RESULTS_DIR="${DB_DIR}/${DB_NAME}-results"
+    mkdir -p "${RESULTS_DIR}"
+    
+    codeql database analyze \
+        "${CODEQL_DB_PATH}" \
+        --format=sarif-latest \
+        --output="${RESULTS_DIR}/results.sarif" \
+        cpp-security-and-quality
+    
+    print_info "Analysis results saved to ${RESULTS_DIR}/results.sarif"
 }
 
 # Function to display usage
@@ -288,7 +293,7 @@ main() {
     
     # Optionally analyze
     if [ "$DO_ANALYZE" = true ]; then
-        analyze_database --analyze
+        analyze_database
     fi
     
     print_info "=== Complete ==="
