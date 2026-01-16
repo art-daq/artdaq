@@ -507,7 +507,7 @@ void artdaq::FragmentBuffer::applyRequestsSingleMode(artdaq::FragmentPtrs& frags
 			{
 				// Return the latest data point
 				auto frag = fragptr.get();
-				auto newfrag = std::unique_ptr<artdaq::Fragment>(new Fragment(next_sequence_id_, frag->fragmentID()));
+				auto newfrag = std::unique_ptr<artdaq::Fragment>(new Fragment(next_sequence_id_, frag->fragmentID(), frag->type()));
 				newfrag->resize(frag->size() - detail::RawFragmentHeader::num_words());
 				memcpy(newfrag->headerAddress(), frag->headerAddress(), frag->sizeBytes());
 				newfrag->setTimestamp(requests[next_sequence_id_]);
@@ -542,7 +542,7 @@ void artdaq::FragmentBuffer::applyRequestsBufferMode(artdaq::FragmentPtrs& frags
 	for (auto& id : dataBuffers_)
 	{
 		TLOG(TLVL_APPLYREQUESTS) << "applyRequestsBufferMode: Creating ContainerFragment for Buffered Fragments (SeqID " << next_sequence_id_ << ")";
-		frags.emplace_back(new artdaq::Fragment(next_sequence_id_, id.first));
+		frags.emplace_back(new artdaq::Fragment(next_sequence_id_, id.first, artdaq::Fragment::ContainerFragmentType));
 		frags.back()->setTimestamp(requests[next_sequence_id_]);
 		ContainerFragmentLoader cfl(*frags.back());
 		cfl.set_missing_data(false);  // Buffer mode is never missing data, even if there IS no data.
@@ -621,7 +621,7 @@ void artdaq::FragmentBuffer::applyRequestsWindowMode_CheckAndFillDataBuffer(artd
 	if (windowClosed || windowTimeout)
 	{
 		TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Creating ContainerFragment for Window-requested Fragments (SeqID " << seq << ")";
-		frags.emplace_back(new artdaq::Fragment(seq, id));
+		frags.emplace_back(new artdaq::Fragment(seq, id, artdaq::Fragment::ContainerFragmentType));
 		frags.back()->setTimestamp(ts);
 		ContainerFragmentLoader cfl(*frags.back());
 
