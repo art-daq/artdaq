@@ -105,13 +105,21 @@ build_codeql_database() {
             
             # Alternative: trace the entire CMake configure and build
             # Use a temporary script to avoid shell injection issues
-            local TEMP_BUILD_SCRIPT="/tmp/codeql-build-$$.sh"
+            local TEMP_BUILD_SCRIPT=$(mktemp)
             cat > "${TEMP_BUILD_SCRIPT}" << 'EOF'
 #!/bin/bash
 set -e
 cd "$1"
 cmake "$2" -DCMAKE_BUILD_TYPE=Release
-make -j$(nproc)
+# Cross-platform CPU count detection
+if command -v nproc &> /dev/null; then
+    NCPUS=$(nproc)
+elif command -v sysctl &> /dev/null; then
+    NCPUS=$(sysctl -n hw.ncpu)
+else
+    NCPUS=4
+fi
+make -j${NCPUS}
 EOF
             chmod +x "${TEMP_BUILD_SCRIPT}"
             

@@ -199,7 +199,7 @@ jobs:
       run: |
         mkdir build && cd build
         cmake .. -DCMAKE_BUILD_TYPE=Release
-        make -j$(nproc)
+        make -j${NPROC:-4}
     
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
