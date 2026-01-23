@@ -21,6 +21,11 @@ find_package(cetmodules 3.16.00 REQUIRED)
 project(artdaq VERSION 4.04.01)
 
 include(CetCMakeEnv)
+include(SetCompilerFlags)
+include(InstallHeaders)
+include(InstallSource)
+include(InstallFhicl)
+
 cet_cmake_env()
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
@@ -113,20 +118,6 @@ list(GET ART_VERSION_LIST 2 ART_PATCH_VERSION)
 message("-DART_HEX_VERSION=0x${ART_MAJOR_VERSION}${ART_MINOR_VERSION}${ART_PATCH_VERSION}")
 set(ART_HEX_VERSION 0x${ART_MAJOR_VERSION}${ART_MINOR_VERSION}${ART_PATCH_VERSION})
 add_definitions(-DART_HEX_VERSION=0x${ART_MAJOR_VERSION}${ART_MINOR_VERSION}${ART_PATCH_VERSION})
-
-# Debug streamer.
-string(TOUPPER ${CMAKE_BUILD_TYPE} BTYPE_UC)
-if(BTYPE_UC STREQUAL DEBUG)
-  add_definitions(-DDEBUGME)
-endif()
-
-if (DEFINED ENV{NDDSHOME})
-   set( USING_RTIDDS TRUE )
-   message("\"NDDSHOME\" environment variable defined; will build RTI-DDS code")
-else()
-   set( USING_RTIDDS FALSE )
-   message("\"NDDSHOME\" environment variable not defined; will ignore RTI-DDS code")
-endif()
 
 # source
 add_subdirectory(artdaq)
