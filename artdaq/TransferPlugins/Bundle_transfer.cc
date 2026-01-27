@@ -333,7 +333,7 @@ bool artdaq::BundleTransfer::send_bundle_fragment_(bool forceSend)
 			fragment_cv_.notify_one();
 
 			TLOG(TLVL_DEBUG + 38) << GetTraceName() << "Setting up Bundle Fragment";
-			bundle_fragment_.reset(new artdaq::Fragment(temp_buffer.front().sequenceID() + 1, temp_buffer.front().fragmentID()));
+			bundle_fragment_.reset(new artdaq::Fragment(temp_buffer.front().sequenceID() + 1, temp_buffer.front().fragmentID(), artdaq::Fragment::ContainerFragmentType));
 			bundle_fragment_->setTimestamp(temp_buffer.front().timestamp());
 			bundle_fragment_->reserve(size / sizeof(artdaq::RawDataType));
 

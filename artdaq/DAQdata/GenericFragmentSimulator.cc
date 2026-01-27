@@ -43,10 +43,9 @@ bool artdaq::GenericFragmentSimulator::
             Fragment::fragment_id_t fragment_id,
             FragmentPtr& frag_ptr)
 {
-	frag_ptr = std::make_unique<Fragment>(sequence_id, fragment_id);
+	frag_ptr = std::make_unique<Fragment>(sequence_id, fragment_id, artdaq::Fragment::FirstUserFragmentType);
 	size_t payload_size = generateFragmentSize_();
 	frag_ptr->resize(payload_size, 0);
-	frag_ptr->setSystemType(artdaq::Fragment::EmptyFragmentType);
 	switch (content_selection_)
 	{
 		case content_selector_t::EMPTY:
