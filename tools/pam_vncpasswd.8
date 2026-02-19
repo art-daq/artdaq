@@ -1,0 +1,202 @@
+.\" Man page for pam_vncpasswd(8)
+.TH PAM_VNCPASSWD 8 "2026-02-19" "artdaq" "System Administration"
+.SH NAME
+pam_vncpasswd \- PAM module to authenticate against a VNC password file
+.SH SYNOPSIS
+In
+.IR /etc/pam.d/<service> :
+.PP
+.RS 4
+.nf
+auth   [sufficient|required]   pam_vncpasswd.so   [\fIoptions\fR]
+.fi
+.RE
+.SH DESCRIPTION
+.B pam_vncpasswd
+is a PAM authentication module that verifies a supplied password against
+the obfuscated password stored in the user's VNC password file
+(default
+.IR ~/.vnc/passwd ).
+The file format is compatible with
+.BR tigervnc (1).
+.PP
+Only the first 8 bytes (the read\-write password) of the file are compared.
+A read\-only password occupying bytes 8\(en15 in the TigerVNC format, if
+present, is ignored.
+.PP
+The comparison is performed in constant time using an XOR accumulation loop
+to prevent timing side\-channel attacks.
+.PP
+The module does not require elevated privileges.
+Sensitive buffers are zeroed with
+.BR explicit_bzero (3)
+before the module returns.
+.SH OPTIONS
+.TP
+\fBfile=\fR\fIpath\fR
+Override the password\-file path determined by the configuration hierarchy.
+A leading
+.B ~/
+is expanded to the authenticating user's home directory as returned by
+.BR getpwnam (3).
+.TP
+.B nullok
+Permit empty (zero\-length) passwords.
+By default an empty password always fails authentication.
+.TP
+.B debug
+Write additional diagnostic messages (username, authentication result) to
+.BR syslog (3)
+at the
+.B LOG_DEBUG
+level.
+No sensitive data is ever logged.
+.SH CONFIGURATION
+The location of the VNC password file is determined by consulting the
+following sources in order.
+Later entries override earlier ones.
+.PP
+.RS 4
+.IP "1." 4
+Compiled\-in default:
+.I <home>/.vnc/passwd
+.IP "2." 4
+System default config:
+.I /usr/share/vnc/vncpasswd.conf
+.IP "3." 4
+System admin config:
+.I /etc/vnc/vncpasswd.conf
+.IP "4." 4
+User config:
+.I <home>/.config/vnc/vncpasswd.conf
+.IP "5." 4
+Module argument
+.B file=
+(highest priority)
+.RE
+.PP
+Configuration files use the following format:
+.PP
+.RS 4
+.nf
+# comment
+passwd_file = /path/to/passwd
+.fi
+.RE
+.PP
+Blank lines and lines beginning with
+.B #
+are ignored.
+Whitespace around the
+.B =
+sign is optional.
+A path beginning with
+.B ~/
+is expanded to the user's home directory.
+.SH RETURN VALUES
+.TP
+.B PAM_SUCCESS
+Authentication succeeded: the supplied password matches the stored password.
+.TP
+.B PAM_AUTH_ERR
+Authentication failed: wrong password, or empty password without
+.BR nullok .
+.TP
+.B PAM_AUTHINFO_UNAVAIL
+The VNC password file does not exist, is a symbolic link (rejected by
+.B O_NOFOLLOW
+protection), or is shorter than 8 bytes.
+.TP
+.B PAM_USER_UNKNOWN
+The user is unknown to the system or has no home directory recorded in the
+password database.
+.TP
+.B PAM_BUF_ERR
+Memory allocation failure.
+.TP
+.B PAM_AUTHTOK_ERR
+Returned by
+.B pam_sm_chauthtok
+to indicate that in\-band password changes are not supported; use
+.BR vncpasswd (1)
+instead.
+.SH SECURITY
+.SS TOCTOU protection
+The password file is opened with
+.B O_NOFOLLOW
+so that a symbolic link in the final path component is never followed.
+After opening, the file is verified via
+.BR fstat (2)
+to be a regular file owned by the authenticating user.
+A
+.B LOG_WARNING
+syslog message is emitted if the file is group\- or world\-readable.
+.SS Constant\-time comparison
+Stored and derived password bytes are compared using a bitwise XOR
+accumulation loop.
+No data\-dependent branches are present in the comparison.
+.SS Memory hygiene
+All sensitive buffers (stored and derived password bytes) are zeroed with
+.BR explicit_bzero (3)
+before the function returns, guarding against data leakage via freed memory.
+.SS No elevated privileges
+The module runs entirely in the calling process context and requires no
+.B setuid
+wrapper or privileged helper.
+.SH FILES
+.TP
+.I ~/.vnc/passwd
+Default VNC password file.
+.TP
+.I /usr/share/vnc/vncpasswd.conf
+System\-installed default configuration.
+.TP
+.I /etc/vnc/vncpasswd.conf
+System administrator configuration override.
+.TP
+.I ~/.config/vnc/vncpasswd.conf
+Per\-user configuration override.
+.SH EXAMPLES
+Authenticate with VNC password first, fall back to system password:
+.PP
+.RS 4
+.nf
+auth   sufficient   pam_vncpasswd.so
+auth   required     pam_unix.so
+.fi
+.RE
+.PP
+Use a non\-default password file:
+.PP
+.RS 4
+.nf
+auth   sufficient   pam_vncpasswd.so file=~/.config/weston/vncpasswd
+.fi
+.RE
+.PP
+Allow empty passwords and enable debug logging:
+.PP
+.RS 4
+.nf
+auth   sufficient   pam_vncpasswd.so nullok debug
+.fi
+.RE
+.PP
+Typical
+.I /etc/pam.d/weston\-remote\-access
+for a system where users may have either a Kerberos or VNC password:
+.PP
+.RS 4
+.nf
+auth   sufficient   pam_vncpasswd.so
+auth   required     pam_krb5.so
+.fi
+.RE
+.SH SEE ALSO
+.BR vncpasswd (1),
+.BR pam (8),
+.BR pam.d (5),
+.BR pam.conf (5),
+.BR tigervnc (1)
+.SH AUTHOR
+artdaq \(em Fermilab

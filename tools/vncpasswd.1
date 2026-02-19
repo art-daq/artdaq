@@ -1,0 +1,169 @@
+.\" Man page for vncpasswd(1)
+.TH VNCPASSWD 1 "2026-02-19" "artdaq" "User Commands"
+.SH NAME
+vncpasswd \- set or update a user's VNC password file
+.SH SYNOPSIS
+.B vncpasswd
+[\fB\-f\fR \fIfile\fR]
+.br
+.B vncpasswd
+\fB\-h\fR
+.SH DESCRIPTION
+.B vncpasswd
+creates or updates the VNC password file for the current user.
+The default location is
+.IR ~/.vnc/passwd ,
+which is compatible with the file format used by
+.BR tigervnc (1).
+.PP
+When standard input is a terminal the user is prompted for the password
+twice; the two entries must match before the file is written.
+When standard input is not a terminal (for example in a pipeline or a
+script) the password is read as a single line from standard input with no
+confirmation prompt, enabling non-interactive use.
+.PP
+If the existing password file contains a read-only password (bytes 8\(en15
+in the TigerVNC file format), it is preserved unchanged.
+The read-write password (bytes 0\(en7) is always overwritten.
+.PP
+The output file is created with permissions
+.BR 0600 .
+Any pre-existing file with looser permissions is corrected to
+.B 0600
+before the rename that replaces it.
+.PP
+The write is performed atomically: a temporary file in the same directory
+is written first and then renamed into place, so a partial write cannot
+corrupt an existing password file.
+.PP
+.B vncpasswd
+does not use elevated privileges.
+.PP
+Sensitive data (the plaintext password and its obfuscated form) is zeroed
+in memory before the program exits.
+.SH OPTIONS
+.TP
+\fB\-f\fR \fIfile\fR
+Write the password to
+.I file
+instead of the location determined by the configuration hierarchy.
+This flag takes the highest priority and overrides all configuration files.
+A leading
+.B ~/
+is expanded to the current user's home directory.
+.TP
+.B \-h
+Print a brief usage summary and exit.
+.SH CONFIGURATION
+The location of the VNC password file is determined by consulting the
+following sources in order.
+Later entries override earlier ones.
+.PP
+.RS 4
+.IP "1." 4
+Compiled\-in default:
+.I <home>/.vnc/passwd
+.IP "2." 4
+System default config:
+.I /usr/share/vnc/vncpasswd.conf
+.IP "3." 4
+System admin config:
+.I /etc/vnc/vncpasswd.conf
+.IP "4." 4
+User config:
+.I <home>/.config/vnc/vncpasswd.conf
+.IP "5." 4
+Command\-line flag
+.B \-f
+(highest priority)
+.RE
+.PP
+Configuration files use the following format:
+.PP
+.RS 4
+.nf
+# comment
+passwd_file = /path/to/passwd
+.fi
+.RE
+.PP
+Blank lines and lines beginning with
+.B #
+are ignored.
+Whitespace around the
+.B =
+sign is optional.
+A path beginning with
+.B ~/
+is expanded to the user's home directory.
+When multiple
+.B passwd_file
+lines appear in one file the last one wins.
+.SH FILES
+.TP
+.I ~/.vnc/passwd
+Default VNC password file.
+.TP
+.I /usr/share/vnc/vncpasswd.conf
+System\-installed default configuration.
+.TP
+.I /etc/vnc/vncpasswd.conf
+System administrator configuration override.
+.TP
+.I ~/.config/vnc/vncpasswd.conf
+Per\-user configuration override.
+.SH EXAMPLES
+Set the VNC password interactively:
+.PP
+.RS 4
+.nf
+$ vncpasswd
+Password: ******
+Verify:   ******
+Password updated successfully.
+.fi
+.RE
+.PP
+Set the password non\-interactively from a pipeline:
+.PP
+.RS 4
+.nf
+$ printf '%s\n' "mypassword" | vncpasswd
+.fi
+.RE
+.PP
+Write to a non\-default location:
+.PP
+.RS 4
+.nf
+$ vncpasswd \-f ~/.config/weston/vncpasswd
+.fi
+.RE
+.SH SECURITY
+The password is stored using the same trivially reversible obfuscation
+(bit\-reversal per character) as the TigerVNC file format.
+This file is protected by filesystem permissions
+.RB ( 0600 ),
+but should not be considered cryptographically secure storage.
+.PP
+A leading
+.B ~/
+in the
+.B \-f
+path is expanded using the effective uid's home directory (from
+.BR getpwuid (3)),
+not the
+.B HOME
+environment variable, to prevent privilege escalation.
+.PP
+Symbolic link attacks are prevented in the existing\-file read path by
+opening with
+.B O_NOFOLLOW
+and verifying file ownership via
+.BR fstat (2).
+.SH SEE ALSO
+.BR pam_vncpasswd (8),
+.BR tigervnc (1),
+.BR pam (8)
+.SH AUTHOR
+artdaq \(em Fermilab
