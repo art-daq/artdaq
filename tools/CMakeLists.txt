@@ -69,6 +69,18 @@ create_python_addon (ADDON_NAME "python_artdaq" LIBRARIES swig_artdaq)
 #  TEST_ARGS genToArt -c genToArt_outToBinaryNetOutput_t.fcl :  s_r_handles 1
 #  DATAFILES fcl/genToArt_outToBinaryNetOutput_t.fcl)
 
+# PAM module for VNC password authentication
+find_package(PAM QUIET)
+if(PAM_FOUND)
+  add_library(pam_vncpasswd MODULE pam_vncpasswd.c)
+  target_include_directories(pam_vncpasswd PRIVATE ${PAM_INCLUDE_DIRS})
+  target_link_libraries(pam_vncpasswd PRIVATE ${PAM_LIBRARIES})
+  set_target_properties(pam_vncpasswd PROPERTIES PREFIX "")
+  install(TARGETS pam_vncpasswd LIBRARY DESTINATION lib/security)
+else()
+  message(STATUS "PAM not found; pam_vncpasswd will not be built")
+endif()
+
 install_headers()
 install_source()
 install_fhicl()
