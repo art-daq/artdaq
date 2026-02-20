@@ -39,22 +39,22 @@
 #define TLVL_EMPTYFRAGMENT 41
 
 artdaq::FragmentBuffer::FragmentBuffer(const fhicl::ParameterSet& ps)
-	: requestBuffer_()
-	, bufferModeKeepLatest_(ps.get<bool>("buffer_mode_keep_latest", false))
-	, windowOffset_(ps.get<Fragment::timestamp_t>("request_window_offset", 0))
-	, windowWidth_(ps.get<Fragment::timestamp_t>("request_window_width", 0))
-	, staleFragmentTimeout_(ps.get<Fragment::timestamp_t>("stale_fragment_timeout", 0))
-	, expectedType_(ps.get<Fragment::type_t>("expected_fragment_type", Fragment::type_t(Fragment::EmptyFragmentType)))
-	, uniqueWindows_(ps.get<bool>("request_windows_are_unique", true))
-	, sendMissingFragments_(ps.get<bool>("send_missing_request_fragments", true))
-	, missing_request_window_timeout_us_(ps.get<size_t>("missing_request_window_timeout_us", 5000000))
-	, window_close_timeout_us_(ps.get<size_t>("window_close_timeout_us", 2000000))
-	, error_on_empty_(ps.get<bool>("error_on_empty_fragment", false))
-	, circularDataBufferMode_(ps.get<bool>("circular_buffer_mode", false))
-	, maxDataBufferDepthFragments_(ps.get<int>("data_buffer_depth_fragments", 1000))
-	, maxDataBufferDepthBytes_(ps.get<size_t>("data_buffer_depth_mb", 1000) * 1024 * 1024)
-	, systemFragmentCount_(0)
-	, should_stop_(false)
+    : requestBuffer_()
+    , bufferModeKeepLatest_(ps.get<bool>("buffer_mode_keep_latest", false))
+    , windowOffset_(ps.get<Fragment::timestamp_t>("request_window_offset", 0))
+    , windowWidth_(ps.get<Fragment::timestamp_t>("request_window_width", 0))
+    , staleFragmentTimeout_(ps.get<Fragment::timestamp_t>("stale_fragment_timeout", 0))
+    , expectedType_(ps.get<Fragment::type_t>("expected_fragment_type", Fragment::type_t(Fragment::EmptyFragmentType)))
+    , uniqueWindows_(ps.get<bool>("request_windows_are_unique", true))
+    , sendMissingFragments_(ps.get<bool>("send_missing_request_fragments", true))
+    , missing_request_window_timeout_us_(ps.get<size_t>("missing_request_window_timeout_us", 5000000))
+    , window_close_timeout_us_(ps.get<size_t>("window_close_timeout_us", 2000000))
+    , error_on_empty_(ps.get<bool>("error_on_empty_fragment", false))
+    , circularDataBufferMode_(ps.get<bool>("circular_buffer_mode", false))
+    , maxDataBufferDepthFragments_(ps.get<int>("data_buffer_depth_fragments", 1000))
+    , maxDataBufferDepthBytes_(ps.get<size_t>("data_buffer_depth_mb", 1000) * 1024 * 1024)
+    , systemFragmentCount_(0)
+    , should_stop_(false)
 {
 	auto fragment_ids = ps.get<std::vector<artdaq::Fragment::fragment_id_t>>("fragment_ids", std::vector<artdaq::Fragment::fragment_id_t>());
 
@@ -260,7 +260,7 @@ bool artdaq::FragmentBuffer::waitForDataBufferReady(Fragment::fragment_id_t id)
 	if (!dataBuffers_.count(id))
 	{
 		TLOG(TLVL_ERROR) << "DataBufferError: "
-						 << "Error in FragmentBuffer: Cannot wait for data buffer for ID " << id << " because it does not exist!";
+		                 << "Error in FragmentBuffer: Cannot wait for data buffer for ID " << id << " because it does not exist!";
 		throw cet::exception("DataBufferError") << "Error in FragmentBuffer: Cannot wait for data buffer for ID " << id << " because it does not exist!";
 	}
 	auto startwait = std::chrono::steady_clock::now();
@@ -287,10 +287,10 @@ bool artdaq::FragmentBuffer::waitForDataBufferReady(Fragment::fragment_id_t id)
 				if (dataBufferIsTooLarge(id))
 				{
 					TLOG(TLVL_WARNING) << "Bad Omen: Data Buffer has exceeded its size limits. "
-									   << "(frag_id=" << id
-									   << ", frags=" << dataBuffer->DataBufferDepthFragments << "/" << maxDataBufferDepthFragments_
-									   << ", szB=" << dataBuffer->DataBufferDepthBytes << "/" << maxDataBufferDepthBytes_ << ")"
-									   << ", timestamps=" << dataBuffer->DataBuffer.front()->timestamp() << "-" << dataBuffer->DataBuffer.back()->timestamp();
+					                   << "(frag_id=" << id
+					                   << ", frags=" << dataBuffer->DataBufferDepthFragments << "/" << maxDataBufferDepthFragments_
+					                   << ", szB=" << dataBuffer->DataBufferDepthBytes << "/" << maxDataBufferDepthBytes_ << ")"
+					                   << ", timestamps=" << dataBuffer->DataBuffer.front()->timestamp() << "-" << dataBuffer->DataBuffer.back()->timestamp();
 					TLOG(TLVL_DEBUG + 33) << "Bad Omen: Possible causes include requests not getting through or Ignored-mode BR issues";
 
 					if (metricMan)
@@ -338,12 +338,12 @@ bool artdaq::FragmentBuffer::dataBufferIsTooLarge(Fragment::fragment_id_t id)
 	if (!dataBuffers_.count(id))
 	{
 		TLOG(TLVL_ERROR) << "DataBufferError: "
-						 << "Error in FragmentBuffer: Cannot check size of data buffer for ID " << id << " because it does not exist!";
+		                 << "Error in FragmentBuffer: Cannot check size of data buffer for ID " << id << " because it does not exist!";
 		throw cet::exception("DataBufferError") << "Error in FragmentBuffer: Cannot check size of data buffer for ID " << id << " because it does not exist!";
 	}
 	auto dataBuffer = dataBuffers_[id];
 	return (maxDataBufferDepthFragments_ > 0 && dataBuffer->DataBufferDepthFragments.load() > maxDataBufferDepthFragments_) ||
-		   (maxDataBufferDepthBytes_ > 0 && dataBuffer->DataBufferDepthBytes.load() > maxDataBufferDepthBytes_);
+	       (maxDataBufferDepthBytes_ > 0 && dataBuffer->DataBufferDepthBytes.load() > maxDataBufferDepthBytes_);
 }
 
 void artdaq::FragmentBuffer::getDataBufferStats(Fragment::fragment_id_t id)
@@ -351,7 +351,7 @@ void artdaq::FragmentBuffer::getDataBufferStats(Fragment::fragment_id_t id)
 	if (!dataBuffers_.count(id))
 	{
 		TLOG(TLVL_ERROR) << "DataBufferError: "
-						 << "Error in FragmentBuffer: Cannot get stats of data buffer for ID " << id << " because it does not exist!";
+		                 << "Error in FragmentBuffer: Cannot get stats of data buffer for ID " << id << " because it does not exist!";
 		throw cet::exception("DataBufferError") << "Error in FragmentBuffer: Cannot get stats of data buffer for ID " << id << " because it does not exist!";
 	}
 	auto dataBuffer = dataBuffers_[id];
@@ -369,7 +369,7 @@ void artdaq::FragmentBuffer::getDataBufferStats(Fragment::fragment_id_t id)
 		metricMan->sendMetric("Fragment Buffer Full %", bufferDepthFragmentsPercent > bufferDepthBytesPercent ? bufferDepthFragmentsPercent : bufferDepthBytesPercent, "%", 1, MetricMode::LastPoint);
 	}
 	TLOG(TLVL_GETBUFFERSTATS) << "getDataBufferStats: frags=" << dataBuffer->DataBufferDepthFragments.load() << "/" << maxDataBufferDepthFragments_
-							  << ", sz=" << dataBuffer->DataBufferDepthBytes.load() << "/" << maxDataBufferDepthBytes_;
+	                          << ", sz=" << dataBuffer->DataBufferDepthBytes.load() << "/" << maxDataBufferDepthBytes_;
 }
 
 std::string artdaq::FragmentBuffer::getStatReport()
@@ -382,10 +382,10 @@ std::string artdaq::FragmentBuffer::getStatReport()
 		if (!dataBuffers_.count(id))
 		{
 			TLOG(TLVL_ERROR) << "DataBufferError: "
-							 << "Error in FragmentBuffer: Cannot get stats of data buffer for ID "
-							 << id << " because it does not exist!";
+			                 << "Error in FragmentBuffer: Cannot get stats of data buffer for ID "
+			                 << id << " because it does not exist!";
 			throw cet::exception("DataBufferError") << "Error in FragmentBuffer: Cannot get stats of data buffer for ID "
-													<< id << " because it does not exist!";
+			                                        << id << " because it does not exist!";
 		}
 
 		auto dataBuffer = dataBuffers_[id];
@@ -395,11 +395,11 @@ std::string artdaq::FragmentBuffer::getStatReport()
 		int nf = dataBuffer->DataBufferDepthFragments.load();
 		int nb = dataBuffer->DataBufferDepthBytes.load();
 		oss << std::endl
-			<< "fragment_id:" << id << " nfragments:" << nf << " nbytes:" << nb
-			<< " max_nf:" << maxDataBufferDepthFragments_ << " max_nb:" << maxDataBufferDepthBytes_;
+		    << "fragment_id:" << id << " nfragments:" << nf << " nbytes:" << nb
+		    << " max_nf:" << maxDataBufferDepthFragments_ << " max_nb:" << maxDataBufferDepthBytes_;
 
 		TLOG(TLVL_GETBUFFERSTATS) << "getDataBufferStats: frags=" << dataBuffer->DataBufferDepthFragments.load() << "/" << maxDataBufferDepthFragments_
-								  << ", sz=" << dataBuffer->DataBufferDepthBytes.load() << "/" << maxDataBufferDepthBytes_;
+		                          << ", sz=" << dataBuffer->DataBufferDepthBytes.load() << "/" << maxDataBufferDepthBytes_;
 	}
 
 	return oss.str();
@@ -410,7 +410,7 @@ void artdaq::FragmentBuffer::checkDataBuffer(Fragment::fragment_id_t id)
 	if (!dataBuffers_.count(id))
 	{
 		TLOG(TLVL_ERROR) << "DataBufferError: "
-						 << "Error in FragmentBuffer: Cannot check data buffer for ID " << id << " because it does not exist!";
+		                 << "Error in FragmentBuffer: Cannot check data buffer for ID " << id << " because it does not exist!";
 		throw cet::exception("DataBufferError") << "Error in FragmentBuffer: Cannot check data buffer for ID " << id << " because it does not exist!";
 	}
 
@@ -590,20 +590,20 @@ void artdaq::FragmentBuffer::applyRequestsWindowMode_CheckAndFillDataBuffer(artd
 	Fragment::timestamp_t max = ts + windowWidth_ > windowOffset_ ? ts + windowWidth_ - windowOffset_ : 1;
 
 	TLOG(TLVL_APPLYREQUESTS) << "ApplyRequestsWindowsMode_CheckAndFillDataBuffer: min is " << min << ", max is " << max
-							 << " and first/last points in buffer are " << (dataBuffer->DataBufferDepthFragments > 0 ? dataBuffer->DataBuffer.front()->timestamp() : 0)
-							 << "/" << (dataBuffer->DataBufferDepthFragments > 0 ? dataBuffer->DataBuffer.back()->timestamp() : 0)
-							 << " (sz=" << dataBuffer->DataBufferDepthFragments << " [" << dataBuffer->DataBufferDepthBytes.load()
-							 << "/" << maxDataBufferDepthBytes_ << "])";
+	                         << " and first/last points in buffer are " << (dataBuffer->DataBufferDepthFragments > 0 ? dataBuffer->DataBuffer.front()->timestamp() : 0)
+	                         << "/" << (dataBuffer->DataBufferDepthFragments > 0 ? dataBuffer->DataBuffer.back()->timestamp() : 0)
+	                         << " (sz=" << dataBuffer->DataBufferDepthFragments << " [" << dataBuffer->DataBufferDepthBytes.load()
+	                         << "/" << maxDataBufferDepthBytes_ << "])";
 	bool windowClosed = dataBuffer->DataBufferDepthFragments > 0 && dataBuffer->DataBuffer.back()->timestamp() >= max;
 	bool windowTimeout = !windowClosed && TimeUtils::GetElapsedTimeMicroseconds(requestBuffer_->GetRequestTime(seq)) > window_close_timeout_us_;
 	if (windowTimeout)
 	{
 		TLOG(TLVL_WARNING) << "applyRequestsWindowMode_CheckAndFillDataBuffer: A timeout occurred waiting for data to close the request window ({" << min << "-" << max
-						   << "}, buffer={" << (dataBuffer->DataBufferDepthFragments > 0 ? dataBuffer->DataBuffer.front()->timestamp() : 0) << "-"
-						   << (dataBuffer->DataBufferDepthFragments > 0 ? dataBuffer->DataBuffer.back()->timestamp() : 0)
-						   << "} ). Time waiting: "
-						   << TimeUtils::GetElapsedTimeMicroseconds(requestBuffer_->GetRequestTime(seq)) << " us "
-						   << "(> " << window_close_timeout_us_ << " us).";
+		                   << "}, buffer={" << (dataBuffer->DataBufferDepthFragments > 0 ? dataBuffer->DataBuffer.front()->timestamp() : 0) << "-"
+		                   << (dataBuffer->DataBufferDepthFragments > 0 ? dataBuffer->DataBuffer.back()->timestamp() : 0)
+		                   << "} ). Time waiting: "
+		                   << TimeUtils::GetElapsedTimeMicroseconds(requestBuffer_->GetRequestTime(seq)) << " us "
+		                   << "(> " << window_close_timeout_us_ << " us).";
 	}
 	if (windowClosed || windowTimeout)
 	{
@@ -627,9 +627,9 @@ void artdaq::FragmentBuffer::applyRequestsWindowMode_CheckAndFillDataBuffer(artd
 		if (!windowClosed || (dataBuffer->DataBufferDepthFragments > 0 && dataBuffer->DataBuffer.front()->timestamp() > min))
 		{
 			TLOG(TLVL_DEBUG + 32) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Request window starts before and/or ends after the current data buffer, setting ContainerFragment's missing_data flag!"
-								  << " (requestWindowRange=[" << min << "," << max << "], "
-								  << "buffer={" << (dataBuffer->DataBufferDepthFragments > 0 ? dataBuffer->DataBuffer.front()->timestamp() : 0) << "-"
-								  << (dataBuffer->DataBufferDepthFragments > 0 ? dataBuffer->DataBuffer.back()->timestamp() : 0) << "} (SeqID " << seq << ")";
+			                      << " (requestWindowRange=[" << min << "," << max << "], "
+			                      << "buffer={" << (dataBuffer->DataBufferDepthFragments > 0 ? dataBuffer->DataBuffer.front()->timestamp() : 0) << "-"
+			                      << (dataBuffer->DataBufferDepthFragments > 0 ? dataBuffer->DataBuffer.back()->timestamp() : 0) << "} (SeqID " << seq << ")";
 			cfl.set_missing_data(true);
 		}
 
