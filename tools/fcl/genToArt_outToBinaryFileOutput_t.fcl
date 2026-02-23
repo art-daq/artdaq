@@ -27,6 +27,7 @@ genToArt:
 
 services: {
     ArtdaqSharedMemoryInterface: { service_provider: ArtdaqSharedMemoryService }
+    ArtdaqFragmentNamingInterface: { service_provider: ArtdaqFragmentNamingService }
 }
 
 source:

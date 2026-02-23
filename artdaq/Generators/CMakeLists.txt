@@ -46,6 +46,19 @@ cet_write_plugin_builder(artdaq::commandableGenerator artdaq::generator Modules
 
 include(artdaq::commandableGenerator)
 
+cet_build_plugin(GenericFragmentSimulator artdaq::generator
+  LIBRARIES
+  PUBLIC
+  artdaq_plugin_types::generator
+  artdaq-core::Data
+  fhiclcpp::types
+  PRIVATE
+  fhiclcpp::fhiclcpp
+)
+
+include(ArtdaqCorePlugins)
+cet_build_plugin(Generic artdaq::fragmentNameHelper)
+
 cet_build_plugin(CompositeDriver artdaq::commandableGenerator
   LIBRARIES PRIVATE
   artdaq_plugin_support::CFGMaker

@@ -18,7 +18,7 @@ physics:
     {
       module_type: FragmentSniffer
       raw_label: "daq"
-      product_instance_name: "Empty"
+      product_instance_name: "Generic"
       num_frags_per_event: @local::num_ds50_boards
       num_events_expected: @local::num_events
     }
@@ -51,5 +51,5 @@ services:
   resume_after_timeout: false
   buffer_count: 10
   max_event_size_bytes: 0x100000 }
-  ArtdaqFragmentNamingServiceInterface: { service_provider: ArtdaqFragmentNamingService }
+  ArtdaqFragmentNamingServiceInterface: { service_provider: ArtdaqFragmentNamingService helper_plugin: Generic }
 }
