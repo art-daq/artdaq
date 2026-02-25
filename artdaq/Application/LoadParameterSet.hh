@@ -17,6 +17,11 @@ namespace bpo = boost::program_options;
 #include <sstream>
 #include <string>
 
+/**
+ * \brief Load a FHiCL ParameterSet from a string or file
+ * \param psetOrFile A FHiCL string or a path to a FHiCL file
+ * \return The parsed fhicl::ParameterSet
+ */
 inline fhicl::ParameterSet LoadParameterSet(std::string const& psetOrFile)
 {
 	fhicl::ParameterSet pset;
@@ -36,6 +41,11 @@ inline fhicl::ParameterSet LoadParameterSet(std::string const& psetOrFile)
 	return pset;
 }
 
+/**
+ * \brief Print the allowed configuration for a given FHiCL table type to the console
+ * \tparam C The FHiCL table configuration type
+ * \param name Name of the top-level FHiCL table
+ */
 template<typename C>
 void PrintConfigurationToConsole(std::string const& name)
 {
@@ -43,6 +53,15 @@ void PrintConfigurationToConsole(std::string const& name)
 	config_description.print_allowed_configuration(std::cout);
 }
 
+/**
+ * \brief Load a FHiCL ParameterSet from command-line arguments
+ * \tparam C The FHiCL table configuration type used for validation and help output
+ * \param argc Argument count from main()
+ * \param argv Argument vector from main()
+ * \param name Name of the top-level FHiCL table key to extract from the configuration
+ * \param description Description of the application, printed with --help
+ * \return The parsed fhicl::ParameterSet for the named table
+ */
 template<typename C>
 inline fhicl::ParameterSet LoadParameterSet(int argc, char* argv[], std::string const& name, std::string const& description)
 {
