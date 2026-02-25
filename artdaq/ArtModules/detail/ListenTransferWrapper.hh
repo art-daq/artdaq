@@ -23,7 +23,7 @@ class Fragment;
  * JCF, May-27-2016
  *
  * This is the class through which code that wants to access a
- * transfer plugin (e.g., input sources, AggregatorCore, etc.) can do
+ * transfer plugin (e.g., input sources, DispatcherCore, etc.) can do
  * so. Its functionality is such that it satisfies the requirements
  * needed to be a template in the ArtdaqInput class
  */

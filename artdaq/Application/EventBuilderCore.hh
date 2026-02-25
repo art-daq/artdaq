@@ -38,7 +38,7 @@ public:
 
 	/**
 	 * \brief Copy Assignment operator is deleted
-	 * \return AggregatorCore copy
+	 * \return EventBuilderCore copy
 	 */
 	EventBuilderCore& operator=(EventBuilderCore const&) = delete;
 	EventBuilderCore(EventBuilderCore&&) = delete;             ///< Move Constructor is deleted
@@ -52,7 +52,7 @@ public:
 	 * \verbatim
 	 * EventBuilderCore accepts the following Parameters:
 	 * "daq" (REQUIRED): FHiCL table containing DAQ configuration
-	 *   "event_builder" (REQUIRED): FHiCL table containing Aggregator paramters
+	 *   "event_builder" (REQUIRED): FHiCL table containing EventBuilder parameters
 	 *     "fragment_count" (REQUIRED): Number of Fragment objects to collect before sending them to art
 	 *     "inrun_recv_timeout_usec" (Default: 100000): Amount of time to wait for new Fragment objects while running
 	 *     "endrun_recv_timeout_usec" (Default: 20000000): Amount of time to wait for additional Fragment objects at EndOfRun

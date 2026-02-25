@@ -72,7 +72,7 @@ public:
 	size_t slotCount(size_t rank) const;
 
 	/**
-	 * \brief Get the total size of all data recieved by this FragmentReceiverManager
+	 * \brief Get the total size of all data received by this FragmentReceiverManager
 	 * \return The total size of all data received by this FragmentReceiverManager
 	 */
 	size_t byteCount() const;

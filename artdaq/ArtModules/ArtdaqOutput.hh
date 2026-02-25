@@ -118,7 +118,7 @@ protected:
 	virtual void closeFile() { TLOG(TLVL_ENTER_EXIT, "ArtdaqOutput") << "Begin/End: ArtdaqOutput::closeFile()"; }
 
 	/// <summary>
-	/// Perform actions nesessary after closing the input file. No-op, but derived classes may override
+	/// Perform actions necessary after closing the input file. No-op, but derived classes may override
 	/// </summary>
 	virtual void respondToCloseInputFile(FileBlock const&)
 	{
