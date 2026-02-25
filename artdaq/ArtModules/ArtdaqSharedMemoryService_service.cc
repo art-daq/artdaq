@@ -397,7 +397,7 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 	if (output_event != nullptr)
 	{
 		auto type = output_event->FirstFragmentType();
-		TLOG(subrun_has_events_ ? TLVL_RECEIVEEVENT_3 : TLVL_INFO) << "Returning ArtdaqEvent with run=" << output_event->header->run_id << ", subrun=" << output_event->header->subrun_id
+		TLOG(TLVL_RECEIVEEVENT_3) << "Returning ArtdaqEvent with run=" << output_event->header->run_id << ", subrun=" << output_event->header->subrun_id
 		                                                           << ", seq=" << output_event->header->sequence_id << ", and type " << static_cast<int>(type);
 		if (output_event->header->subrun_id > current_subrun_ && output_event->header->subrun_id != 65535)  // EndOfRun Fragments have subrun -1
 		{

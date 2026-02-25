@@ -164,101 +164,63 @@ BOOST_AUTO_TEST_CASE(Requests)
 	start_time = std::chrono::steady_clock::now();
 	t.SetRequestMode(artdaq::detail::RequestMessageMode::EndOfRun);
 	t.AddRequest(2, 0x20);
-	rv = poll(ufds, 1, 1000);
-	if (rv > 0)
+	bool found_new_request = false;
+	while (!found_new_request)
 	{
-		if (ufds[0].revents == POLLIN || ufds[0].revents == POLLPRI)
+		rv = poll(ufds, 1, 1000);
+		if (rv > 0)
 		{
-			auto delay_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count();
-			BOOST_REQUIRE_GE(delay_time, DELAY_TIME);
-			TLOG(TLVL_TRACE) << "Recieved packet on Request channel";
-			std::vector<uint8_t> buffer(MAX_REQUEST_MESSAGE_SIZE);
-			artdaq::detail::RequestHeader hdr_buffer;
-			recv(request_socket, &buffer[0], buffer.size(), 0);
-			memcpy(&hdr_buffer, &buffer[0], sizeof(artdaq::detail::RequestHeader));
-			TRACE_REQUIRE_EQUAL(hdr_buffer.isValid(), true);
-			TRACE_REQUIRE_EQUAL(static_cast<uint8_t>(hdr_buffer.mode),
-			                    static_cast<uint8_t>(artdaq::detail::RequestMessageMode::EndOfRun));
-			TRACE_REQUIRE_EQUAL(hdr_buffer.packet_count, 2);
-			if (hdr_buffer.isValid())
+			if (ufds[0].revents == POLLIN || ufds[0].revents == POLLPRI)
 			{
-				std::vector<artdaq::detail::RequestPacket> pkt_buffer(hdr_buffer.packet_count);
-				memcpy(&pkt_buffer[0], &buffer[sizeof(artdaq::detail::RequestHeader)], sizeof(artdaq::detail::RequestPacket) * hdr_buffer.packet_count);
+				TLOG(TLVL_TRACE) << "Recieved packet on Request channel";
+				std::vector<uint8_t> buffer(MAX_REQUEST_MESSAGE_SIZE);
+				artdaq::detail::RequestHeader hdr_buffer;
+				recv(request_socket, &buffer[0], buffer.size(), 0);
+				memcpy(&hdr_buffer, &buffer[0], sizeof(artdaq::detail::RequestHeader));
+				TRACE_REQUIRE_EQUAL(hdr_buffer.isValid(), true);
 
-				TRACE_REQUIRE_EQUAL(pkt_buffer[0].isValid(), true);
-				TRACE_REQUIRE_EQUAL(pkt_buffer[0].sequence_id, 0);
-				TRACE_REQUIRE_EQUAL(pkt_buffer[0].timestamp, 0x10);
-				TRACE_REQUIRE_EQUAL(pkt_buffer[1].isValid(), true);
-				TRACE_REQUIRE_EQUAL(pkt_buffer[1].sequence_id, 2);
-				TRACE_REQUIRE_EQUAL(pkt_buffer[1].timestamp, 0x20);
+                if (hdr_buffer.packet_count == 1)
+				{
+					continue;
+				}
+				found_new_request = true;
+				auto delay_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count();
+				BOOST_REQUIRE_GE(delay_time, DELAY_TIME);
+				TRACE_REQUIRE_EQUAL(static_cast<uint8_t>(hdr_buffer.mode),
+				                    static_cast<uint8_t>(artdaq::detail::RequestMessageMode::EndOfRun));
+				TRACE_REQUIRE_EQUAL(hdr_buffer.packet_count, 2);
+				if (hdr_buffer.isValid())
+				{
+					std::vector<artdaq::detail::RequestPacket> pkt_buffer(hdr_buffer.packet_count);
+					memcpy(&pkt_buffer[0], &buffer[sizeof(artdaq::detail::RequestHeader)], sizeof(artdaq::detail::RequestPacket) * hdr_buffer.packet_count);
+
+					TRACE_REQUIRE_EQUAL(pkt_buffer[0].isValid(), true);
+					TRACE_REQUIRE_EQUAL(pkt_buffer[0].sequence_id, 0);
+					TRACE_REQUIRE_EQUAL(pkt_buffer[0].timestamp, 0x10);
+					TRACE_REQUIRE_EQUAL(pkt_buffer[1].isValid(), true);
+					TRACE_REQUIRE_EQUAL(pkt_buffer[1].sequence_id, 2);
+					TRACE_REQUIRE_EQUAL(pkt_buffer[1].timestamp, 0x20);
+				}
+				else
+				{
+					TLOG(TLVL_ERROR) << "Invalid header received";
+					BOOST_REQUIRE_EQUAL(false, true);
+					return;
+				}
 			}
 			else
 			{
-				TLOG(TLVL_ERROR) << "Invalid header received";
+				TLOG(TLVL_ERROR) << "Wrong event type from poll";
 				BOOST_REQUIRE_EQUAL(false, true);
 				return;
 			}
 		}
 		else
 		{
-			TLOG(TLVL_ERROR) << "Wrong event type from poll";
+			TLOG(TLVL_ERROR) << "Timeout occured waiting for request";
 			BOOST_REQUIRE_EQUAL(false, true);
 			return;
 		}
-	}
-	else
-	{
-		TLOG(TLVL_ERROR) << "Timeout occured waiting for request";
-		BOOST_REQUIRE_EQUAL(false, true);
-		return;
-	}
-	rv = poll(ufds, 1, 1000);
-	if (rv > 0)
-	{
-		if (ufds[0].revents == POLLIN || ufds[0].revents == POLLPRI)
-		{
-			auto delay_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count();
-			BOOST_REQUIRE_GE(delay_time, DELAY_TIME);
-			TLOG(TLVL_TRACE) << "Recieved packet on Request channel";
-			std::vector<uint8_t> buffer(MAX_REQUEST_MESSAGE_SIZE);
-			artdaq::detail::RequestHeader hdr_buffer;
-			recv(request_socket, &buffer[0], buffer.size(), 0);
-			memcpy(&hdr_buffer, &buffer[0], sizeof(artdaq::detail::RequestHeader));
-			TRACE_REQUIRE_EQUAL(hdr_buffer.isValid(), true);
-			TRACE_REQUIRE_EQUAL(static_cast<uint8_t>(hdr_buffer.mode),
-			                    static_cast<uint8_t>(artdaq::detail::RequestMessageMode::EndOfRun));
-			TRACE_REQUIRE_EQUAL(hdr_buffer.packet_count, 2);
-			if (hdr_buffer.isValid())
-			{
-				std::vector<artdaq::detail::RequestPacket> pkt_buffer(hdr_buffer.packet_count);
-				memcpy(&pkt_buffer[0], &buffer[sizeof(artdaq::detail::RequestHeader)], sizeof(artdaq::detail::RequestPacket) * hdr_buffer.packet_count);
-
-				TRACE_REQUIRE_EQUAL(pkt_buffer[0].isValid(), true);
-				TRACE_REQUIRE_EQUAL(pkt_buffer[0].sequence_id, 0);
-				TRACE_REQUIRE_EQUAL(pkt_buffer[0].timestamp, 0x10);
-				TRACE_REQUIRE_EQUAL(pkt_buffer[1].isValid(), true);
-				TRACE_REQUIRE_EQUAL(pkt_buffer[1].sequence_id, 2);
-				TRACE_REQUIRE_EQUAL(pkt_buffer[1].timestamp, 0x20);
-			}
-			else
-			{
-				TLOG(TLVL_ERROR) << "Invalid header received";
-				BOOST_REQUIRE_EQUAL(false, true);
-				return;
-			}
-		}
-		else
-		{
-			TLOG(TLVL_ERROR) << "Wrong event type from poll";
-			BOOST_REQUIRE_EQUAL(false, true);
-			return;
-		}
-	}
-	else
-	{
-		TLOG(TLVL_ERROR) << "Timeout occured waiting for request";
-		BOOST_REQUIRE_EQUAL(false, true);
-		return;
 	}
 
 	t.RemoveRequest(0);

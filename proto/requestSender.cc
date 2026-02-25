@@ -84,7 +84,6 @@ try
 	{
 		TLOG(TLVL_INFO) << "Sending request " << ii << " of " << num_requests << " with sequence id " << seq;
 		sender.AddRequest(seq, ts);
-		sender.SendRequest();
 
 		if (request_buffer)
 		{
