@@ -211,12 +211,11 @@ void RequestSender::do_send_request_()
 		TLOG(TLVL_DEBUG + 33) << "Setting mode flag in Message Header to " << static_cast<int>(request_mode_);
 		message.setMode(request_mode_);
 
+		lk.unlock();
 
-        lk.unlock();
+		if (message.size() == 0) continue;
 
-        if (message.size() == 0) continue;
-
-        char str[INET_ADDRSTRLEN];
+		char str[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
 		TLOG(TLVL_DEBUG + 33) << "Sending request for " << message.size() << " events to multicast group " << str
 		                      << ", port " << request_port_ << ", interface " << multicast_out_addr_;
@@ -252,9 +251,10 @@ void RequestSender::do_add_request_(Fragment::sequence_id_t const& seqID, Fragme
 		usleep(1000);
 	}
 
-    if (!sender_thread_running_) {
+	if (!sender_thread_running_)
+	{
 		start_send_request_thread_();
-    }
+	}
 
 	std::this_thread::sleep_for(request_delay_);
 	{

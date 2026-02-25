@@ -117,8 +117,7 @@ public:
 
 private:
 private:
-
-    // State variables
+	// State variables
 	std::atomic<bool> initialized_{false};
 	std::atomic<bool> sender_thread_running_{false};
 	std::atomic<bool> sender_thread_exited_{true};
@@ -128,12 +127,12 @@ private:
 	std::atomic<size_t> requests_sent_{0};
 	uint32_t run_number_{0};
 
-    // Main data storage
+	// Main data storage
 	std::map<Fragment::sequence_id_t, Fragment::timestamp_t> active_requests_{};
 	detail::RequestMessageMode request_mode_{detail::RequestMessageMode::Normal};
 
-    // Socket variables
-    int request_socket_{-1};
+	// Socket variables
+	int request_socket_{-1};
 	struct sockaddr_in request_addr_;
 
 	// Configuration parameters
@@ -145,14 +144,13 @@ private:
 	std::chrono::milliseconds request_interval_;
 	std::chrono::milliseconds request_delay_;
 
-
 private:
 	void setup_requests_();
 
-    void start_send_request_thread_();
+	void start_send_request_thread_();
 	void stop_send_request_thread_();
 
-    void do_add_request_(Fragment::sequence_id_t const& seqID, Fragment::timestamp_t const& timestamp);
+	void do_add_request_(Fragment::sequence_id_t const& seqID, Fragment::timestamp_t const& timestamp);
 	void do_send_request_();
 };
 }  // namespace artdaq

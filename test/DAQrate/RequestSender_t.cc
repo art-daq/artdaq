@@ -179,7 +179,7 @@ BOOST_AUTO_TEST_CASE(Requests)
 				memcpy(&hdr_buffer, &buffer[0], sizeof(artdaq::detail::RequestHeader));
 				TRACE_REQUIRE_EQUAL(hdr_buffer.isValid(), true);
 
-                if (hdr_buffer.packet_count == 1)
+				if (hdr_buffer.packet_count == 1)
 				{
 					continue;
 				}
