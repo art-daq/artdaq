@@ -1,4 +1,4 @@
-name: Build Single Pkg Workflow (artdaq version)
+name: Build Single Pkg on Runner
 
 permissions:
   contents: read
@@ -9,7 +9,7 @@ on:
 jobs:
 
   build_single_pkg:
-    name: build single pkg
+    name: build single pkg ubunutu
     runs-on: ubuntu-latest
 
     # Steps represent a sequence of tasks that will be executed as part of the job
