@@ -71,25 +71,25 @@ jobs:
 
         cd $GITHUB_WORKSPACE/scratch
 
-        source /cvmfs/fermilab.opensciencegrid.org/products/artdaq/spack_v0.28/artdaq-v4_05_00-al9/setup-env.sh || exit 1
+        source /cvmfs/fermilab.opensciencegrid.org/products/artdaq/spack_v0.28/artdaq-v4_05_00-al9/setupARTDAQDEMO || exit 1
 
         export REPO=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')
-        mkdir /scratch/art-daq/build_$REPO
-        cd /scratch/art-daq/build_$REPO
+        mkdir art-daq/build_$REPO
+        cd art-daq/build_$REPO
 
         export CETPKG_J=$((`cat /proc/cpuinfo|grep processor|tail -1|awk '{print $3}'` + 1))
         export compiler=$(spack compiler info gcc@13.1.0|grep cxx|awk '{print $3}')
         echo "Compiler is $compiler"
 
-        echo "Configuring with cmake --preset default /scratch/art-daq/$REPO -DCMAKE_CXX_COMPILER=$compiler -Wno-dev"
-        cmake --preset default /scratch/art-daq/$REPO -DCMAKE_CXX_COMPILER=$compiler -Wno-dev
+        echo "Configuring with cmake --preset default $GITHUB_WORKSPACE/scratch/art-daq/$REPO -DCMAKE_CXX_COMPILER=$compiler -Wno-dev"
+        cmake --preset default $GITHUB_WORKSPACE/scratch/art-daq/$REPO -DCMAKE_CXX_COMPILER=$compiler -Wno-dev
 
         echo "Starting build"
-        make -j$CETPKG_J 2>&1 | tee -a /scratch/art-daq/build.log
+        make -j$CETPKG_J 2>&1 | tee -a $GITHUB_WORKSPACE/scratch/art-daq/build.log
         res=${PIPESTATUS[0]} # Get result of first command in previous pipe, bash specific
 
         echo "Spack install completed with status code $res"
-        echo "Spack install completed with status code $res" >>/scratch/art-daq/build.log
+        echo "Spack install completed with status code $res" >>$GITHUB_WORKSPACE/scratch/art-daq/build.log
 
         exit $res
 
