@@ -1,0 +1,28 @@
+{
+    "configurePresets": [
+        {
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": {
+                    "type": "STRING",
+                    "value": "RelWithDebInfo"
+                },
+                "CMAKE_CXX_EXTENSIONS": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                },
+                "CMAKE_CXX_STANDARD_REQUIRED": {
+                    "type": "BOOL",
+                    "value": "ON"
+                },
+                "CMAKE_CXX_STANDARD": {
+                    "type": "STRING",
+                    "value": "20"
+                }
+            },
+            "description": "Configuration settings as created by 'spack mpd new-dev'",
+            "displayName": "Configuration from mpd new-dev",
+            "name": "default"
+        }
+    ],
+    "version": 3
+}
