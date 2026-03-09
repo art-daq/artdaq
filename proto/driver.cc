@@ -18,7 +18,6 @@
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
 #include "artdaq/ArtModules/detail/ArtConfig.hh"
-#include "artdaq/DAQdata/GenericFragmentSimulator.hh"
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 #include "artdaq/Generators/makeCommandableFragmentGenerator.hh"

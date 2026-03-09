@@ -171,7 +171,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 		return false;
 	}
 
-	std::shared_ptr<RequestBuffer> request_buffer = std::make_shared<RequestBuffer>(fr_pset.get<artdaq::Fragment::sequence_id_t>("request_increment", 1));
+	std::shared_ptr<RequestBuffer> request_buffer = std::make_shared<RequestBuffer>();
 
 	try
 	{

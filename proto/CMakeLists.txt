@@ -10,7 +10,6 @@ cet_make_exec(NAME artdaqDriver
   artdaq::ArtConfig
   artdaq::Application
   artdaq::DAQrate
-  artdaq::DAQdata_GenericFragmentSimulator_generator
   artdaq::DAQdata
   artdaq-core::Utilities
   artdaq-core::Plugins

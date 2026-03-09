@@ -19,7 +19,6 @@ cet_make_exec(NAME genToArt
   LIBRARIES
   artdaq_plugin_support::CFGMaker
   artdaq::DAQrate
-  artdaq::DAQdata_GenericFragmentSimulator_generator
   artdaq-core::Utilities
   artdaq-core::Plugins
   canvas::canvas

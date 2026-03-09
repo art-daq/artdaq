@@ -1,4 +1,4 @@
-#include "artdaq/DAQdata/GenericFragmentSimulator.hh"
+#include "artdaq/Generators/GenericFragmentSimulator.hh"
 
 #include "artdaq-core/Plugins/GeneratorMacros.hh"
 

@@ -22,18 +22,12 @@
 namespace artdaq {
 RequestSender::RequestSender(const fhicl::ParameterSet& pset)
     : send_requests_(pset.get<bool>("send_requests", false))
-    , initialized_(false)
     , request_address_(pset.get<std::string>("request_address", "227.128.12.26"))
     , request_port_(pset.get<int>("request_port", 3001))
-    , request_delay_(pset.get<size_t>("request_delay_ms", 0) * 1000)
-    , request_shutdown_timeout_us_(pset.get<size_t>("request_shutdown_timeout_us", 100000))
-    , request_socket_(-1)
+    , request_shutdown_timeout_(pset.get<size_t>("request_shutdown_timeout_us", 100000))
     , multicast_out_addr_(pset.get<std::string>("multicast_interface_ip", pset.get<std::string>("output_address", "0.0.0.0")))
-    , request_mode_(detail::RequestMessageMode::Normal)
-    , min_request_interval_ms_(pset.get<size_t>("min_request_interval_ms", 100))
-    , request_sending_(0)
-    , requests_sent_(0)
-    , run_number_(0)
+    , request_interval_(pset.get<size_t>("request_interval_ms", 100))
+    , request_delay_(pset.get<size_t>("request_delay_ms", 0))
 {
 	TLOG(TLVL_DEBUG) << "RequestSender CONSTRUCTOR pset=" << pset.to_string();
 	setup_requests_();
@@ -44,17 +38,11 @@ RequestSender::RequestSender(const fhicl::ParameterSet& pset)
 
 RequestSender::~RequestSender()
 {
-	TLOG(TLVL_INFO) << "Shutting down RequestSender: Waiting for " << request_sending_.load() << " requests to be sent (total sent: " << requests_sent_ << ")";
+	TLOG(TLVL_INFO) << "Shutting down RequestSender: Waiting for requests to be sent (total sent: " << requests_sent_ << ")";
 
-	auto start_time = std::chrono::steady_clock::now();
-
-	while (request_sending_.load() > 0 && request_shutdown_timeout_us_ + request_delay_ > TimeUtils::GetElapsedTimeMicroseconds(start_time))
-	{
-		usleep(1000);
-	}
+	stop_send_request_thread_();
 	{
 		std::lock_guard<std::mutex> lk(request_mutex_);
-		std::lock_guard<std::mutex> lk2(request_send_mutex_);
 	}
 	TLOG(TLVL_INFO) << "Shutting down RequestSender: request_socket_: " << request_socket_;
 	if (request_socket_ != -1)
@@ -71,13 +59,13 @@ RequestSender::~RequestSender()
 	}
 }
 
-void RequestSender::SetRequestMode(detail::RequestMessageMode mode)
+void RequestSender::SetRequestMode(detail::RequestMessageMode const& mode)
 {
 	{
 		std::lock_guard<std::mutex> lk(request_mutex_);
 		request_mode_ = mode;
 	}
-	SendRequest(true);
+	sender_cv_.notify_all();
 }
 
 void RequestSender::setup_requests_()
@@ -149,27 +137,72 @@ void RequestSender::setup_requests_()
 	}
 }
 
-void RequestSender::do_send_request_()
+void RequestSender::start_send_request_thread_()
 {
 	if (!send_requests_)
 	{
-		request_sending_--;
 		return;
 	}
-	if (request_socket_ == -1)
+	stop_send_request_thread_();
+	TLOG(TLVL_INFO) << "Starting Request Sender Thread";
+	sender_thread_running_ = true;
+	try
 	{
-		setup_requests_();
+		sender_thread_.reset(new boost::thread(&RequestSender::do_send_request_, this));
+		char tname[16];
+		snprintf(tname, 16, "%s", "RequestSend");  // NOLINT
+		auto handle = sender_thread_->native_handle();
+		pthread_setname_np(handle, tname);
+	}
+	catch (const boost::exception& e)
+	{
+		TLOG(TLVL_ERROR) << "Caught boost::exception starting Request Send thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
+		std::cerr << "Caught boost::exception starting Request Send thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
+		exit(5);
+	}
+}
+
+void RequestSender::stop_send_request_thread_()
+{
+	if (!send_requests_)
+	{
+		return;
+	}
+	TLOG(TLVL_INFO) << "Stopping Request Sender Thread";
+	auto start_time = std::chrono::steady_clock::now();
+	sender_thread_running_ = false;
+
+	while (!sender_thread_exited_ && std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start_time) < request_shutdown_timeout_)
+	{
+		TLOG(TLVL_DEBUG + 30) << "Waiting for Request Sender thread to exit...";
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
 
-	TLOG(TLVL_DEBUG + 33) << "Waiting for " << request_delay_ << " microseconds.";
-	std::this_thread::sleep_for(std::chrono::microseconds(request_delay_));
-
-	TLOG(TLVL_DEBUG + 33) << "Creating RequestMessage";
-	detail::RequestMessage message;
-	message.setRank(my_rank);
-	message.setRunNumber(run_number_);
+	if (sender_thread_ != nullptr && sender_thread_->joinable())
 	{
-		std::lock_guard<std::mutex> lk(request_mutex_);
+		sender_thread_->join();
+	}
+}
+
+void RequestSender::do_send_request_()
+{
+	sender_thread_exited_ = false;
+	while (sender_thread_running_)
+	{
+		if (request_socket_ == -1)
+		{
+			setup_requests_();
+		}
+
+		TLOG(TLVL_DEBUG + 33) << "Waiting for up to " << request_interval_ << " milliseconds.";
+		std::unique_lock<std::mutex> lk(request_mutex_);
+		sender_cv_.wait_for(lk, request_interval_);
+
+		TLOG(TLVL_DEBUG + 33) << "Creating RequestMessage";
+		detail::RequestMessage message;
+		message.setRank(my_rank);
+		message.setRunNumber(run_number_);
+
 		for (auto& req : active_requests_)
 		{
 			TLOG(TLVL_DEBUG + 36) << "Adding a request with sequence ID " << req.first << ", timestamp " << req.second << " to request message";
@@ -177,57 +210,53 @@ void RequestSender::do_send_request_()
 		}
 		TLOG(TLVL_DEBUG + 33) << "Setting mode flag in Message Header to " << static_cast<int>(request_mode_);
 		message.setMode(request_mode_);
+
+		lk.unlock();
+
+		if (message.size() == 0) continue;
+
+		char str[INET_ADDRSTRLEN];
+		inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
+		TLOG(TLVL_DEBUG + 33) << "Sending request for " << message.size() << " events to multicast group " << str
+		                      << ", port " << request_port_ << ", interface " << multicast_out_addr_;
+		auto buf = message.GetMessage();
+		auto sts = sendto(request_socket_, &buf[0], buf.size(), 0, reinterpret_cast<struct sockaddr*>(&request_addr_), sizeof(request_addr_));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+		if (sts < 0 || static_cast<size_t>(sts) != buf.size())
+		{
+			TLOG(TLVL_ERROR) << "Error sending request message err=" << strerror(errno) << "sts=" << sts;
+			request_socket_ = -1;
+			continue;
+		}
+		TLOG(TLVL_DEBUG + 33) << "Done sending request sts=" << sts;
+		requests_sent_++;
 	}
-	char str[INET_ADDRSTRLEN];
-	inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
-	std::lock_guard<std::mutex> lk2(request_send_mutex_);
-	TLOG(TLVL_DEBUG + 33) << "Sending request for " << message.size() << " events to multicast group " << str
-	                      << ", port " << request_port_ << ", interface " << multicast_out_addr_;
-	auto buf = message.GetMessage();
-	auto sts = sendto(request_socket_, &buf[0], buf.size(), 0, reinterpret_cast<struct sockaddr*>(&request_addr_), sizeof(request_addr_));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-	if (sts < 0 || static_cast<size_t>(sts) != buf.size())
-	{
-		TLOG(TLVL_ERROR) << "Error sending request message err=" << strerror(errno) << "sts=" << sts;
-		request_socket_ = -1;
-		request_sending_--;
-		return;
-	}
-	TLOG(TLVL_DEBUG + 33) << "Done sending request sts=" << sts;
-	request_sending_--;
-	requests_sent_++;
+	sender_thread_exited_ = true;
 }
 
-void RequestSender::SendRequest(bool endOfRunOnly)
+void RequestSender::AddRequest(Fragment::sequence_id_t const& seqID, Fragment::timestamp_t const& timestamp)
 {
-	while (!initialized_)
-	{
-		usleep(1000);
-	}
-
 	if (!send_requests_)
 	{
 		return;
 	}
-	{
-		std::lock_guard<std::mutex> lk(request_mutex_);
-		if (endOfRunOnly && request_mode_ != detail::RequestMessageMode::EndOfRun)
-		{
-			return;
-		}
-	}
-	last_request_send_time_ = std::chrono::steady_clock::now();
-	request_sending_++;
-	boost::thread request([this] { do_send_request_(); });
+	TLOG(TLVL_DEBUG + 37) << "Adding request for sequence ID " << seqID << " and timestamp " << timestamp << " to request list.";
+	boost::thread request(&RequestSender::do_add_request_, this, seqID, timestamp);
 	request.detach();
 }
 
-void RequestSender::AddRequest(Fragment::sequence_id_t seqID, Fragment::timestamp_t timestamp)
+void RequestSender::do_add_request_(Fragment::sequence_id_t const& seqID, Fragment::timestamp_t const& timestamp)
 {
 	while (!initialized_)
 	{
 		usleep(1000);
 	}
 
+	if (!sender_thread_running_)
+	{
+		start_send_request_thread_();
+	}
+
+	std::this_thread::sleep_for(request_delay_);
 	{
 		std::lock_guard<std::mutex> lk(request_mutex_);
 		if (active_requests_.count(seqID) == 0u)
@@ -242,10 +271,10 @@ void RequestSender::AddRequest(Fragment::sequence_id_t seqID, Fragment::timestam
 			active_requests_.erase(active_requests_.begin());
 		}
 	}
-	SendRequest(TimeUtils::GetElapsedTimeMilliseconds(last_request_send_time_) < min_request_interval_ms_);
+	sender_cv_.notify_all();
 }
 
-void RequestSender::RemoveRequest(Fragment::sequence_id_t seqID)
+void RequestSender::RemoveRequest(Fragment::sequence_id_t const& seqID)
 {
 	while (!initialized_)
 	{

@@ -14,7 +14,7 @@ cet_test(daq_flow_t INSTALL_BIN
   artdaq::ArtConfig
   artdaq::Application
   artdaq::DAQrate
-  artdaq::DAQdata_GenericFragmentSimulator_generator
+  artdaq::Generators_GenericFragmentSimulator_generator
   artdaq-core::Data
   fhiclcpp::types
   fhiclcpp::fhiclcpp
@@ -28,7 +28,7 @@ cet_test(reconfigure_t INSTALL_BIN
   artdaq::ArtConfig
   artdaq::Application
   artdaq::DAQrate
-  artdaq::DAQdata_GenericFragmentSimulator_generator
+  artdaq::Generators_GenericFragmentSimulator_generator
   artdaq-core::Data
   fhiclcpp::types
   fhiclcpp::fhiclcpp

@@ -3,14 +3,11 @@
 
 #include "artdaq/DAQrate/RequestBuffer.hh"
 
-artdaq::RequestBuffer::RequestBuffer(artdaq::Fragment::sequence_id_t request_increment)
+artdaq::RequestBuffer::RequestBuffer()
 
     : requests_()
     , request_timing_()
-    , highest_seen_request_(0)
-    , last_next_request_(0)
-    , out_of_order_requests_()
-    , request_increment_(request_increment)
+    , next_requests_()
     , receiver_running_(false)
 {
 }
@@ -29,10 +26,9 @@ void artdaq::RequestBuffer::push(artdaq::Fragment::sequence_id_t seq, artdaq::Fr
 	}
 	else if (!requests_.count(seq))
 	{
-		int delta = seq - highest_seen_request_;
 		TLOG(TLVL_DEBUG + 36) << "Received request for sequence ID " << seq
-		                      << " and timestamp " << ts << " (delta: " << delta << ")";
-		if (delta <= 0 || out_of_order_requests_.count(seq))
+		                      << " and timestamp " << ts;
+		if (recently_completed_requests_.count(seq))
 		{
 			TLOG(TLVL_DEBUG + 36) << "Already serviced this request ( sequence ID " << seq << ")! Ignoring...";
 		}
@@ -50,16 +46,14 @@ void artdaq::RequestBuffer::reset()
 	std::lock_guard<std::mutex> lk(request_mutex_);
 	requests_.clear();
 	request_timing_.clear();
-	highest_seen_request_ = 0;
-	last_next_request_ = 0;
-	out_of_order_requests_.clear();
+	next_requests_.clear();
+	recently_completed_requests_.clear();
 }
 
 /// <summary>
 /// Get the current requests
 /// </summary>
 /// <returns>Map relating sequence IDs to timestamps</returns>
-
 std::map<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> artdaq::RequestBuffer::GetRequests() const
 {
 	std::lock_guard<std::mutex> lk(request_mutex_);
@@ -71,19 +65,33 @@ std::map<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> artdaq:
 	return out;
 }
 
+std::map<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> artdaq::RequestBuffer::GetRequests(std::chrono::steady_clock::time_point older_than) const
+{
+	std::lock_guard<std::mutex> lk(request_mutex_);
+	std::map<artdaq::Fragment::sequence_id_t, Fragment::timestamp_t> out;
+	for (auto& in : requests_)
+	{
+		if (request_timing_.count(in.first) && request_timing_.at(in.first) < older_than)
+		{
+			out[in.first] = in.second;
+		}
+	}
+	return out;
+}
+
 std::pair<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> artdaq::RequestBuffer::GetNextRequest()
 {
 	std::lock_guard<std::mutex> lk(request_mutex_);
 
 	auto it = requests_.begin();
-	while (it != requests_.end() && it->first <= last_next_request_) { ++it; }
+	while (it != requests_.end() && next_requests_.count(it->first)) { ++it; }
 
 	if (it == requests_.end())
 	{
 		return std::make_pair<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t>(0, 0);
 	}
 
-	last_next_request_ = it->first;
+	next_requests_.insert(it->first);
 	return *it;
 }
 
@@ -92,34 +100,14 @@ void artdaq::RequestBuffer::RemoveRequest(artdaq::Fragment::sequence_id_t reqID)
 	TLOG(TLVL_DEBUG + 35) << "RemoveRequest: Removing request for id " << reqID;
 	std::lock_guard<std::mutex> lk(request_mutex_);
 	requests_.erase(reqID);
+	next_requests_.erase(reqID);
+	recently_completed_requests_.insert(reqID);
 
-	if (reqID > highest_seen_request_)
+	while (recently_completed_requests_.size() > recently_completed_request_history_size_)
 	{
-		TLOG(TLVL_DEBUG + 35) << "RemoveRequest: out_of_order_requests_.size() == " << out_of_order_requests_.size() << ", reqID=" << reqID << ", expected=" << highest_seen_request_ + request_increment_;
-		if (out_of_order_requests_.size() || reqID != highest_seen_request_ + request_increment_)
-		{
-			out_of_order_requests_.insert(reqID);
-
-			auto it = out_of_order_requests_.begin();
-			while (it != out_of_order_requests_.end())  // Stop accounting for requests after stop
-			{
-				if (*it == highest_seen_request_ + request_increment_)
-				{
-					highest_seen_request_ = *it;
-					it = out_of_order_requests_.erase(it);
-				}
-				else
-				{
-					break;
-				}
-			}
-		}
-		else  // no out-of-order requests and this request is highest seen + request_increment_
-		{
-			highest_seen_request_ = reqID;
-		}
-		TLOG(TLVL_DEBUG + 35) << "RemoveRequest: reqID=" << reqID << " Setting highest_seen_request_ to " << highest_seen_request_;
+		recently_completed_requests_.erase(recently_completed_requests_.begin());
 	}
+
 	if (metricMan && request_timing_.count(reqID))
 	{
 		metricMan->sendMetric("Request Response Time", TimeUtils::GetElapsedTime(request_timing_[reqID]), "seconds", 2, MetricMode::Average);
@@ -133,8 +121,7 @@ void artdaq::RequestBuffer::RemoveRequest(artdaq::Fragment::sequence_id_t reqID)
 
 void artdaq::RequestBuffer::ClearRequests()
 {
-	std::lock_guard<std::mutex> lk(request_mutex_);
-	requests_.clear();
+	GetAndClearRequests();
 }
 
 /// <summary>
@@ -149,9 +136,14 @@ std::map<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> artdaq:
 	for (auto& in : requests_)
 	{
 		out[in.first] = in.second;
+		recently_completed_requests_.insert(in.first);
 	}
-	if (requests_.size()) { highest_seen_request_ = requests_.rbegin()->first; }
-	out_of_order_requests_.clear();
+	while (recently_completed_requests_.size() > recently_completed_request_history_size_)
+	{
+		recently_completed_requests_.erase(recently_completed_requests_.begin());
+	}
+
+	next_requests_.clear();
 	requests_.clear();
 	request_timing_.clear();
 	return out;

@@ -17,16 +17,5 @@ cet_make_library(LIBRARY_NAME HostMap INTERFACE
   fhiclcpp::fhiclcpp
 )
 
-include(artdaq::generator)
-cet_build_plugin(GenericFragmentSimulator artdaq::generator
-  LIBRARIES
-  PUBLIC
-  artdaq_plugin_types::generator
-  artdaq-core::Data
-  fhiclcpp::types
-  PRIVATE
-  fhiclcpp::fhiclcpp
-)
-
 install_headers()
 install_source()
