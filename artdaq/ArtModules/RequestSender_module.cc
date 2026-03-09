@@ -125,7 +125,6 @@ void artdaq::RequestSenderModule::beginRun(art::Run const& run)
 void artdaq::RequestSenderModule::endRun(art::Run const&)
 {
 	the_sender_.SetRequestMode(detail::RequestMessageMode::EndOfRun);
-	the_sender_.SendRequest();
 	clear_active_requests();
 }
 

@@ -4,8 +4,8 @@
 
 #include "artdaq/Application/LoadParameterSet.hh"
 #include "artdaq/ArtModules/detail/ArtConfig.hh"
-#include "artdaq/DAQdata/GenericFragmentSimulator.hh"
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
+#include "artdaq/Generators/GenericFragmentSimulator.hh"
 #include "cetlib_except/exception.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/types/TableFragment.h"
@@ -59,7 +59,12 @@ try
 
 		GenericFragmentSimulator sim(pset);
 		SharedMemoryEventManager events(pset, pset);
-		events.startRun(RUN_ID);
+		auto started = events.startRun(RUN_ID);
+		if (!started)
+		{
+			TLOG(TLVL_ERROR) << "Failed to start run in SharedMemoryEventManager!";
+			return 4;
+		}
 		FragmentPtrs frags;
 		size_t event_count = 0;
 		while (frags.clear(), event_count++ < NUM_EVENTS && sim.getNext(frags))

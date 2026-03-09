@@ -37,7 +37,7 @@ int main(int argc, char* argv[])
 		tempPset = pset;
 	}
 
-	auto buffer = std::make_shared<artdaq::RequestBuffer>(tempPset.get<artdaq::Fragment::sequence_id_t>("request_increment", 1));
+	auto buffer = std::make_shared<artdaq::RequestBuffer>();
 	artdaq::RequestReceiver recvr(tempPset, buffer);
 	recvr.startRequestReception();
 
