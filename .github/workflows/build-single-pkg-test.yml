@@ -1,0 +1,111 @@
+name: Build Single Pkg on Runner
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - develop
+    paths-ignore:
+      - 'docs/**'
+      - '.github/**'
+  pull_request:
+    branches: [ develop ]
+  schedule:
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+
+jobs:
+
+  build_single_pkg:
+    name: build single pkg ubunutu
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+    - name: SUID for tar
+      run: sudo chown root /bin/tar && sudo chmod u+s /bin/tar
+
+    - uses: cvmfs-contrib/github-action-cvmfs@main
+
+    - name: test cvmfs
+      run: |
+        ls -l /cvmfs/fermilab.opensciencegrid.org/products/artdaq/spack_areas
+
+    - name: Checkout pkg
+      uses: actions/checkout@main
+      with:
+        repository: ${{ github.repository }}
+        path: scratch/${{ github.repository }}
+        fetch-depth: 0
+
+    - name: Fetch package version
+      id: version
+      run: |
+        cd $GITHUB_WORKSPACE/scratch/${{ github.repository }}
+        tag=`git describe --tags --abbrev=0`
+        echo "Using tag $tag"
+        echo "tag=${tag}" >>$GITHUB_OUTPUT
+        echo "repo=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')" >>$GITHUB_OUTPUT
+
+    - name: change dir permission
+      run: |
+        sudo mkdir -p /var/lib/cvmfs
+        sudo chmod -R 777 /var/lib/cvmfs
+
+    - name: Cache cvmfs cache
+      id: cvmfs_cache
+      uses: actions/cache@main
+      with:
+        path: /var/lib/cvmfs/shared
+        key: cachecvmfs-${{ steps.version.outputs.tag }}
+
+    - name: restore dir permission
+      run: |
+        sudo chown -R cvmfs:cvmfs /var/lib/cvmfs
+        sudo chmod -R 700 /var/lib/cvmfs
+
+    - name: run build against CVMFS
+      run: |
+
+        cd $GITHUB_WORKSPACE/scratch
+
+        source /cvmfs/fermilab.opensciencegrid.org/products/artdaq/spack_v0.28/artdaq-v4_05_00-al9/setupARTDAQDEMO || exit 1
+
+        export REPO=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')
+        mkdir art-daq/build_$REPO
+        cd art-daq/build_$REPO
+
+        export CETPKG_J=$((`cat /proc/cpuinfo|grep processor|tail -1|awk '{print $3}'` + 1))
+        export compiler=$(spack compiler info gcc@13.1.0|grep cxx|awk '{print $3}')
+        echo "Compiler is $compiler"
+
+        echo "Configuring with cmake --preset default $GITHUB_WORKSPACE/scratch/art-daq/$REPO -DCMAKE_CXX_COMPILER=$compiler -Wno-dev"
+        cmake --preset default $GITHUB_WORKSPACE/scratch/art-daq/$REPO -DCMAKE_CXX_COMPILER=$compiler -Wno-dev
+
+        echo "Starting build"
+        make -j$CETPKG_J 2>&1 | tee -a $GITHUB_WORKSPACE/scratch/art-daq/build.log
+        res=${PIPESTATUS[0]} # Get result of first command in previous pipe, bash specific
+
+        echo "Spack install completed with status code $res"
+        echo "Spack install completed with status code $res" >>$GITHUB_WORKSPACE/scratch/art-daq/build.log
+
+        exit $res
+
+
+    - name: Check build log for success
+      run: |
+        grep "Spack install completed with status code 0" ${{ github.workspace }}/scratch/art-daq/build.log
+
+    - name: upload build log file
+      if: always()
+      uses: actions/upload-artifact@main
+      with:
+        name: build_log
+        path: ${{ github.workspace }}/scratch/art-daq/build.log
+
+    - name: change dir permission again
+      if: always()
+      run: |
+        sudo chmod -R 777 /var/lib/cvmfs
