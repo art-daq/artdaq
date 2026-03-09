@@ -25,7 +25,7 @@ class Fragment;
  * JCF, May-27-2016
  *
  * This is the class through which code that wants to access a
- * transfer plugin (e.g., input sources, AggregatorCore, etc.) can do
+ * transfer plugin (e.g., input sources, DispatcherCore, etc.) can do
  * so. Its functionality is such that it satisfies the requirements
  * needed to be a template in the ArtdaqInput class
  */
@@ -39,8 +39,8 @@ public:
 	 * \verbatim
 	 * TransferWrapper accepts the following Parameters:
 	 * "timeoutInUsecs" (Default: 100000): The receive timeout
-	 * "dispatcherHost" (REQUIRED): The hostname that the Dispatcher Aggregator is running on
-	 * "dispatcherPort" (REQUIRED): The port that the Dispatcher Aggregator is running on
+	 * "dispatcherHost" (REQUIRED): The hostname that the Dispatcher is running on
+	 * "dispatcherPort" (REQUIRED): The port that the Dispatcher is running on
 	 * "maxEventsBeforeInit" (Default: 5): How many non-Init events to receive before raising an error
 	 * "allowedFragmentTypes" (Default: [226,227,229]): The Fragment type codes for expected Fragments
 	 * "dispatcherConnectTimeout" (Default: 0): Maximum amount of time (in seconds) to wait for the Dispatcher to reach the Running state. 0 to wait forever

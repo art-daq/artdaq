@@ -28,7 +28,7 @@ class TableReceiver;
 }
 
 /**
- * \brief Sends Fragment objects using TransferInterface plugins. Uses Routing Tables if confgiured,
+ * \brief Sends Fragment objects using TransferInterface plugins. Uses Routing Tables if configured,
  * otherwise will Round-Robin Fragments to the destinations.
  */
 class artdaq::TableReceiver

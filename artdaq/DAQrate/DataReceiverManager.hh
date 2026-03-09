@@ -65,7 +65,7 @@ public:
 	size_t slotCount(size_t rank) const;
 
 	/**
-	 * \brief Get the total size of all data recieved by this DataReceiverManager
+	 * \brief Get the total size of all data received by this DataReceiverManager
 	 * \return The total size of all data received by this DataReceiverManager
 	 */
 	size_t byteCount() const;

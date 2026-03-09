@@ -29,7 +29,7 @@ class DataSenderManager;
 }
 
 /**
- * \brief Sends Fragment objects using TransferInterface plugins. Uses Routing Tables if confgiured,
+ * \brief Sends Fragment objects using TransferInterface plugins. Uses Routing Tables if configured,
  * otherwise will Round-Robin Fragments to the destinations.
  */
 class artdaq::DataSenderManager
@@ -64,7 +64,7 @@ public:
 		/// Optional host_map configuration (Can also be specified in each DestinationsConfig entry. See artdaq::HostMap::Config
 		fhicl::TableFragment<artdaq::HostMap::Config> host_map;
 		/// enabled_destinations" (OPTIONAL): If specified, only the destination ranks listed will be enabled. If not specified, all destinations will be enabled.
-		fhicl::Sequence<size_t> enabled_destinations{fhicl::Name{"enabled_destinations"}, fhicl::Comment{"List of destiantion ranks to activate (must be defined in destinations block)"}, std::vector<size_t>()};
+		fhicl::Sequence<size_t> enabled_destinations{fhicl::Name{"enabled_destinations"}, fhicl::Comment{"List of destination ranks to activate (must be defined in destinations block)"}, std::vector<size_t>()};
 	};
 	/// Used for ParameterSet validation (if desired)
 	using Parameters = fhicl::WrappedTable<Config>;
@@ -108,7 +108,7 @@ public:
 
 	/**
 	 * \brief Get the list of enabled destinations
-	 * \return The list of enabled destiantion ranks
+	 * \return The list of enabled destination ranks
 	 */
 	std::set<int> enabled_destinations() const { return enabled_destinations_; }
 

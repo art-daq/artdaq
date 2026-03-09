@@ -48,7 +48,7 @@ public:
 	 * \verbatim
 	 * DataLoggerCore accepts the following Parameters:
 	 * "daq" (REQUIRED): FHiCL table containing DAQ configuration
-	 *   "DataLogger" (REQUIRED): FHiCL table containing DataLogger paramters
+	 *   "DataLogger" (REQUIRED): FHiCL table containing DataLogger parameters
 	 *     "expected_events_per_bunch" (REQUIRED): Number of events to collect before sending them to art
 	 *     "enq_timeout" (Default: 5.0): Maximum amount of time to wait while enqueueing events to the ConcurrentQueue
 	 *     "is_data_logger": True if the DataLogger is a Data Logger
