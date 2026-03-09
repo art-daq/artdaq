@@ -218,10 +218,6 @@ bool artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader fra
 	                       << ", buffer_writes_pending_[buffer]=" << buffer_writes_pending_[buffer];
 
 	complete_buffer_(buffer);
-	if (requests_)
-	{
-		requests_->SendRequest(true);
-	}
 
 	TLOG(TLVL_ADDFRAGMENT) << "AddFragment END";
 	statsHelper_.addSample(FRAGMENTS_RECEIVED_STAT_KEY, frag.word_count * sizeof(RawDataType));
@@ -422,10 +418,6 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 
 		// Move this down here to avoid race condition
 		buffer_writes_pending_[buffer]--;
-	}
-	if (requests_)
-	{
-		requests_->SendRequest(true);
 	}
 	TLOG(TLVL_DONEWRITINGFRAGMENT) << "DoneWritingFragment END";
 }

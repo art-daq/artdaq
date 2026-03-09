@@ -36,7 +36,7 @@ public:
 	explicit GenToBufferTest(fhicl::ParameterSet const& ps)
 	    : generator_ptr_(nullptr)
 	    , fragment_buffer_ptr_(new FragmentBuffer(ps))
-	    , request_buffer_ptr_(new RequestBuffer(1))
+	    , request_buffer_ptr_(new RequestBuffer())
 	    , fragment_count_(0)
 	    , running_(false)
 	{

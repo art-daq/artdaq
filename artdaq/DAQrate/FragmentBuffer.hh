@@ -238,14 +238,6 @@ public:
 	bool sendEmptyFragment(FragmentPtrs& frags, size_t sequenceId, Fragment::fragment_id_t fragmentId, std::string desc);
 
 	/**
-	 * \brief This function is for Buffered and Single request modes, as they can only respond to one data request at a time
-	 * If the request message seqID > ev_counter, simply send empties until they're equal
-	 * \param[out] frags Output list to append EmptyFragmentType to
-	 * \param requests List of requests to process
-	 */
-	void sendEmptyFragments(FragmentPtrs& frags, std::map<Fragment::sequence_id_t, Fragment::timestamp_t>& requests);
-
-	/**
 	 * \brief Check the windows_sent_ooo_ map for sequence IDs that may be removed
 	 * \param seq Sequence ID of current window
 	 */
@@ -307,7 +299,7 @@ public:
 	 *
 	 * This function is used in FragmentBuffer_t to verify correct functioning of Window mode
 	 */
-	std::map<Fragment::sequence_id_t, std::chrono::steady_clock::time_point> GetSentWindowList(Fragment::fragment_id_t id)
+	std::set<Fragment::sequence_id_t> GetSentWindowList(Fragment::fragment_id_t id)
 	{
 		if (!dataBuffers_.count(id))
 		{
@@ -361,12 +353,6 @@ public:
 	 */
 	void SetRequestBuffer(std::shared_ptr<RequestBuffer> buffer) { requestBuffer_ = buffer; }
 
-	/**
-	 * @brief Get the next sequence ID expected by this FragmentBuffer. This is used to track sent windows and missed requests
-	 * @return The next sequence ID expected by this FragmentBuffer
-	 */
-	artdaq::Fragment::sequence_id_t GetNextSequenceID() const { return next_sequence_id_; }
-
 protected:
 	// John F., 12/6/13 -- need to figure out which of these getter
 	// functions should be promoted to "public"
@@ -409,15 +395,13 @@ private:
 	// FHiCL-configurable variables. Note that the C++ variable names
 	// are the FHiCL variable names with a "_" appended
 
-	// Socket parameters
-	Fragment::sequence_id_t next_sequence_id_;
 	std::shared_ptr<RequestBuffer> requestBuffer_;
 
 	RequestMode mode_;
 	bool bufferModeKeepLatest_;
 	Fragment::timestamp_t windowOffset_;
 	Fragment::timestamp_t windowWidth_;
-	Fragment::timestamp_t staleTimeout_;
+	Fragment::timestamp_t staleFragmentTimeout_;
 	Fragment::type_t expectedType_;
 	bool uniqueWindows_;
 	bool sendMissingFragments_;
@@ -436,9 +420,8 @@ private:
 	{
 		std::atomic<int> DataBufferDepthFragments;
 		std::atomic<size_t> DataBufferDepthBytes;
-		std::map<Fragment::sequence_id_t, std::chrono::steady_clock::time_point> WindowsSent;
+		std::set<Fragment::sequence_id_t> WindowsSent;
 		bool BufferFragmentKept;
-		Fragment::sequence_id_t HighestRequestSeen;
 		FragmentPtrs DataBuffer;
 		std::mutex DataBufferMutex;
 	};

@@ -17,7 +17,6 @@
 #include "artdaq-core/Plugins/FragmentGenerator.hh"
 #include "artdaq-core/Plugins/makeFragmentGenerator.hh"
 #include "artdaq-core/Utilities/SimpleLookupPolicy.hh"
-#include "artdaq/DAQdata/GenericFragmentSimulator.hh"
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
 #include "canvas/Utilities/Exception.h"

@@ -1,4 +1,4 @@
-#include "artdaq/DAQdata/GenericFragmentSimulator.hh"
+#include "artdaq/Generators/GenericFragmentSimulator.hh"
 
 #include "cetlib_except/exception.h"
 #include "fhiclcpp/ParameterSet.h"

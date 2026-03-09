@@ -17,9 +17,8 @@ class RequestBuffer
 public:
 	/**
 	 * @brief RequestBuffer Constructor
-	 * @param request_increment Expected increase in request sequence ID each request
 	 */
-	explicit RequestBuffer(Fragment::sequence_id_t request_increment = 1);
+	RequestBuffer();
 
 	/**
 	 * @brief RequestBuffer Destructor
@@ -43,6 +42,13 @@ public:
 	/// </summary>
 	/// <returns>Map relating sequence IDs to timestamps</returns>
 	std::map<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> GetRequests() const;
+
+	/// <summary>
+	/// Get the current requests that are older than a specified time point
+	/// </summary>
+	/// <param name="older_than">Return requests that were received before the given time point</param>
+	/// <returns>Map relating sequence IDs to timestamps</returns>
+	std::map<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> GetRequests(std::chrono::steady_clock::time_point older_than) const;
 
 	/// <summary>
 	/// Get the "next" request, i.e. the first unsatisfied request that has not already been returned by GetNextRequest
@@ -101,10 +107,9 @@ public:
 private:
 	std::map<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> requests_;
 	std::map<artdaq::Fragment::sequence_id_t, std::chrono::steady_clock::time_point> request_timing_;
-	std::atomic<artdaq::Fragment::sequence_id_t> highest_seen_request_;
-	std::atomic<artdaq::Fragment::sequence_id_t> last_next_request_;  // The last request returned by GetNextRequest
-	std::set<artdaq::Fragment::sequence_id_t> out_of_order_requests_;
-	artdaq::Fragment::sequence_id_t request_increment_;
+	std::set<artdaq::Fragment::sequence_id_t> next_requests_;
+	std::set<artdaq::Fragment::sequence_id_t> recently_completed_requests_;
+	size_t recently_completed_request_history_size_ = 1000;
 	mutable std::mutex request_mutex_;
 	std::condition_variable request_cv_;
 
