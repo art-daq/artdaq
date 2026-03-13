@@ -95,6 +95,8 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(const fhicl::Paramete
     , art_process_index_offset_(pset.get<size_t>("art_index_offset", 0))
     , minimum_art_lifetime_s_(pset.get<double>("minimum_art_lifetime_s", 2.0))
     , art_event_processing_time_us_(pset.get<size_t>("expected_art_event_processing_time_us", 1000000))
+    , capture_art_stdout_(pset.get<bool>("capture_art_stdout", true))
+    , capture_art_stderr_(pset.get<bool>("capture_art_stderr", true))
     , requests_(nullptr)
     , tokens_(nullptr)
     , data_pset_(pset)
@@ -599,7 +601,7 @@ void artdaq::SharedMemoryEventManager::RunArt(size_t process_index, const std::s
 					if (fds[0].revents & POLLIN)
 					{
 						ssize_t count = read(stdoutpipefd[0], buf, sizeof(buf) - 1);
-						if (count > 0)
+						if (count > 0 && capture_art_stdout_)
 						{
 							TLOG(TLVL_INFO, art_tname) << std::string(buf, count);
 						}
@@ -607,7 +609,7 @@ void artdaq::SharedMemoryEventManager::RunArt(size_t process_index, const std::s
 					if (fds[1].revents & POLLIN)
 					{
 						ssize_t count = read(stderrpipefd[0], buf, sizeof(buf) - 1);
-						if (count > 0)
+						if (count > 0 && capture_art_stderr_)
 						{
 							TLOG(TLVL_ERROR, art_tname) << std::string(buf, count);
 						}
