@@ -586,7 +586,7 @@ void artdaq::SharedMemoryEventManager::RunArt(size_t process_index, const std::s
 				close(stdoutpipefd[1]);  // Close write end of stdout pipe
 				close(stderrpipefd[1]);  // Close write end of stderr pipe
 
-				std::string art_tname = "art[" + std::to_string(pid) + "]";
+				std::string art_tname = app_name + "_art_stdout";
 				char buf[PIPE_BUF];
 				struct pollfd fds[2];
 				fds[0].fd = stdoutpipefd[0];
