@@ -186,6 +186,10 @@ public:
 		fhicl::Atom<size_t> broadcast_buffer_size{fhicl::Name{"broadcast_buffer_size"}, fhicl::Comment{"Size of the buffers in the broadcast shared memory segment"}, 0x100000};
 		/// "use_art" (Default: true): Whether to start and manage art threads (Sets art_analyzer count to 0 and overwrite_mode to true when false)
 		fhicl::Atom<bool> use_art{fhicl::Name{"use_art"}, fhicl::Comment{"Whether to start and manage art threads (Sets art_analyzer count to 0 and overwrite_mode to true when false)"}, true};
+		/// "capture_art_stdout" (Default: true): Whether to capture the stdout and relay it to TLOG_INFO
+		fhicl::Atom<bool> capture_art_stdout{fhicl::Name{"capture_art_stdout"}, fhicl::Comment{"Whether to capture the stdout and relay it to TLOG_INFO"}, true};
+		/// "capture_art_stderr" (Default: true): Whether to capture the stderr and relay it to TLOG_ERROR
+		fhicl::Atom<bool> capture_art_stderr{fhicl::Name{"capture_art_stderr"}, fhicl::Comment{"Whether to capture the stderr and relay it to TLOG_ERROR"}, true};
 		/// "manual_art" (Default: false): Prints the startup command line for the art process so that the user may (for example) run it in GDB or valgrind
 		fhicl::Atom<bool> manual_art{fhicl::Name{"manual_art"}, fhicl::Comment{"Prints the startup command line for the art process so that the user may (for example) run it in GDB or valgrind"}, false};
 		/// Configuration of the RequestSender. See artdaq::RequestSender::Config
@@ -512,6 +516,8 @@ private:
 	size_t art_process_index_offset_;
 	double minimum_art_lifetime_s_;
 	size_t art_event_processing_time_us_;
+	bool capture_art_stdout_;
+	bool capture_art_stderr_;
 
 	std::unique_ptr<RequestSender> requests_;
 	std::unique_ptr<TokenSender> tokens_;
