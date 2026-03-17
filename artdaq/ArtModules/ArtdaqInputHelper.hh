@@ -951,12 +951,12 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 {
 	TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Begin: ArtdaqInputHelper::readNext";
 
-    if (shutdownMsgReceived_)
-    {
-        TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Shutdown message already received, returning false";
-        TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::readNext";
-        return false;
-    }
+	if (shutdownMsgReceived_)
+	{
+		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Shutdown message already received, returning false";
+		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::readNext";
+		return false;
+	}
 
 	auto read_start_time = std::chrono::steady_clock::now();
 
