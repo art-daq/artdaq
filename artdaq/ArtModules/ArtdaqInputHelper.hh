@@ -263,7 +263,7 @@ void art::ArtdaqInputHelper<U>::readInitMessage()
 
 	if (!initFrags.empty() && initFrags.front().get()->type() == artdaq::Fragment::EndOfDataFragmentType)
 	{
-		TLOG_ERROR("ArtdaqInputHelper") << "Received EndOfData as first broadcast! This process neveer received any data!";
+		TLOG_ERROR("ArtdaqInputHelper") << "Received EndOfData as first broadcast! This process never received any data!";
 		shutdownMsgReceived_ = true;
 	}
 	else
@@ -950,6 +950,13 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
                                          art::RunPrincipal*& outR, art::SubRunPrincipal*& outSR, art::EventPrincipal*& outE)
 {
 	TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Begin: ArtdaqInputHelper::readNext";
+
+	if (shutdownMsgReceived_)
+	{
+		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Shutdown message already received, returning false";
+		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::readNext";
+		return false;
+	}
 
 	auto read_start_time = std::chrono::steady_clock::now();
 

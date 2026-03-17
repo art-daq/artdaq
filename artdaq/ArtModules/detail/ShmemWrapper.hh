@@ -57,6 +57,7 @@ private:
 
 	fhicl::ParameterSet data_pset_;
 	bool init_received_;
+	bool eod_received_{false};
 	double init_timeout_s_;
 };
 }  // namespace art
