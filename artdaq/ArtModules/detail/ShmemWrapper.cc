@@ -26,6 +26,11 @@ std::shared_ptr<ArtdaqEvent> art::ShmemWrapper::receiveMessages()
 	while (!init_received_ && artdaq::TimeUtils::GetElapsedTime(start) < init_timeout_s_)
 	{
 		usleep(static_cast<unsigned>(init_timeout_s_ * 1000000 / 100));  // Check 100 times
+		if (eod_received_)
+        {
+            TLOG(TLVL_DEBUG + 32) << "Received EndOfData message while waiting for Init Fragment, returning";
+            return nullptr;
+		}
 	}
 	if (!init_received_)
 	{
@@ -64,6 +69,7 @@ artdaq::FragmentPtrs art::ShmemWrapper::receiveInitMessage()
 			if (type == artdaq::Fragment::EndOfDataFragmentType)
 			{
 				TLOG(TLVL_DEBUG + 32) << "Received shutdown message, returning";
+				eod_received_ = true;
 				artdaq::FragmentPtrs output;
 				for (auto& frag : *eventMap->fragments[artdaq::Fragment::EndOfDataFragmentType])
 				{
@@ -81,6 +87,7 @@ artdaq::FragmentPtrs art::ShmemWrapper::receiveInitMessage()
 		else if (artdaq::TimeUtils::GetElapsedTime(start) > init_timeout_s_)
 		{
 			TLOG(TLVL_WARNING) << "Did not receive Init fragment after init_fragment_timeout_seconds (" << artdaq::TimeUtils::GetElapsedTime(start) << ")!";
+			eod_received_ = true;
 			return artdaq::FragmentPtrs();
 		}
 	}

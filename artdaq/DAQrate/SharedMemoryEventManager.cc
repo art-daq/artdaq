@@ -603,7 +603,7 @@ void artdaq::SharedMemoryEventManager::RunArt(size_t process_index, const std::s
 						ssize_t count = read(stdoutpipefd[0], buf, sizeof(buf) - 1);
 						if (count > 0 && capture_art_stdout_)
 						{
-							TLOG(TLVL_INFO, art_tname) << std::string(buf, count);
+							TLOG(TLVL_INFO, art_tname) << "art[" << pid << "]" << std::string(buf, count);
 						}
 					}
 					if (fds[1].revents & POLLIN)
@@ -611,7 +611,7 @@ void artdaq::SharedMemoryEventManager::RunArt(size_t process_index, const std::s
 						ssize_t count = read(stderrpipefd[0], buf, sizeof(buf) - 1);
 						if (count > 0 && capture_art_stderr_)
 						{
-							TLOG(TLVL_ERROR, art_tname) << std::string(buf, count);
+							TLOG(TLVL_ERROR, art_tname) << "art[" << pid << "]" << std::string(buf, count);
 						}
 					}
 				} while (status.si_code != CLD_DUMPED && status.si_code != CLD_KILLED && status.si_code != CLD_EXITED && sts == 0);
