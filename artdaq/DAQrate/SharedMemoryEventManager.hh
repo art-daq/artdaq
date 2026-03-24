@@ -120,6 +120,7 @@ public:
 
 	typedef RawEvent::run_id_t run_id_t;                     ///< Copy RawEvent::run_id_t into local scope
 	typedef RawEvent::subrun_id_t subrun_id_t;               ///< Copy RawEvent::subrun_id_t into local scope
+	typedef RawEvent::event_id_t event_id_t;                 ///< Copy RawEvent::event_id_t into local scope
 	typedef Fragment::sequence_id_t sequence_id_t;           ///< Copy Fragment::sequence_id_t into local scope
 	typedef std::map<sequence_id_t, RawEvent_ptr> EventMap;  ///< An EventMap is a map of RawEvent_ptr objects, keyed by sequence ID
 
@@ -158,6 +159,8 @@ public:
 		fhicl::Atom<bool> update_run_ids_on_new_fragment{fhicl::Name{"update_run_ids_on_new_fragment"}, fhicl::Comment{"Whether the run and subrun ID of an event should be updated whenever a Fragment is added."}, true};
 		/// "use_sequence_id_for_event_number" (Default: true): Whether to use the artdaq Sequence ID (true) or the Timestamp (false) for art Event numbers
 		fhicl::Atom<bool> use_sequence_id_for_event_number{fhicl::Name{"use_sequence_id_for_event_number"}, fhicl::Comment{"Whether to use the artdaq Sequence ID (true) or the Timestamp (false) for art Event numbers"}, true};
+		/// "reset_event_number_for_subruns" (Default: false): Whether to start new subruns at Event ID 1 (true), or keep counting from the beginning of the run (false)
+		fhicl::Atom<bool> reset_event_number_for_subruns{fhicl::Name{"reset_event_number_for_subruns"}, fhicl::Comment{"Whether to start new subruns at Event ID 1 (true), or keep counting from the beginning of the run (false)"}, false};
 		/// "max_subrun_lookup_table_size" (Default: 100): The maximum number of entries to store in the sequence ID-SubRun ID lookup table
 		fhicl::Atom<size_t> max_subrun_lookup_table_size{fhicl::Name{"max_subrun_lookup_table_size"}, fhicl::Comment{"The maximum number of entries to store in the sequence ID-SubRun ID lookup table"}, 100};
 		/// "max_event_list_length" (Default: 100): The maximum number of entries to store in the released events list
@@ -437,6 +440,14 @@ public:
 	 */
 	subrun_id_t GetSubrunForSequenceID(Fragment::sequence_id_t seqID);
 
+    /**
+	 * \brief Get the event ID that the given Sequence ID and Timestamp would be assigned to
+	 * \param seqID Sequence ID to check
+	 * \param timestamp Timestamp to check
+	 * \return Event ID that the given sequence ID and/or timestamp will be associated with. Uses Sequence ID if use_sequence_id_for_event_number is true, Timestamp otherwise
+     */
+    event_id_t GetEventIDForFragment(Fragment::sequence_id_t seqID, Fragment::timestamp_t timestamp);
+
 	/**
 	 * \brief Get the current subrun number (Gets the last defined subrun)
 	 * \return Number of the subrun that corresponds to events with the maximum possible sequence ID.
@@ -480,6 +491,7 @@ private:
 
 	bool update_run_ids_;
 	bool use_sequence_id_for_event_number_;
+	bool reset_event_number_for_subruns_;
 	bool overwrite_mode_;
 	size_t init_fragment_count_;
 	std::atomic<bool> running_;
