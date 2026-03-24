@@ -1202,13 +1202,13 @@ artdaq::SharedMemoryEventManager::subrun_id_t artdaq::SharedMemoryEventManager::
 
 artdaq::SharedMemoryEventManager::event_id_t artdaq::SharedMemoryEventManager::GetEventIDForFragment(Fragment::sequence_id_t seqID, Fragment::timestamp_t timestamp)
 {
-    event_id_t event = 1;
-    if (init_fragment_count_ > 0)
-    {
+	event_id_t event = 1;
+	if (init_fragment_count_ > 0)
+	{
 		TLOG(TLVL_GETEVENTID) << "init_fragment_count > 0 (processing art events): Decoding event ID from sequenceID " << seqID;
-        event = seqID & 0xFFFFFFFF;
-    }
-    else
+		event = seqID & 0xFFFFFFFF;
+	}
+	else
 	{
 		sequence_id_t subrun_start = 0;
 		if (reset_event_number_for_subruns_)
@@ -1224,10 +1224,10 @@ artdaq::SharedMemoryEventManager::event_id_t artdaq::SharedMemoryEventManager::G
 			}
 		}
 
-        event = use_sequence_id_for_event_number_ ? (seqID - subrun_start) : (timestamp - subrun_start);
-    }
-    TLOG(TLVL_GETEVENTID) << "GetEventIDForFragment returning event ID " << event << " for sequence ID " << seqID;
-    return event;
+		event = use_sequence_id_for_event_number_ ? (seqID - subrun_start) : (timestamp - subrun_start);
+	}
+	TLOG(TLVL_GETEVENTID) << "GetEventIDForFragment returning event ID " << event << " for sequence ID " << seqID;
+	return event;
 }
 
 int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence_id_t seqID, bool create_new, Fragment::timestamp_t timestamp)

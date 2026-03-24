@@ -440,13 +440,13 @@ public:
 	 */
 	subrun_id_t GetSubrunForSequenceID(Fragment::sequence_id_t seqID);
 
-    /**
+	/**
 	 * \brief Get the event ID that the given Sequence ID and Timestamp would be assigned to
 	 * \param seqID Sequence ID to check
 	 * \param timestamp Timestamp to check
 	 * \return Event ID that the given sequence ID and/or timestamp will be associated with. Uses Sequence ID if use_sequence_id_for_event_number is true, Timestamp otherwise
-     */
-    event_id_t GetEventIDForFragment(Fragment::sequence_id_t seqID, Fragment::timestamp_t timestamp);
+	 */
+	event_id_t GetEventIDForFragment(Fragment::sequence_id_t seqID, Fragment::timestamp_t timestamp);
 
 	/**
 	 * \brief Get the current subrun number (Gets the last defined subrun)
