@@ -1,4 +1,4 @@
-name: build-develop
+name: Integration tests
 
 permissions:
   contents: read
