@@ -42,6 +42,7 @@ int artdaq::TransferInterface::receiveFragment(artdaq::Fragment& frag, size_t re
 
 	if (bodyret != ret)
 	{
+		TLOG(TLVL_ERROR) << GetTraceName() << "Got different return codes from receiveFragmentHeader and receiveFragmentData!";
 		throw cet::exception("TransferInterface") << "Got different return codes from receiveFragmentHeader and receiveFragmentData!";  // NOLINT(cert-err60-cpp)
 	}
 
