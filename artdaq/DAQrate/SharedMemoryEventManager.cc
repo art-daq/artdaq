@@ -147,6 +147,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(const fhicl::Paramete
 
 	if (!IsValid())
 	{
+		TLOG(TLVL_ERROR) << "Unable to attach to Shared Memory!";
 		throw cet::exception(app_name + "_SharedMemoryEventManager") << "Unable to attach to Shared Memory!";  // NOLINT(cert-err60-cpp)
 	}
 
@@ -334,6 +335,7 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 			if (maximum_oversize_fragment_count_ > 0 && oversize_fragment_count_ >= maximum_oversize_fragment_count_)
 			{
 				lk.unlock();
+				TLOG(TLVL_ERROR) << "Too many over-size Fragments received! Please adjust max_event_size_bytes or max_fragment_size_bytes!";
 				throw cet::exception("Too many over-size Fragments received! Please adjust max_event_size_bytes or max_fragment_size_bytes!");
 			}
 
