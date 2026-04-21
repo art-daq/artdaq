@@ -42,7 +42,7 @@ bool artdaq::Commandable::initialize(fhicl::ParameterSet const& pset, uint64_t t
 	auto start_time = std::chrono::steady_clock::now();
 	std::string initialState = fsm_.getState().getName();
 	fsm_.init(pset, timeout, timestamp);
-	TLOG(TLVL_INIT) << "Initialize step 1";
+	TLOG(TLVL_INIT) << "FSM initialized";
 	if (external_request_status_)
 	{
 		std::string finalState = fsm_.getState().getName();
@@ -52,7 +52,6 @@ bool artdaq::Commandable::initialize(fhicl::ParameterSet const& pset, uint64_t t
 		    << "States before and after an init transition: "
 		    << initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
 	}
-	TLOG(TLVL_INIT) << "Initialize step 2";
 	if (metricMan && metricMan->Initialized())
 	{
 		metricMan->sendMetric("DAQ Transition Time", TimeUtils::GetElapsedTime(start_time), "s", 4, artdaq::MetricMode::Accumulate);
