@@ -66,6 +66,7 @@ bool artdaq::GenericFragmentSimulator::
 			            0xDEADBEEFDEADBEEF);
 			break;
 		default:
+			TLOG(TLVL_ERROR) << "Unknown content selection: " << static_cast<uint8_t>(content_selection_);
 			throw cet::exception("UnknownContentSelection")  // NOLINT(cert-err60-cpp)
 			    << "Unknown content selection: "
 			    << static_cast<uint8_t>(content_selection_);

@@ -33,7 +33,7 @@
 #define TLVL_GETBUFFER              48
 #define TLVL_GETFRAGMENTCOUNT       49
 #define TLVL_GETSUBRUN              50
-#define TLVL_GETSUBRUN_2            51
+#define TLVL_GETEVENTID             51
 #define TLVL_PARSEARTCOMMANDLINE    52
 #define TLVL_RECONFIGUREART         53
 #define TLVL_RUNART                 54
@@ -71,6 +71,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(const fhicl::Paramete
     , max_event_list_length_(pset.get<size_t>("max_event_list_length", 100))
     , update_run_ids_(pset.get<bool>("update_run_ids_on_new_fragment", true))
     , use_sequence_id_for_event_number_(pset.get<bool>("use_sequence_id_for_event_number", true))
+    , reset_event_number_for_subruns_(pset.get<bool>("reset_event_number_for_subruns", false))
     , overwrite_mode_(!pset.get<bool>("use_art", true) || pset.get<bool>("overwrite_mode", false) || pset.get<bool>("broadcast_mode", false))
     , init_fragment_count_(pset.get<size_t>("init_fragment_count", pset.get<bool>("send_init_fragments", true) ? 1 : 0))
     , running_(false)
@@ -146,6 +147,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(const fhicl::Paramete
 
 	if (!IsValid())
 	{
+		TLOG(TLVL_ERROR) << "Unable to attach to Shared Memory!";
 		throw cet::exception(app_name + "_SharedMemoryEventManager") << "Unable to attach to Shared Memory!";  // NOLINT(cert-err60-cpp)
 	}
 
@@ -207,6 +209,7 @@ bool artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader fra
 		hdr->subrun_id = subrun_id_;
 	}
 	hdr->subrun_id = GetSubrunForSequenceID(frag.sequence_id);
+	hdr->event_id = GetEventIDForFragment(frag.sequence_id, frag.timestamp);
 
 	TLOG(TLVL_ADDFRAGMENT) << "AddFragment before Write calls";
 	Write(buffer, dataPtr, frag.word_count * sizeof(RawDataType));
@@ -332,6 +335,7 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 			if (maximum_oversize_fragment_count_ > 0 && oversize_fragment_count_ >= maximum_oversize_fragment_count_)
 			{
 				lk.unlock();
+				TLOG(TLVL_ERROR) << "Too many over-size Fragments received! Please adjust max_event_size_bytes or max_fragment_size_bytes!";
 				throw cet::exception("Too many over-size Fragments received! Please adjust max_event_size_bytes or max_fragment_size_bytes!");
 			}
 
@@ -388,6 +392,7 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 			hdr->subrun_id = subrun_id_;
 		}
 		hdr->subrun_id = GetSubrunForSequenceID(frag.sequence_id);
+		hdr->event_id = GetEventIDForFragment(frag.sequence_id, frag.timestamp);
 
 		TLOG(TLVL_DONEWRITINGFRAGMENT) << "DoneWritingFragment: Updating buffer touch time";
 		TouchBuffer(buffer);
@@ -1175,19 +1180,19 @@ artdaq::SharedMemoryEventManager::subrun_id_t artdaq::SharedMemoryEventManager::
 	subrun_id_t subrun = 1;
 	if (init_fragment_count_ > 0)
 	{
-		TLOG(TLVL_GETSUBRUN_2) << "init_fragment_count > 0 (processing art events): Decoding subrun from sequenceID " << seqID;
+		TLOG(TLVL_GETSUBRUN) << "init_fragment_count > 0 (processing art events): Decoding subrun from sequenceID " << seqID;
 		subrun = seqID >> 32;
 	}
 	else
 	{
 		std::unique_lock<std::mutex> lk(subrun_event_map_mutex_);
 
-		TLOG(TLVL_GETSUBRUN_2) << "GetSubrunForSequenceID BEGIN map size = " << subrun_event_map_.size();
+		TLOG(TLVL_GETSUBRUN) << "GetSubrunForSequenceID BEGIN map size = " << subrun_event_map_.size();
 		auto it = subrun_event_map_.begin();
 
 		while (it->first <= seqID && it != subrun_event_map_.end())
 		{
-			TLOG(TLVL_GETSUBRUN_2) << "Map has sequence ID " << it->first << ", subrun " << it->second << " (looking for <= " << seqID << ")";
+			TLOG(TLVL_GETSUBRUN) << "Map has sequence ID " << it->first << ", subrun " << it->second << " (looking for <= " << seqID << ")";
 			subrun = it->second;
 			++it;
 		}
@@ -1195,6 +1200,36 @@ artdaq::SharedMemoryEventManager::subrun_id_t artdaq::SharedMemoryEventManager::
 
 	TLOG(TLVL_GETSUBRUN) << "GetSubrunForSequenceID returning subrun " << subrun << " for sequence ID " << seqID;
 	return subrun;
+}
+
+artdaq::SharedMemoryEventManager::event_id_t artdaq::SharedMemoryEventManager::GetEventIDForFragment(Fragment::sequence_id_t seqID, Fragment::timestamp_t timestamp)
+{
+	event_id_t event = 1;
+	if (init_fragment_count_ > 0)
+	{
+		TLOG(TLVL_GETEVENTID) << "init_fragment_count > 0 (processing art events): Decoding event ID from sequenceID " << seqID;
+		event = seqID & 0xFFFFFFFF;
+	}
+	else
+	{
+		sequence_id_t subrun_start = 0;
+		if (reset_event_number_for_subruns_)
+		{
+			std::unique_lock<std::mutex> lk(subrun_event_map_mutex_);
+			TLOG(TLVL_GETEVENTID) << "GetEventIDForFragment BEGIN map size = " << subrun_event_map_.size();
+			auto it = subrun_event_map_.begin();
+			while (it->first < seqID && it != subrun_event_map_.end())
+			{
+				TLOG(TLVL_GETEVENTID) << "Map has sequence ID " << it->first << ", event " << it->second << " (looking for <= " << seqID << ")";
+				subrun_start = it->first;
+				++it;
+			}
+		}
+
+		event = use_sequence_id_for_event_number_ ? (seqID - subrun_start) : (timestamp - subrun_start);
+	}
+	TLOG(TLVL_GETEVENTID) << "GetEventIDForFragment returning event ID " << event << " for sequence ID " << seqID;
+	return event;
 }
 
 int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence_id_t seqID, bool create_new, Fragment::timestamp_t timestamp)
@@ -1255,7 +1290,7 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 	hdr->is_complete = false;
 	hdr->run_id = run_id_;
 	hdr->subrun_id = GetSubrunForSequenceID(seqID);
-	hdr->event_id = use_sequence_id_for_event_number_ ? static_cast<uint32_t>(seqID) : static_cast<uint32_t>(timestamp);
+	hdr->event_id = GetEventIDForFragment(seqID, timestamp);
 	hdr->sequence_id = seqID;
 	hdr->timestamp = timestamp;
 	buffer_writes_pending_[new_buffer] = 0;

@@ -85,6 +85,7 @@ artdaq::CompositeDriver::CompositeDriver(const fhicl::ParameterSet& ps)
 	{
 		if (!makeChildGenerator_(pset))
 		{
+			TLOG(TLVL_ERROR) << "Unable to create child generator for PSet= \"" << pset.to_string() << "\"";
 			throw cet::exception("CompositeDriver")  // NOLINT(cert-err60-cpp)
 			    << "Unable to create child generator for PSet= \""
 			    << pset.to_string() << "\"";
@@ -209,12 +210,14 @@ bool artdaq::CompositeDriver::getNext_(artdaq::FragmentPtrs& frags)
 				if (std::string::npos !=
 				    boost::algorithm::to_lower_copy(reportString).find("exception"))
 				{
+					TLOG(TLVL_ERROR) << "The FragmentGenerator for " << generator_list_[idx]->metricsReportingInstanceName() << " threw an exception: " << reportString;
 					throw cet::exception("CompositeDriver_generator")  // NOLINT(cert-err60-cpp)
 					    << "The FragmentGenerator for "
 					    << generator_list_[idx]->metricsReportingInstanceName()
 					    << " threw an exception: " << reportString;
 				}
 
+				TLOG(TLVL_ERROR) << "The FragmentGenerator for " << generator_list_[idx]->metricsReportingInstanceName() << " threw an exception.";
 				throw cet::exception("CompositeDriver_generator")  // NOLINT(cert-err60-cpp)
 				    << "The FragmentGenerator for "
 				    << generator_list_[idx]->metricsReportingInstanceName()

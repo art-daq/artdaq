@@ -206,6 +206,7 @@ artdaq::FragmentPtrs artdaq::ListenTransferWrapper::receiveMessage()
 
 		if (fragments_received > maxEventsBeforeInit_)
 		{
+			TLOG(TLVL_ERROR) << "First " << maxEventsBeforeInit_ << " events received did not include the \"Init\" event containing necessary info for art; exiting...";
 			throw cet::exception("ListenTransferWrapper") << "First " << maxEventsBeforeInit_ << " events received did not include the \"Init\" event containing necessary info for art; exiting...";  // NOLINT(cert-err60-cpp)
 		}
 	}

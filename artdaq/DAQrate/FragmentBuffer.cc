@@ -156,6 +156,7 @@ void artdaq::FragmentBuffer::AddFragmentsToBuffer(FragmentPtrs frags)
 
 		if (!dataBuffers_.count(frag_id))
 		{
+			TLOG(TLVL_ERROR) << "Received Fragment with Fragment ID " << frag_id << ", which is not in the declared Fragment IDs list!";
 			throw cet::exception("FragmentIDs") << "Received Fragment with Fragment ID " << frag_id << ", which is not in the declared Fragment IDs list!";
 		}
 
