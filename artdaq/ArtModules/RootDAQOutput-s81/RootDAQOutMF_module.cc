@@ -44,6 +44,7 @@
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
 #include <deque>
+#include <map>
 #include <iomanip>
 #include <iostream>
 #include <memory>
@@ -221,6 +222,18 @@ private:
 	void doOpenFile();
 	void closePendingFile(std::unique_ptr<struct OutputFileBundle>& bundle);
 	void closeOldestPendingFileIfNeeded();
+	void removeBundleMappings(OutputFileBundle* bundle);
+	void markLateWrite(OutputFileBundle* bundle);
+	OutputFileBundle* targetBundleForEvent(EventPrincipal const& ep);
+	OutputFileBundle* targetBundleForSubRun(SubRunPrincipal const& sr);
+	OutputFileBundle* targetBundleForRun(RunPrincipal const& rp);
+
+	using SubRunKey = std::pair<unsigned, unsigned>;
+	static SubRunKey makeSubRunKey(EventPrincipal const& ep);
+	static SubRunKey makeSubRunKey(SubRunPrincipal const& sr);
+	static unsigned makeRunKey(EventPrincipal const& ep);
+	static unsigned makeRunKey(SubRunPrincipal const& sr);
+	static unsigned makeRunKey(RunPrincipal const& rp);
 
 	// Per-file state bundle (non-copyable, non-movable -- stored via unique_ptr
 	// so the PostCloseFileRenamer reference into fstats remains stable).
@@ -230,6 +243,7 @@ private:
 		PostCloseFileRenamer fRenamer;
 		std::unique_ptr<RootDAQOutFile> file{nullptr};
 		std::string tmpFileName{};
+		bool metadataNeedsRefresh{false};
 
 		OutputFileBundle(std::string const& moduleLabel,
 		                 std::string const& processName)
@@ -258,6 +272,11 @@ private:
 	std::unique_ptr<OutputFileBundle> activeFile_{nullptr};
 	std::deque<std::unique_ptr<OutputFileBundle>> pendingFiles_;
 	unsigned const maxOpenFiles_;
+	std::map<SubRunKey, OutputFileBundle*> subRunToBundle_;
+	std::map<unsigned, OutputFileBundle*> runToBundle_;
+	FileCatalogMetadata::collection_type lastFileCatalogMetadata_{};
+	FileCatalogMetadata::collection_type lastSubRunMetadata_{};
+	bool hasCatalogMetadata_{false};
 
 	string const filePattern_;
 	string tmpDir_;
@@ -426,14 +445,24 @@ void RootDAQOutMF::write(EventPrincipal& ep)
 	{
 		ep.addToProcessHistory();
 	}
-	activeFile_->file->writeOne(ep);
-	activeFile_->fstats.recordEvent(ep.eventID());
+	auto* bundle = targetBundleForEvent(ep);
+	bundle->file->writeOne(ep);
+	bundle->fstats.recordEvent(ep.eventID());
+	subRunToBundle_[makeSubRunKey(ep)] = bundle;
+	runToBundle_[makeRunKey(ep)] = bundle;
 }
 
 void RootDAQOutMF::setSubRunAuxiliaryRangeSetID(RangeSet const& rs)
 {
 	std::lock_guard sentry{mutex_};
-	activeFile_->file->setSubRunAuxiliaryRangeSetID(rs);
+	if (activeFile_)
+	{
+		activeFile_->file->setSubRunAuxiliaryRangeSetID(rs);
+	}
+	for (auto const& bundle : pendingFiles_)
+	{
+		bundle->file->setSubRunAuxiliaryRangeSetID(rs);
+	}
 }
 
 void RootDAQOutMF::writeSubRun(SubRunPrincipal& sr)
@@ -447,14 +476,24 @@ void RootDAQOutMF::writeSubRun(SubRunPrincipal& sr)
 	{
 		sr.addToProcessHistory();
 	}
-	activeFile_->file->writeSubRun(sr);
-	activeFile_->fstats.recordSubRun(sr.subRunID());
+	auto* bundle = targetBundleForSubRun(sr);
+	bundle->file->writeSubRun(sr);
+	bundle->fstats.recordSubRun(sr.subRunID());
+	subRunToBundle_[makeSubRunKey(sr)] = bundle;
+	runToBundle_[makeRunKey(sr)] = bundle;
 }
 
 void RootDAQOutMF::setRunAuxiliaryRangeSetID(RangeSet const& rs)
 {
 	std::lock_guard sentry{mutex_};
-	activeFile_->file->setRunAuxiliaryRangeSetID(rs);
+	if (activeFile_)
+	{
+		activeFile_->file->setRunAuxiliaryRangeSetID(rs);
+	}
+	for (auto const& bundle : pendingFiles_)
+	{
+		bundle->file->setRunAuxiliaryRangeSetID(rs);
+	}
 }
 
 void RootDAQOutMF::writeRun(RunPrincipal& rp)
@@ -464,8 +503,10 @@ void RootDAQOutMF::writeRun(RunPrincipal& rp)
 	{
 		rp.addToProcessHistory();
 	}
-	activeFile_->file->writeRun(rp);
-	activeFile_->fstats.recordRun(rp.runID());
+	auto* bundle = targetBundleForRun(rp);
+	bundle->file->writeRun(rp);
+	bundle->fstats.recordRun(rp.runID());
+	runToBundle_[makeRunKey(rp)] = bundle;
 }
 
 void RootDAQOutMF::startEndFile()
@@ -547,6 +588,10 @@ void RootDAQOutMF::doWriteFileCatalogMetadata(
     FileCatalogMetadata::collection_type const& ssmd)
 {
 	std::lock_guard sentry{mutex_};
+	lastFileCatalogMetadata_ = md;
+	lastSubRunMetadata_ = ssmd;
+	hasCatalogMetadata_ = true;
+	activeFile_->metadataNeedsRefresh = false;
 	activeFile_->file->writeFileCatalogMetadata(activeFile_->fstats, md, ssmd);
 }
 
@@ -559,16 +604,13 @@ void RootDAQOutMF::writeProductDependencies()
 void RootDAQOutMF::finishEndFile()
 {
 	std::lock_guard sentry{mutex_};
-	// Write all tree data into the TFile's internal buffers.
 	string const tmpFileName{activeFile_->file->currentFileName()};
-	activeFile_->file->writeTTrees();
 
 	// Record that this file is closed in its stats, then rename it now.
 	// We rename before actually calling TFile::Close() so that the final
 	// name is established immediately (art calls lastClosedFileName()
 	// after this method returns).  On Linux, rename(2) is safe even
 	// while the file descriptor is still open.
-	activeFile_->fstats.recordFileClose();
 	lastClosedFileName_ = fileNameAtClose(activeFile_->fRenamer, tmpFileName);
 	TLOG(TLVL_INFO) << __func__ << ": Queued output file \"" << lastClosedFileName_
 	                << "\" for deferred TFile::Close() (pendingFiles will have "
@@ -671,9 +713,14 @@ void RootDAQOutMF::doOpenFile()
 
 void RootDAQOutMF::closePendingFile(std::unique_ptr<OutputFileBundle>& bundle)
 {
-	// The file's trees have already been written (writeTTrees was called in
-	// finishEndFile).  Destroying the RootDAQOutFile calls TFile::Close(),
-	// which flushes the ROOT key directory and closes the file descriptor.
+	removeBundleMappings(bundle.get());
+	if (bundle->metadataNeedsRefresh && hasCatalogMetadata_)
+	{
+		bundle->file->writeFileCatalogMetadata(
+		    bundle->fstats, lastFileCatalogMetadata_, lastSubRunMetadata_);
+	}
+	bundle->fstats.recordFileClose();
+	bundle->file->writeTTrees();
 	TLOG(TLVL_INFO) << __func__ << ": Closing pending file (TFile::Close)";
 	bundle->file.reset();
 	bundle.reset();
@@ -694,6 +741,117 @@ void RootDAQOutMF::closeOldestPendingFileIfNeeded()
 		closePendingFile(pendingFiles_.front());
 		pendingFiles_.pop_front();
 	}
+}
+
+void RootDAQOutMF::removeBundleMappings(OutputFileBundle* bundle)
+{
+	for (auto it = subRunToBundle_.begin(); it != subRunToBundle_.end();)
+	{
+		if (it->second == bundle)
+		{
+			it = subRunToBundle_.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
+	for (auto it = runToBundle_.begin(); it != runToBundle_.end();)
+	{
+		if (it->second == bundle)
+		{
+			it = runToBundle_.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
+}
+
+void RootDAQOutMF::markLateWrite(OutputFileBundle* bundle)
+{
+	if (bundle != activeFile_.get())
+	{
+		bundle->metadataNeedsRefresh = true;
+	}
+}
+
+RootDAQOutMF::OutputFileBundle*
+RootDAQOutMF::targetBundleForEvent(EventPrincipal const& ep)
+{
+	auto* bundle = activeFile_.get();
+	auto const subRunKey = makeSubRunKey(ep);
+	if (auto const it = subRunToBundle_.find(subRunKey); it != subRunToBundle_.end())
+	{
+		bundle = it->second;
+	}
+	else if (auto const runIt = runToBundle_.find(makeRunKey(ep)); runIt != runToBundle_.end())
+	{
+		bundle = runIt->second;
+	}
+	markLateWrite(bundle);
+	return bundle;
+}
+
+RootDAQOutMF::OutputFileBundle*
+RootDAQOutMF::targetBundleForSubRun(SubRunPrincipal const& sr)
+{
+	auto* bundle = activeFile_.get();
+	if (auto const it = subRunToBundle_.find(makeSubRunKey(sr)); it != subRunToBundle_.end())
+	{
+		bundle = it->second;
+	}
+	else if (auto const runIt = runToBundle_.find(makeRunKey(sr)); runIt != runToBundle_.end())
+	{
+		bundle = runIt->second;
+	}
+	markLateWrite(bundle);
+	return bundle;
+}
+
+RootDAQOutMF::OutputFileBundle*
+RootDAQOutMF::targetBundleForRun(RunPrincipal const& rp)
+{
+	auto* bundle = activeFile_.get();
+	if (auto const it = runToBundle_.find(makeRunKey(rp)); it != runToBundle_.end())
+	{
+		bundle = it->second;
+	}
+	markLateWrite(bundle);
+	return bundle;
+}
+
+RootDAQOutMF::SubRunKey
+RootDAQOutMF::makeSubRunKey(EventPrincipal const& ep)
+{
+	auto const id = ep.eventID();
+	return {static_cast<unsigned>(id.run()), static_cast<unsigned>(id.subRun())};
+}
+
+RootDAQOutMF::SubRunKey
+RootDAQOutMF::makeSubRunKey(SubRunPrincipal const& sr)
+{
+	auto const id = sr.subRunID();
+	return {static_cast<unsigned>(id.run()), static_cast<unsigned>(id.subRun())};
+}
+
+unsigned
+RootDAQOutMF::makeRunKey(EventPrincipal const& ep)
+{
+	return static_cast<unsigned>(ep.eventID().run());
+}
+
+unsigned
+RootDAQOutMF::makeRunKey(SubRunPrincipal const& sr)
+{
+	return static_cast<unsigned>(sr.subRunID().run());
+}
+
+unsigned
+RootDAQOutMF::makeRunKey(RunPrincipal const& rp)
+{
+	return static_cast<unsigned>(rp.runID().run());
 }
 
 string
