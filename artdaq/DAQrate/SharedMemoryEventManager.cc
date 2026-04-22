@@ -1269,11 +1269,11 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 	}
 
 	check_pending_buffers_(lk);
-	int new_buffer = GetBufferForWriting(false);
+	int new_buffer = GetBufferForWriting(false, static_cast<size_t>(seqID));
 
 	if (new_buffer == -1)
 	{
-		new_buffer = GetBufferForWriting(overwrite_mode_);
+		new_buffer = GetBufferForWriting(overwrite_mode_, static_cast<size_t>(seqID));
 	}
 
 	if (new_buffer == -1)
