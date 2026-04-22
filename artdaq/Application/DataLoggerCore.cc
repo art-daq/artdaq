@@ -37,6 +37,12 @@ bool artdaq::DataLoggerCore::initialize(fhicl::ParameterSet const& pset)
 		return false;
 	}
 
+    auto shared_memory_ordering = agg_pset.get<bool>("shared_memory_ordering", true);
+    if (shared_memory_ordering && !agg_pset.has_key("shared_memory_ordering")) {
+		TLOG(TLVL_INFO) << "Setting shared_memory_ordering to true by default for DataLogger. If this is not desired, set shared_memory_ordering to false in the configuration. Note that multiple art processes may not be served events evenly";
+		agg_pset.put<bool>("shared_memory_ordering", true);
+    }
+
 	// initialize the MetricManager and the names of our metrics
 	fhicl::ParameterSet metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet());
 

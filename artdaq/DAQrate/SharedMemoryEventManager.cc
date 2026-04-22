@@ -73,6 +73,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(const fhicl::Paramete
     , use_sequence_id_for_event_number_(pset.get<bool>("use_sequence_id_for_event_number", true))
     , reset_event_number_for_subruns_(pset.get<bool>("reset_event_number_for_subruns", false))
     , overwrite_mode_(!pset.get<bool>("use_art", true) || pset.get<bool>("overwrite_mode", false) || pset.get<bool>("broadcast_mode", false))
+    , shared_memory_ordering_(pset.get<bool>("shared_memory_ordering", false))
     , init_fragment_count_(pset.get<size_t>("init_fragment_count", pset.get<bool>("send_init_fragments", true) ? 1 : 0))
     , running_(false)
     , buffer_writes_pending_()
@@ -1269,11 +1270,11 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 	}
 
 	check_pending_buffers_(lk);
-	int new_buffer = GetBufferForWriting(false, static_cast<size_t>(seqID));
+	int new_buffer = GetBufferForWriting(false, shared_memory_ordering_ ? static_cast<size_t>(seqID) : 0);
 
 	if (new_buffer == -1)
 	{
-		new_buffer = GetBufferForWriting(overwrite_mode_, static_cast<size_t>(seqID));
+		new_buffer = GetBufferForWriting(overwrite_mode_, shared_memory_ordering_ ? static_cast<size_t>(seqID) : 0);
 	}
 
 	if (new_buffer == -1)

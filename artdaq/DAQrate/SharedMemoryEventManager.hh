@@ -136,6 +136,8 @@ public:
 		fhicl::Atom<size_t> stale_buffer_timeout_usec{fhicl::Name{"stale_buffer_timeout_usec"}, fhicl::Comment{"Maximum amount of time elapsed before a buffer is marked as abandoned. Time is reset each time an operation is performed on the buffer."}, 5000000};
 		/// "overwite_mode" (Default: false): Whether new data is allowed to overwrite buffers in the "Full" state
 		fhicl::Atom<bool> overwrite_mode{fhicl::Name{"overwrite_mode"}, fhicl::Comment{"Whether buffers are allowed to be overwritten when safe (state == Full or Reading)"}, false};
+		/// "shared_memory_ordering" (Default: false): Whether sequence IDs should be used to determine the order of events in shared memory, or whether buffers should be filled in the order they are received. WARNING: May disrupt round-robin distribution of events to art processes
+		fhicl::Atom<bool> shared_memory_ordering{fhicl::Name{"shared_memory_ordering"}, fhicl::Comment{"Whether sequence IDs should be used to determine the order of events in shared memory, or whether buffers should be filled in the order they are received. WARNING: May disrupt round-robin distribution of events to art processes"}, false};
 		/// "restart_crashed_art_processes" (Default: true) : Whether to automatically restart art processes that fail for any reason
 		fhicl::Atom<bool> restart_crashed_art_processes{fhicl::Name{"restart_crashed_art_processes"}, fhicl::Comment{"Whether to automatically restart art processes that fail for any reason"}, true};
 		/// "shared_memory_key" (Default 0xBEE70000 + PID) : Key to use for shared memory access
@@ -493,6 +495,7 @@ private:
 	bool use_sequence_id_for_event_number_;
 	bool reset_event_number_for_subruns_;
 	bool overwrite_mode_;
+	bool shared_memory_ordering_;
 	size_t init_fragment_count_;
 	std::atomic<bool> running_;
 
