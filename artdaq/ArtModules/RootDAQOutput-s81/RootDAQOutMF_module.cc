@@ -217,24 +217,6 @@ private:
 	std::string modifyFilePattern(std::string const& /*inputPattern*/,
 	                              Config const& /*config*/);
 
-	// Member Functions -- Implementation Details.
-private:
-	void doOpenFile();
-	void closePendingFile(std::unique_ptr<struct OutputFileBundle>& bundle);
-	void closeOldestPendingFileIfNeeded();
-	void removeBundleMappings(OutputFileBundle* bundle);
-	void markLateWrite(OutputFileBundle* bundle);
-	OutputFileBundle* targetBundleForEvent(EventPrincipal const& ep);
-	OutputFileBundle* targetBundleForSubRun(SubRunPrincipal const& sr);
-	OutputFileBundle* targetBundleForRun(RunPrincipal const& rp);
-
-	using SubRunKey = std::pair<unsigned, unsigned>;
-	static SubRunKey makeSubRunKey(EventPrincipal const& ep);
-	static SubRunKey makeSubRunKey(SubRunPrincipal const& sr);
-	static unsigned makeRunKey(EventPrincipal const& ep);
-	static unsigned makeRunKey(SubRunPrincipal const& sr);
-	static unsigned makeRunKey(RunPrincipal const& rp);
-
 	// Per-file state bundle (non-copyable, non-movable -- stored via unique_ptr
 	// so the PostCloseFileRenamer reference into fstats remains stable).
 	struct OutputFileBundle
@@ -255,6 +237,24 @@ private:
 		OutputFileBundle& operator=(OutputFileBundle const&) = delete;
 		OutputFileBundle& operator=(OutputFileBundle&&) = delete;
 	};
+
+	// Member Functions -- Implementation Details.
+private:
+	void doOpenFile();
+	void closePendingFile(std::unique_ptr<OutputFileBundle>& bundle);
+	void closeOldestPendingFileIfNeeded();
+	void removeBundleMappings(OutputFileBundle* bundle);
+	void markLateWrite(OutputFileBundle* bundle);
+	OutputFileBundle* targetBundleForEvent(EventPrincipal const& ep);
+	OutputFileBundle* targetBundleForSubRun(SubRunPrincipal const& sr);
+	OutputFileBundle* targetBundleForRun(RunPrincipal const& rp);
+
+	using SubRunKey = std::pair<unsigned, unsigned>;
+	static SubRunKey makeSubRunKey(EventPrincipal const& ep);
+	static SubRunKey makeSubRunKey(SubRunPrincipal const& sr);
+	static unsigned makeRunKey(EventPrincipal const& ep);
+	static unsigned makeRunKey(SubRunPrincipal const& sr);
+	static unsigned makeRunKey(RunPrincipal const& rp);
 
 	// Data Members.
 private:
