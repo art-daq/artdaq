@@ -278,10 +278,15 @@ private:
 	OutputFileBundle* targetBundleForRun(RunPrincipal const& rp);
 
 	using RoutingKey = std::tuple<unsigned, unsigned, unsigned>;
+	using SubRunIDKey = std::pair<unsigned, unsigned>;
 	unsigned bucketIndex(unsigned idValue, unsigned maxPerFile) const;
 	RoutingKey makeRoutingKey(EventPrincipal const& ep) const;
 	RoutingKey makeRoutingKey(SubRunPrincipal const& sr) const;
 	RoutingKey makeRoutingKey(RunPrincipal const& rp) const;
+	static SubRunIDKey makeSubRunIDKey(EventPrincipal const& ep);
+	static SubRunIDKey makeSubRunIDKey(SubRunPrincipal const& sr);
+	static unsigned makeRunIDKey(SubRunPrincipal const& sr);
+	static unsigned makeRunIDKey(RunPrincipal const& rp);
 
 	// Data Members.
 	mutable std::recursive_mutex mutex_;
@@ -299,6 +304,8 @@ private:
 	std::deque<std::unique_ptr<OutputFileBundle>> pendingFiles_;
 	unsigned const maxOpenFiles_;
 	std::map<RoutingKey, OutputFileBundle*> routeToBundle_;
+	std::map<SubRunIDKey, std::set<OutputFileBundle*>> subRunToBundles_;
+	std::map<unsigned, std::set<OutputFileBundle*>> runToBundles_;
 	FileCatalogMetadata::collection_type lastFileCatalogMetadata_{};
 	FileCatalogMetadata::collection_type lastSubRunMetadata_{};
 	bool hasCatalogMetadata_{false};
@@ -476,6 +483,7 @@ void RootDAQOutMF::write(EventPrincipal& ep)
 	bundle->file->writeOne(ep);
 	bundle->fstats.recordEvent(ep.eventID());
 	routeToBundle_[makeRoutingKey(ep)] = bundle;
+	subRunToBundles_[makeSubRunIDKey(ep)].insert(bundle);
 }
 
 void RootDAQOutMF::setSubRunAuxiliaryRangeSetID(RangeSet const& rs)
@@ -502,10 +510,21 @@ void RootDAQOutMF::writeSubRun(SubRunPrincipal& sr)
 	{
 		sr.addToProcessHistory();
 	}
-	auto* bundle = targetBundleForSubRun(sr);
-	bundle->file->writeSubRun(sr);
-	bundle->fstats.recordSubRun(sr.subRunID());
-	routeToBundle_[makeRoutingKey(sr)] = bundle;
+	auto* const targetBundle = targetBundleForSubRun(sr);
+	std::set<OutputFileBundle*> bundlesToWrite{targetBundle};
+	if (auto const it = subRunToBundles_.find(makeSubRunIDKey(sr));
+	    it != subRunToBundles_.end())
+	{
+		bundlesToWrite.insert(it->second.begin(), it->second.end());
+	}
+	for (auto* bundle : bundlesToWrite)
+	{
+		markLateWrite(bundle);
+		bundle->file->writeSubRun(sr);
+		bundle->fstats.recordSubRun(sr.subRunID());
+		runToBundles_[makeRunIDKey(sr)].insert(bundle);
+	}
+	routeToBundle_[makeRoutingKey(sr)] = targetBundle;
 }
 
 void RootDAQOutMF::setRunAuxiliaryRangeSetID(RangeSet const& rs)
@@ -528,10 +547,20 @@ void RootDAQOutMF::writeRun(RunPrincipal& rp)
 	{
 		rp.addToProcessHistory();
 	}
-	auto* bundle = targetBundleForRun(rp);
-	bundle->file->writeRun(rp);
-	bundle->fstats.recordRun(rp.runID());
-	routeToBundle_[makeRoutingKey(rp)] = bundle;
+	auto* const targetBundle = targetBundleForRun(rp);
+	std::set<OutputFileBundle*> bundlesToWrite{targetBundle};
+	if (auto const it = runToBundles_.find(makeRunIDKey(rp));
+	    it != runToBundles_.end())
+	{
+		bundlesToWrite.insert(it->second.begin(), it->second.end());
+	}
+	for (auto* bundle : bundlesToWrite)
+	{
+		markLateWrite(bundle);
+		bundle->file->writeRun(rp);
+		bundle->fstats.recordRun(rp.runID());
+	}
+	routeToBundle_[makeRoutingKey(rp)] = targetBundle;
 }
 
 void RootDAQOutMF::startEndFile()
@@ -769,6 +798,30 @@ void RootDAQOutMF::removeBundleMappings(OutputFileBundle* bundle)
 			++it;
 		}
 	}
+	for (auto it = subRunToBundles_.begin(); it != subRunToBundles_.end();)
+	{
+		it->second.erase(bundle);
+		if (it->second.empty())
+		{
+			it = subRunToBundles_.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
+	for (auto it = runToBundles_.begin(); it != runToBundles_.end();)
+	{
+		it->second.erase(bundle);
+		if (it->second.empty())
+		{
+			it = runToBundles_.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
 }
 
 void RootDAQOutMF::markLateWrite(OutputFileBundle* bundle)
@@ -855,6 +908,32 @@ RootDAQOutMF::makeRoutingKey(RunPrincipal const& rp) const
 	                    limits.nRuns()),
 	        0u,
 	        0u};
+}
+
+RootDAQOutMF::SubRunIDKey
+RootDAQOutMF::makeSubRunIDKey(EventPrincipal const& ep)
+{
+	auto const id = ep.eventID();
+	return {static_cast<unsigned>(id.run()), static_cast<unsigned>(id.subRun())};
+}
+
+RootDAQOutMF::SubRunIDKey
+RootDAQOutMF::makeSubRunIDKey(SubRunPrincipal const& sr)
+{
+	auto const id = sr.subRunID();
+	return {static_cast<unsigned>(id.run()), static_cast<unsigned>(id.subRun())};
+}
+
+unsigned
+RootDAQOutMF::makeRunIDKey(SubRunPrincipal const& sr)
+{
+	return static_cast<unsigned>(sr.subRunID().run());
+}
+
+unsigned
+RootDAQOutMF::makeRunIDKey(RunPrincipal const& rp)
+{
+	return static_cast<unsigned>(rp.runID().run());
 }
 
 string
