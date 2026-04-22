@@ -44,9 +44,9 @@
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
 #include <deque>
-#include <map>
 #include <iomanip>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -849,7 +849,7 @@ RootDAQOutMF::fileNameAtOpen() const
 
 string
 RootDAQOutMF::fileNameAtClose(PostCloseFileRenamer& renamer,
-                               std::string const& currentFileName)
+                              std::string const& currentFileName)
 {
 	return (filePattern_ == dev_null) ? dev_null : renamer.maybeRenameFile(currentFileName, filePattern_);
 }

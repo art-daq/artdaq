@@ -43,10 +43,10 @@
 #include <map>
 #include <memory>
 #include <mutex>
-#include <tuple>
-#include <utility>
 #include <set>
 #include <string>
+#include <tuple>
+#include <utility>
 #include <vector>
 
 using namespace std;
@@ -865,7 +865,7 @@ RootDAQOutMF::fileNameAtOpen() const
 
 string
 RootDAQOutMF::fileNameAtClose(PostCloseFileRenamer& renamer,
-                               string const& currentFileName)
+                              string const& currentFileName)
 {
 	return (filePattern_ == dev_null) ? dev_null : renamer.maybeRenameFile(currentFileName, filePattern_);
 }
