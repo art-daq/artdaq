@@ -1,6 +1,7 @@
 // vim: set sw=2 expandtab :
 #include "TRACE/tracemf.h"  // TLOG
 #include "artdaq/DAQdata/Globals.hh"
+#include "artdaq-utilities/Plugins/MetricData.hh"
 #define TRACE_NAME (app_name + "_RootDAQOut").c_str()
 
 #include "artdaq/ArtModules/ArtdaqSharedMemoryServiceInterface.h"
@@ -40,9 +41,14 @@
 
 #include <memory>
 #include <mutex>
+#include <fstream>
+#include <iomanip>
+#include <filesystem>
+#include <limits>
 #include <set>
 #include <string>
 #include <vector>
+#include <sys/file.h>
 
 using namespace std;
 using namespace hep::concurrency;
@@ -143,6 +149,7 @@ public:
 			fhicl::Sequence<fhicl::Table<NewSubStringForApp>> replacementList{fhicl::Name("replacementList")};
 		};
 		fhicl::OptionalSequence<fhicl::Table<FileNameSubstitution>> fileNameSubstitutions{Name("fileNameSubstitutions")};
+		Atom<string> summaryDir{Name("subrun_record_dir"), Comment("Directory for per-file CSV subrun record (subrun/event statistics). Empty = disabled."), ""};
 
 		Config()
 		{
@@ -222,6 +229,7 @@ private:
 	void doRegisterProducts(ProductDescriptions& productsToProduce,
 	                        ModuleDescription const& md) override;
 	std::string modifyFilePattern(std::string const& /*inputPattern*/, Config const& /*config*/);
+	void writeSummaryFile(std::string const& closedFileName);
 
 	// Implementation Details.
 	void doOpenFile();
@@ -253,6 +261,16 @@ private:
 	// ParameterSet information in the downstream file, such as when mixing.
 	bool writeParameterSets_;
 	ClosingCriteria fileProperties_;
+	string summaryDir_;
+	size_t filesOpenedInRun_{0};
+	size_t filesClosedInRun_{0};
+	struct SubrunStats
+	{
+		size_t nEvents{0};
+		art::EventNumber_t firstEvent{std::numeric_limits<art::EventNumber_t>::max()};
+		art::EventNumber_t lastEvent{0};
+	};
+	std::map<art::SubRunID, SubrunStats> subrunStats_;
 	ProductDescriptions productsToProduce_{};
 	ProductTables producedResultsProducts_{ProductTables::invalid()};
 	RPManager rpm_;
@@ -281,6 +299,7 @@ RootDAQOut::RootDAQOut(Parameters const& config)
     , dropMetaDataForDroppedData_{config().dropMetaDataForDroppedData()}
     , writeParameterSets_{config().writeParameterSets()}
     , fileProperties_{config().fileProperties()}
+    , summaryDir_{config().summaryDir()}
     , rpm_{config.get_PSet()}
 {
 	TLOG(TLVL_INFO) << "RootDAQOut_module (s124 version) CONSTRUCTOR Start";
@@ -399,6 +418,11 @@ void RootDAQOut::write(EventPrincipal& ep)
 	}
 	rootOutputFile_->writeOne(ep);
 	fstats_.recordEvent(ep.eventID());
+	auto const& eid = ep.eventID();
+	auto& sr = subrunStats_[eid.subRunID()];
+	++sr.nEvents;
+	if (eid.event() < sr.firstEvent) { sr.firstEvent = eid.event(); }
+	if (eid.event() > sr.lastEvent)  { sr.lastEvent  = eid.event(); }
 }
 
 void RootDAQOut::setSubRunAuxiliaryRangeSetID(RangeSet const& rs)
@@ -523,7 +547,14 @@ void RootDAQOut::finishEndFile()
 	rootOutputFile_.reset();
 	fstats_.recordFileClose();
 	lastClosedFileName_ = fileNameAtClose(currentFileName);
+	++filesClosedInRun_;
 	TLOG(TLVL_INFO) << __func__ << ": Closed output file \"" << lastClosedFileName_ << "\"";
+	writeSummaryFile(lastClosedFileName_);
+	if (metricMan) {
+			metricMan->sendMetric("Last Closed Output File", lastClosedFileName_, "", 5, artdaq::MetricMode::LastPoint);
+			metricMan->sendMetric("Output Files Closed", filesClosedInRun_, "files", 5, artdaq::MetricMode::LastPoint);
+	}
+	subrunStats_.clear();
 	rpm_.invoke(&ResultsProducer::doClear);
 }
 
@@ -608,6 +639,11 @@ void RootDAQOut::doOpenFile()
 	                                              dropMetaData_,
 	                                              dropMetaDataForDroppedData_);
 	fstats_.recordFileOpen();
+	subrunStats_.clear();
+	++filesOpenedInRun_;
+	if (metricMan) {
+			metricMan->sendMetric("Output Files Opened", filesOpenedInRun_, "files", 5, artdaq::MetricMode::LastPoint);
+	}
 	TLOG(TLVL_INFO) << __func__ << ": Opened output file with pattern \"" << filePattern_ << "\"";
 }
 
@@ -668,6 +704,8 @@ void RootDAQOut::endSubRun(SubRunPrincipal const& srp)
 void RootDAQOut::beginRun(RunPrincipal const& rp)
 {
 	std::lock_guard sentry{mutex_};
+	filesOpenedInRun_ = 0;
+	filesClosedInRun_ = 0;
 	rpm_.for_each_RPWorker([&rp](RPWorker& w) { w.rp().doBeginRun(rp); });
 }
 
@@ -808,6 +846,63 @@ RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& con
 
 	TLOG(TLVL_DEBUG + 32) << __func__ << ": modifiedPattern = \"" << modifiedPattern << "\"";
 	return modifiedPattern;
+}
+
+void RootDAQOut::writeSummaryFile(std::string const& closedFileName)
+{
+	if (summaryDir_.empty()) { return; }
+
+	auto const& seen = fstats_.seenSubRuns();
+	if (seen.empty()) { return; }
+
+	RunNumber_t const run = fstats_.lowestRunID().run();
+
+	// One CSV file per run, appended — matches CFODataReceiver convention
+	std::ostringstream fname;
+	fname << summaryDir_;
+	if (summaryDir_.back() != '/') { fname << '/'; }
+	fname << "subrun_record_run" << std::setw(6) << std::setfill('0') << run << ".csv";
+
+	std::ofstream ofs(fname.str(), std::ios::app);
+	if (!ofs.is_open())
+	{
+		TLOG(TLVL_WARNING) << "writeSummaryFile: could not open \"" << fname.str() << "\" for writing";
+		return;
+	}
+
+	flock(fileno(ofs), LOCK_EX);
+
+	// Write header if file was just created (empty)
+	ofs.seekp(0, std::ios::end);
+	if (ofs.tellp() == 0)
+	{
+		ofs << "run,subrun,n_events,first_event,last_event,output_file\n";
+	}
+
+	// One row per subrun seen in this output file
+	for (auto const& srid : seen)
+	{
+		auto it = subrunStats_.find(srid);
+		size_t nev = 0;
+		art::EventNumber_t evFirst = 0, evLast = 0;
+		if (it != subrunStats_.end())
+		{
+			nev     = it->second.nEvents;
+			evFirst = it->second.firstEvent;
+			evLast  = it->second.lastEvent;
+		}
+		ofs << run
+		    << "," << srid.subRun()
+		    << "," << nev
+		    << "," << evFirst
+		    << "," << evLast
+		    << "," << std::filesystem::path(closedFileName).filename().string()
+		    << "\n";
+	}
+	ofs.flush();
+	flock(fileno(ofs), LOCK_UN);
+	TLOG(TLVL_DEBUG) << "writeSummaryFile: appended " << seen.size()
+	                 << " subrun row(s) to \"" << fname.str() << "\"";
 }
 
 }  // namespace art
