@@ -144,13 +144,13 @@ public:
 		Atom<int> firstLoggerRank{Name("firstLoggerRank"), -1};
 		Atom<unsigned> maxOpenFiles{
 		    Name("maxOpenFiles"),
-		    5u,
 		    Comment("Maximum number of ROOT files that can be open simultaneously.\n"
 		            "When this limit is reached, the oldest pending file is flushed\n"
 		            "to disk before a new file is opened.  A value of 1 gives the\n"
 		            "same behavior as RootDAQOut (no pipelining).  Higher values\n"
 		            "allow TFile::Close() of older files to overlap with writing\n"
-		            "new events to the current file.")};
+		            "new events to the current file."),
+		    5u};
 
 		struct NewSubStringForApp
 		{
