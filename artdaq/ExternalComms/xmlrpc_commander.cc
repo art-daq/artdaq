@@ -575,6 +575,7 @@ protected:
 template<typename T>
 T cmd_::getParam(const xmlrpc_c::paramList& /*unused*/, int /*unused*/)
 {
+	TLOG(TLVL_ERROR) << "Error in cmd_::getParam(): value type not supported";
 	throw cet::exception("cmd_") << "Error in cmd_::getParam(): value type not supported" << std::endl;  // NOLINT(cert-err60-cpp)
 }
 
@@ -1414,6 +1415,7 @@ try
 
 	if (socket_file_descriptor < 0)
 	{
+		TLOG(TLVL_ERROR) << "Problem with the socket() call; C-style errno == " << errno << " (" << strerror(errno) << ")";
 		throw cet::exception("xmlrpc_commander::run") << "Problem with the socket() call; C-style errno == " << errno << " (" << strerror(errno) << ")";  // NOLINT(cert-err60-cpp)
 	}
 
@@ -1424,6 +1426,7 @@ try
 
 	if (retval < 0)
 	{
+		TLOG(TLVL_ERROR) << "Problem with the call to setsockopt(); C-style errno == " << errno << " (" << strerror(errno) << ")";
 		throw cet::exception("xmlrpc_commander::run") << "Problem with the call to setsockopt(); C-style errno == " << errno << " (" << strerror(errno) << ")";  // NOLINT(cert-err60-cpp)
 	}
 
@@ -1440,6 +1443,7 @@ try
 	if (retval != 0)
 	{
 		close(socket_file_descriptor);
+		TLOG(TLVL_ERROR) << "Problem with the bind() call; C-style errno == " << errno << " (" << strerror(errno) << ")";
 		throw cet::exception("xmlrpc_commander::run") << "Problem with the bind() call; C-style errno == " << errno << " (" << strerror(errno) << ")";  // NOLINT(cert-err60-cpp)
 	}
 

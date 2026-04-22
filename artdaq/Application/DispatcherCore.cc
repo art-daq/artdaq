@@ -123,6 +123,7 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 				}
 				else
 				{
+					TLOG(TLVL_ERROR) << "Unique label already exists!";
 					throw cet::exception("DispatcherCore") << "Unique label already exists!";  // NOLINT(cert-err60-cpp)
 				}
 			}

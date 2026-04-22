@@ -42,6 +42,7 @@ bool artdaq::Commandable::initialize(fhicl::ParameterSet const& pset, uint64_t t
 	auto start_time = std::chrono::steady_clock::now();
 	std::string initialState = fsm_.getState().getName();
 	fsm_.init(pset, timeout, timestamp);
+	TLOG(TLVL_INIT) << "FSM initialized";
 	if (external_request_status_)
 	{
 		std::string finalState = fsm_.getState().getName();

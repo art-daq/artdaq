@@ -27,9 +27,9 @@ std::shared_ptr<ArtdaqEvent> art::ShmemWrapper::receiveMessages()
 	{
 		usleep(static_cast<unsigned>(init_timeout_s_ * 1000000 / 100));  // Check 100 times
 		if (eod_received_)
-        {
-            TLOG(TLVL_DEBUG + 32) << "Received EndOfData message while waiting for Init Fragment, returning";
-            return nullptr;
+		{
+			TLOG(TLVL_DEBUG + 32) << "Received EndOfData message while waiting for Init Fragment, returning";
+			return nullptr;
 		}
 	}
 	if (!init_received_)

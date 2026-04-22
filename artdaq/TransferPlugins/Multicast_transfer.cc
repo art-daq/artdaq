@@ -255,6 +255,7 @@ int artdaq::MulticastTransfer::receiveFragment(artdaq::Fragment& fragment,
 
 	if (fragment.dataSizeBytes() > 0)
 	{
+		TLOG(TLVL_ERROR) << "Error in MulticastTransfer::receiveFragmentFrom: nonzero payload found in fragment passed as argument";
 		throw cet::exception("MulticastTransfer") << "Error in MulticastTransfer::receiveFragmentFrom: "  // NOLINT(cert-err60-cpp)
 		                                          << "nonzero payload found in fragment passed as argument";
 	}
@@ -337,6 +338,7 @@ int artdaq::MulticastTransfer::receiveFragment(artdaq::Fragment& fragment,
 				}
 				else
 				{
+					TLOG(TLVL_ERROR) << "Buffer size is too small to completely contain an artdaq::Fragment header; please increase the default size";
 					throw cet::exception("MulticastTransfer") << "Buffer size is too small to completely contain an artdaq::Fragment header; "  // NOLINT(cert-err60-cpp)
 					                                          << "please increase the default size";
 				}
@@ -419,6 +421,7 @@ artdaq::MulticastTransfer::transfer_fragment_min_blocking_mode(artdaq::Fragment 
 
 	if (fragment.sizeBytes() > max_fragment_size_words_)
 	{
+		TLOG(TLVL_ERROR) << "Error in MulticastTransfer::copyFragmentTo: " << fragment.sizeBytes() << " byte fragment exceeds max_fragment_size of " << max_fragment_size_words_;
 		throw cet::exception("MulticastTransfer") << "Error in MulticastTransfer::copyFragmentTo: " << fragment.sizeBytes() << " byte fragment exceeds max_fragment_size of " << max_fragment_size_words_;  // NOLINT(cert-err60-cpp)
 	}
 

@@ -195,6 +195,7 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 	auto start_time = std::chrono::steady_clock::now();
 	if (frag.type() == Fragment::EndOfDataFragmentType)
 	{
+		TLOG(TLVL_ERROR) << "EOD fragments should not be sent on as received: use sendEODFrag() instead.";
 		throw cet::exception("LogicError")  // NOLINT(cert-err60-cpp)
 		    << "EOD fragments should not be sent on as received: "
 		    << "use sendEODFrag() instead.";

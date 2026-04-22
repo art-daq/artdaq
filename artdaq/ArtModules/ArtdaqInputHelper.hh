@@ -614,7 +614,10 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 		{
 			TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "RunDataFragment for current Run received, returning Flush subrun/event";
 			art::EventID const evid(art::EventID::flushEvent(inR->runID()));
-			outSR = pm_.makeSubRunPrincipal(evid.subRunID(), currentTime);
+			if (inSR == nullptr || inSR->subRunID() != evid.subRunID())
+			{
+				outSR = pm_.makeSubRunPrincipal(evid.subRunID(), currentTime);
+			}
 			outE = pm_.makeEventPrincipal(evid, currentTime);
 		}
 	}
@@ -672,7 +675,10 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(std::shared_ptr<ArtdaqEvent> 
 	{
 		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "EndOfRunFragment received, returning Flush subrun/event";
 		art::EventID const evid(art::EventID::flushEvent(outR != nullptr ? outR->runID() : inR->runID()));
-		outSR = pm_.makeSubRunPrincipal(evid.subRunID(), currentTime);
+		if (inSR == nullptr || inSR->subRunID() != evid.subRunID())
+		{
+			outSR = pm_.makeSubRunPrincipal(evid.subRunID(), currentTime);
+		}
 		outE = pm_.makeEventPrincipal(evid, currentTime);
 		return true;
 	}
@@ -951,12 +957,12 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 {
 	TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Begin: ArtdaqInputHelper::readNext";
 
-    if (shutdownMsgReceived_)
-    {
-        TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Shutdown message already received, returning false";
-        TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::readNext";
-        return false;
-    }
+	if (shutdownMsgReceived_)
+	{
+		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "Shutdown message already received, returning false";
+		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::readNext";
+		return false;
+	}
 
 	auto read_start_time = std::chrono::steady_clock::now();
 
