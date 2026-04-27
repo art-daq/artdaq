@@ -31,7 +31,22 @@ bool artdaq::BoardReaderApp::do_initialize(fhicl::ParameterSet const& pset, uint
 	fragment_receiver_ptr_.reset(nullptr);
 	fragment_receiver_ptr_ = std::make_unique<BoardReaderCore>(*this);
 	TLOG(TLVL_DEBUG + 32) << "Initializing new BoardReaderCore at " << static_cast<void*>(fragment_receiver_ptr_.get()) << " with pset " << pset.to_string();
-	external_request_status_ = fragment_receiver_ptr_->initialize(pset, timeout, timestamp);
+	try
+	{
+		external_request_status_ = fragment_receiver_ptr_->initialize(pset, timeout, timestamp);
+	}
+	catch (const std::exception& ex)
+	{
+		external_request_status_ = false;
+		report_string_ = "Error initializing " + app_name + ": " + ex.what();
+		return false;
+	}
+	catch (...)
+	{
+		external_request_status_ = false;
+		report_string_ = "Error initializing " + app_name + " (unknown exception)";
+		return false;
+	}
 	if (!external_request_status_)
 	{
 		report_string_ = "Error initializing ";
