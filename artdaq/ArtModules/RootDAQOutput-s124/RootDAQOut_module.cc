@@ -49,6 +49,8 @@
 #include <string>
 #include <vector>
 #include <sys/file.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 using namespace std;
 using namespace hep::concurrency;
@@ -551,8 +553,8 @@ void RootDAQOut::finishEndFile()
 	TLOG(TLVL_INFO) << __func__ << ": Closed output file \"" << lastClosedFileName_ << "\"";
 	writeSummaryFile(lastClosedFileName_);
 	if (metricMan) {
-			metricMan->sendMetric("Last Closed Output File", lastClosedFileName_, "", 5, artdaq::MetricMode::LastPoint);
-			metricMan->sendMetric("Output Files Closed", filesClosedInRun_, "files", 5, artdaq::MetricMode::LastPoint);
+			metricMan->sendMetric("Last Closed Output File", lastClosedFileName_, "", 3, artdaq::MetricMode::LastPoint);
+			metricMan->sendMetric("Output Files Closed", filesClosedInRun_, "files", 3, artdaq::MetricMode::LastPoint);
 	}
 	subrunStats_.clear();
 	rpm_.invoke(&ResultsProducer::doClear);
@@ -642,7 +644,7 @@ void RootDAQOut::doOpenFile()
 	subrunStats_.clear();
 	++filesOpenedInRun_;
 	if (metricMan) {
-			metricMan->sendMetric("Output Files Opened", filesOpenedInRun_, "files", 5, artdaq::MetricMode::LastPoint);
+			metricMan->sendMetric("Output Files Opened", filesOpenedInRun_, "files", 3, artdaq::MetricMode::LastPoint);
 	}
 	TLOG(TLVL_INFO) << __func__ << ": Opened output file with pattern \"" << filePattern_ << "\"";
 }
@@ -863,44 +865,48 @@ void RootDAQOut::writeSummaryFile(std::string const& closedFileName)
 	if (summaryDir_.back() != '/') { fname << '/'; }
 	fname << "subrun_record_run" << std::setw(6) << std::setfill('0') << run << ".csv";
 
-	std::ofstream ofs(fname.str(), std::ios::app);
-	if (!ofs.is_open())
+	int fd = open(fname.str().c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
+	if (fd < 0)
 	{
 		TLOG(TLVL_WARNING) << "writeSummaryFile: could not open \"" << fname.str() << "\" for writing";
 		return;
 	}
 
-	flock(fileno(ofs), LOCK_EX);
+	flock(fd, LOCK_EX);
 
-	// Write header if file was just created (empty)
-	ofs.seekp(0, std::ios::end);
-	if (ofs.tellp() == 0)
+	// Build content in memory
+	std::ostringstream content;
+
+	// Write header if file is empty
+	if (lseek(fd, 0, SEEK_END) == 0)
 	{
-		ofs << "run,subrun,n_events,first_event,last_event,output_file\n";
+		content << "run,subrun,n_events,first_event,last_event,output_file\n";
 	}
 
 	// One row per subrun seen in this output file
+	std::string const outputFile = std::filesystem::path(closedFileName).filename().string();
 	for (auto const& srid : seen)
 	{
 		auto it = subrunStats_.find(srid);
-		size_t nev = 0;
-		art::EventNumber_t evFirst = 0, evLast = 0;
-		if (it != subrunStats_.end())
-		{
-			nev     = it->second.nEvents;
-			evFirst = it->second.firstEvent;
-			evLast  = it->second.lastEvent;
-		}
-		ofs << run
-		    << "," << srid.subRun()
-		    << "," << nev
-		    << "," << evFirst
-		    << "," << evLast
-		    << "," << std::filesystem::path(closedFileName).filename().string()
-		    << "\n";
+		// Skip subruns that registered in fstats but had no events written to
+		// this file (e.g. the in-progress subrun at a file-boundary close).
+		if (it == subrunStats_.end()) { continue; }
+
+		content << run
+		        << "," << srid.subRun()
+		        << "," << it->second.nEvents
+		        << "," << it->second.firstEvent
+		        << "," << it->second.lastEvent
+		        << "," << outputFile
+		        << "\n";
 	}
-	ofs.flush();
-	flock(fileno(ofs), LOCK_UN);
+
+	std::string const buf = content.str();
+	::write(fd, buf.c_str(), buf.size());
+
+	flock(fd, LOCK_UN);
+	close(fd);
+
 	TLOG(TLVL_DEBUG) << "writeSummaryFile: appended " << seen.size()
 	                 << " subrun row(s) to \"" << fname.str() << "\"";
 }
