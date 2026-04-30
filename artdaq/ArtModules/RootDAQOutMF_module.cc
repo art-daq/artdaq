@@ -1,12 +1,13 @@
 // vim: set sw=2 expandtab :
 #include "TRACE/tracemf.h"  // TLOG
-#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-utilities/Plugins/MetricData.hh"
-#define TRACE_NAME (app_name + "_RootDAQOut").c_str()
+#include "artdaq/DAQdata/Globals.hh"
+#define TRACE_NAME (app_name + "_RootDAQOutMF").c_str()
 
 #include "artdaq/ArtModules/ArtdaqSharedMemoryServiceInterface.h"
-#include "artdaq/ArtModules/RootDAQOutput-s124/RootDAQOutFile.h"
+#include "artdaq/ArtModules/RootDAQOutFile.h"
 
+#include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Core/OutputModule.h"
 #include "art/Framework/Core/RPManager.h"
 #include "art/Framework/Core/ResultsProducer.h"
@@ -39,18 +40,25 @@
 #include "fhiclcpp/types/TableFragment.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
+#include <fcntl.h>
+#include <sys/file.h>
+#include <unistd.h>
+#include <algorithm>
+#include <cerrno>
+#include <cstring>
+#include <deque>
+#include <filesystem>
+#include <iomanip>
+#include <limits>
+#include <map>
 #include <memory>
 #include <mutex>
-#include <fstream>
-#include <iomanip>
-#include <filesystem>
-#include <limits>
 #include <set>
+#include <sstream>
 #include <string>
+#include <tuple>
+#include <utility>
 #include <vector>
-#include <sys/file.h>
-#include <fcntl.h>
-#include <unistd.h>
 
 using namespace std;
 using namespace hep::concurrency;
@@ -80,14 +88,14 @@ auto shouldFastClone(bool const fastCloningSet,
 	if (fastCloningSet and not fastCloning)
 	{
 		enabled.disable(
-		    "RootDAQOut configuration explicitly disables fast cloning.");
+		    "RootDAQOutMF configuration explicitly disables fast cloning.");
 		return enabled;
 	}
 
 	if (not wantAllEvents)
 	{
 		enabled.disable(
-		    "Event-selection has been specified in the RootDAQOut configuration.");
+		    "Event-selection has been specified in the RootDAQOutMF configuration.");
 	}
 	if (fastCloning && maxCriterionSpecified(cc) &&
 	    cc.granularity() < art::Granularity::InputFile)
@@ -98,11 +106,107 @@ auto shouldFastClone(bool const fastCloningSet,
 	}
 	return enabled;
 }
+
+struct SubrunStats
+{
+	size_t nEvents{0};
+	art::EventNumber_t firstEvent{std::numeric_limits<art::EventNumber_t>::max()};
+	art::EventNumber_t lastEvent{0};
+};
+
+static void writeSummaryFile(
+    std::string const& summaryDir,
+    std::map<art::SubRunID, SubrunStats> const& subrunStats,
+    std::string const& closedFileName)
+{
+	if (summaryDir.empty() || subrunStats.empty()) { return; }
+
+	std::string const outputFile = std::filesystem::path(closedFileName).filename().string();
+
+	// Group rows by run number so that each run gets its own CSV file,
+	// even when an output file spans multiple runs.
+	std::map<art::RunNumber_t, std::ostringstream> runContents;
+	for (auto const& [srid, stats] : subrunStats)
+	{
+		runContents[srid.run()]
+		    << srid.run()
+		    << "," << srid.subRun()
+		    << "," << stats.nEvents
+		    << "," << stats.firstEvent
+		    << "," << stats.lastEvent
+		    << "," << outputFile
+		    << "\n";
+	}
+
+	// One CSV file per run, appended — matches CFODataReceiver convention
+	for (auto const& [run, contentStream] : runContents)
+	{
+		std::ostringstream fname;
+		fname << summaryDir;
+		if (summaryDir.back() != '/') { fname << '/'; }
+		fname << "subrun_record_run" << std::setw(6) << std::setfill('0') << run << ".csv";
+
+		int fd = open(fname.str().c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
+		if (fd < 0)
+		{
+			TLOG(TLVL_WARNING) << "writeSummaryFile: could not open \"" << fname.str() << "\" for writing: " << strerror(errno);
+			continue;
+		}
+
+		flock(fd, LOCK_EX);
+
+		std::string const rows = contentStream.str();
+		std::string buf;
+		if (lseek(fd, 0, SEEK_END) == 0)
+		{
+			buf = "run,subrun,n_events,first_event,last_event,output_file\n";
+		}
+		buf += rows;
+
+		// Loop to handle partial writes and EINTR
+		if (buf.size() > static_cast<size_t>(std::numeric_limits<ssize_t>::max()))
+		{
+			TLOG(TLVL_ERROR) << "writeSummaryFile: buffer too large (" << buf.size() << " bytes) to write to \""
+			                 << fname.str() << "\"";
+		}
+		else
+		{
+			ssize_t total = 0;
+			auto remaining = static_cast<ssize_t>(buf.size());
+			while (remaining > 0)
+			{
+				ssize_t written = ::write(fd, buf.c_str() + total, static_cast<size_t>(remaining));
+				if (written < 0)
+				{
+					if (errno == EINTR) { continue; }
+					TLOG(TLVL_ERROR) << "writeSummaryFile: write error to \"" << fname.str() << "\": " << strerror(errno);
+					break;
+				}
+				total += written;
+				remaining -= written;
+			}
+		}
+
+		flock(fd, LOCK_UN);
+		close(fd);
+
+		size_t const rowsWritten = static_cast<size_t>(std::count(rows.begin(), rows.end(), '\n'));
+		TLOG(TLVL_DEBUG) << "writeSummaryFile: appended " << rowsWritten
+		                 << " subrun row(s) to \"" << fname.str() << "\"";
+	}
+}
 }  // namespace
 
 namespace art {
 
-class RootDAQOut final : public OutputModule
+// RootDAQOutMF is a variant of RootDAQOut that can keep multiple ROOT files
+// open at the same time.  When the active file's closing criteria are met (e.g.
+// maxEvents, maxSubRuns, maxRuns), it is moved to a "pending-close" queue and a
+// new file is opened immediately.  Files in the pending-close queue still have
+// their TFile open in memory; they are flushed to disk only when the queue
+// would exceed maxOpenFiles.  This pipelining reduces the gap in data writing
+// that occurs during file transitions.
+class RootDAQOutMF final : public OutputModule
 {
 public:
 	static constexpr char const* default_tmpDir{"<parent-path-of-filename>"};
@@ -139,6 +243,15 @@ public:
 		            "output-file switching.")};
 		fhicl::TableFragment<detail::SafeFileNameConfig> safeFileName;
 		Atom<int> firstLoggerRank{Name("firstLoggerRank"), -1};
+		Atom<unsigned> maxOpenFiles{
+		    Name("maxOpenFiles"),
+		    Comment("Maximum number of ROOT files that can be open simultaneously.\n"
+		            "When this limit is reached, the oldest pending file is flushed\n"
+		            "to disk before a new file is opened.  A value of 1 gives the\n"
+		            "same behavior as RootDAQOut (no pipelining).  Higher values\n"
+		            "allow TFile::Close() of older files to overlap with writing\n"
+		            "new events to the current file."),
+		    5u};
 
 		struct NewSubStringForApp
 		{
@@ -151,13 +264,13 @@ public:
 			fhicl::Sequence<fhicl::Table<NewSubStringForApp>> replacementList{fhicl::Name("replacementList")};
 		};
 		fhicl::OptionalSequence<fhicl::Table<FileNameSubstitution>> fileNameSubstitutions{Name("fileNameSubstitutions")};
-		Atom<string> summaryDir{Name("subrun_record_dir"), Comment("Directory for per-file CSV subrun record (subrun/event statistics). Empty = disabled."), ""};
+		Atom<string> summaryDir{Name("subrunRecordDir"), Comment("Directory for per-file CSV subrun record (subrun/event statistics). Empty = disabled."), ""};
 
 		Config()
 		{
-			// Both RootDAQOut module and OutputModule use the "fileName"
+			// Both RootDAQOutMF module and OutputModule use the "fileName"
 			// FHiCL parameter.  However, whereas in OutputModule the
-			// parameter has a default, for RootDAQOut the parameter should
+			// parameter has a default, for RootDAQOutMF the parameter should
 			// not.  We therefore have to change the default flag setting
 			// for 'OutputModule::Config::fileName'.
 			using namespace fhicl::detail;
@@ -180,12 +293,12 @@ public:
 
 	using Parameters = fhicl::WrappedTable<Config, Config::KeysToIgnore>;
 
-	~RootDAQOut();
-	explicit RootDAQOut(Parameters const&);
-	RootDAQOut(RootDAQOut const&) = delete;
-	RootDAQOut(RootDAQOut&&) = delete;
-	RootDAQOut& operator=(RootDAQOut const&) = delete;
-	RootDAQOut& operator=(RootDAQOut&&) = delete;
+	~RootDAQOutMF() override;
+	explicit RootDAQOutMF(Parameters const&);
+	RootDAQOutMF(RootDAQOutMF const&) = delete;
+	RootDAQOutMF(RootDAQOutMF&&) = delete;
+	RootDAQOutMF& operator=(RootDAQOutMF const&) = delete;
+	RootDAQOutMF& operator=(RootDAQOutMF&&) = delete;
 
 	void postSelectProducts() override;
 	void beginJob() override;
@@ -199,7 +312,8 @@ public:
 private:
 	// Replace OutputModule Functions.
 	string fileNameAtOpen() const;
-	string fileNameAtClose(string const& currentFileName);
+	string fileNameAtClose(PostCloseFileRenamer& renamer,
+	                       string const& currentFileName);
 	string const& lastClosedFileName() const override;
 	Granularity fileGranularity() const override;
 	void openFile(FileBlock const&) override;
@@ -230,11 +344,52 @@ private:
 	void finishEndFile() override;
 	void doRegisterProducts(ProductDescriptions& productsToProduce,
 	                        ModuleDescription const& md) override;
-	std::string modifyFilePattern(std::string const& /*inputPattern*/, Config const& /*config*/);
-	void writeSummaryFile(std::string const& closedFileName);
+	std::string modifyFilePattern(std::string const& inputPattern,
+	                              Config const& config);
+
+	// Per-file state bundle (non-copyable, non-movable -- stored via unique_ptr
+	// so the PostCloseFileRenamer reference into fstats remains stable).
+	struct OutputFileBundle
+	{
+		FileStatsCollector fstats;
+		PostCloseFileRenamer fRenamer;
+		std::unique_ptr<RootDAQOutFile> file{nullptr};
+		std::string tmpFileName{};
+		bool metadataNeedsRefresh{false};
+		std::string closedFileName{};
+		std::map<art::SubRunID, SubrunStats> subrunStats;
+
+		OutputFileBundle(std::string const& moduleLabel,
+		                 std::string const& processName)
+		    : fstats(moduleLabel, processName), fRenamer(fstats)
+		{}
+
+		OutputFileBundle(OutputFileBundle const&) = delete;
+		OutputFileBundle(OutputFileBundle&&) = delete;
+		OutputFileBundle& operator=(OutputFileBundle const&) = delete;
+		OutputFileBundle& operator=(OutputFileBundle&&) = delete;
+	};
 
 	// Implementation Details.
 	void doOpenFile();
+	void closePendingFile(std::unique_ptr<OutputFileBundle>& bundle);
+	void closeOldestPendingFileIfNeeded();
+	void removeBundleMappings(OutputFileBundle* bundle);
+	void markLateWrite(OutputFileBundle* bundle);
+	OutputFileBundle* targetBundleForEvent(EventPrincipal const& ep);
+	OutputFileBundle* targetBundleForSubRun(SubRunPrincipal const& sr);
+	OutputFileBundle* targetBundleForRun(RunPrincipal const& rp);
+
+	using RoutingKey = std::tuple<unsigned, unsigned, unsigned>;
+	using SubRunIDKey = std::pair<unsigned, unsigned>;
+	unsigned bucketIndex(unsigned idValue, unsigned maxPerFile) const;
+	RoutingKey makeRoutingKey(EventPrincipal const& ep) const;
+	RoutingKey makeRoutingKey(SubRunPrincipal const& sr) const;
+	RoutingKey makeRoutingKey(RunPrincipal const& rp) const;
+	static SubRunIDKey makeSubRunIDKey(EventPrincipal const& ep);
+	static SubRunIDKey makeSubRunIDKey(SubRunPrincipal const& sr);
+	static unsigned makeRunIDKey(SubRunPrincipal const& sr);
+	static unsigned makeRunIDKey(RunPrincipal const& rp);
 
 	// Data Members.
 	mutable std::recursive_mutex mutex_;
@@ -243,9 +398,21 @@ private:
 	bool dropAllSubRuns_;
 	string const moduleLabel_;
 	int inputFileCount_{};
-	unique_ptr<RootDAQOutFile> rootOutputFile_{nullptr};
-	FileStatsCollector fstats_;
-	PostCloseFileRenamer fRenamer_;
+
+	// Multi-file state.
+	// activeFile_: the file currently receiving events.
+	// pendingFiles_: files whose writeTTrees() has been called but whose
+	//                TFile has not yet been closed (destructed).
+	std::unique_ptr<OutputFileBundle> activeFile_{nullptr};
+	std::deque<std::unique_ptr<OutputFileBundle>> pendingFiles_;
+	unsigned const maxOpenFiles_;
+	std::map<RoutingKey, OutputFileBundle*> routeToBundle_;
+	std::map<SubRunIDKey, std::set<OutputFileBundle*>> subRunToBundles_;
+	std::map<unsigned, std::set<OutputFileBundle*>> runToBundles_;
+	FileCatalogMetadata::collection_type lastFileCatalogMetadata_{};
+	FileCatalogMetadata::collection_type lastSubRunMetadata_{};
+	bool hasCatalogMetadata_{false};
+
 	string const filePattern_;
 	string tmpDir_;
 	string lastClosedFileName_{};
@@ -266,28 +433,20 @@ private:
 	string summaryDir_;
 	size_t filesOpenedInRun_{0};
 	size_t filesClosedInRun_{0};
-	struct SubrunStats
-	{
-		size_t nEvents{0};
-		art::EventNumber_t firstEvent{std::numeric_limits<art::EventNumber_t>::max()};
-		art::EventNumber_t lastEvent{0};
-	};
-	std::map<art::SubRunID, SubrunStats> subrunStats_;
 	ProductDescriptions productsToProduce_{};
 	ProductTables producedResultsProducts_{ProductTables::invalid()};
 	RPManager rpm_;
 };
 
-RootDAQOut::~RootDAQOut() = default;
+RootDAQOutMF::~RootDAQOutMF() = default;
 
-RootDAQOut::RootDAQOut(Parameters const& config)
+RootDAQOutMF::RootDAQOutMF(Parameters const& config)
     : OutputModule{
           config().omConfig}
     , catalog_{config().catalog()}
     , dropAllSubRuns_{config().dropAllSubRuns()}
     , moduleLabel_{config.get_PSet().get<string>("module_label")}
-    , fstats_{moduleLabel_, processName()}
-    , fRenamer_{fstats_}
+    , maxOpenFiles_{config().maxOpenFiles()}
     , filePattern_{modifyFilePattern(config().omConfig().fileName(), config())}
     , tmpDir_{config().tmpDir() == default_tmpDir ? parent_path(filePattern_) : config().tmpDir()}
     , compressionLevel_{config().compressionLevel()}
@@ -304,7 +463,14 @@ RootDAQOut::RootDAQOut(Parameters const& config)
     , summaryDir_{config().summaryDir()}
     , rpm_{config.get_PSet()}
 {
-	TLOG(TLVL_INFO) << "RootDAQOut_module (s124 version) CONSTRUCTOR Start";
+	TLOG(TLVL_INFO) << "RootDAQOutMF_module (s124 version) CONSTRUCTOR Start";
+
+	if (maxOpenFiles_ == 0)
+	{
+		throw Exception(errors::Configuration)  // NOLINT(cert-err60-cpp)
+		    << "RootDAQOutMF: maxOpenFiles must be >= 1.\n";
+	}
+
 	bool const check_filename = config.get_PSet().has_key("fileProperties") and
 	                            config().safeFileName().checkFileName();
 	detail::validateFileNamePattern(check_filename, filePattern_);
@@ -345,7 +511,7 @@ RootDAQOut::RootDAQOut(Parameters const& config)
 	}
 }
 
-void RootDAQOut::openFile(FileBlock const& fb)
+void RootDAQOutMF::openFile(FileBlock const& fb)
 {
 	std::lock_guard sentry{mutex_};
 	// Note: The file block here refers to the currently open
@@ -354,21 +520,23 @@ void RootDAQOut::openFile(FileBlock const& fb)
 	//       file data trees.
 	if (!isFileOpen())
 	{
+		// Close oldest pending file if opening a new one would exceed the limit.
+		closeOldestPendingFileIfNeeded();
 		doOpenFile();
 		respondToOpenInputFile(fb);
 	}
 }
 
-void RootDAQOut::postSelectProducts()
+void RootDAQOutMF::postSelectProducts()
 {
 	std::lock_guard sentry{mutex_};
 	if (isFileOpen())
 	{
-		rootOutputFile_->selectProducts();
+		activeFile_->file->selectProducts();
 	}
 }
 
-void RootDAQOut::respondToOpenInputFile(FileBlock const& fb)
+void RootDAQOutMF::respondToOpenInputFile(FileBlock const& fb)
 {
 	std::lock_guard sentry{mutex_};
 	++inputFileCount_;
@@ -386,27 +554,27 @@ void RootDAQOut::respondToOpenInputFile(FileBlock const& fb)
 	{
 		fastCloneThisOne.merge(rfb->fastClonable());
 	}
-	rootOutputFile_->beginInputFile(rfb, std::move(fastCloneThisOne));
-	fstats_.recordInputFile(fb.fileName());
+	activeFile_->file->beginInputFile(rfb, std::move(fastCloneThisOne));
+	activeFile_->fstats.recordInputFile(fb.fileName());
 }
 
-void RootDAQOut::readResults(ResultsPrincipal const& resp)
+void RootDAQOutMF::readResults(ResultsPrincipal const& resp)
 {
 	std::lock_guard sentry{mutex_};
 	rpm_.for_each_RPWorker(
 	    [&resp](RPWorker& w) { w.rp().doReadResults(resp); });
 }
 
-void RootDAQOut::respondToCloseInputFile(FileBlock const& fb)
+void RootDAQOutMF::respondToCloseInputFile(FileBlock const& fb)
 {
 	std::lock_guard sentry{mutex_};
 	if (isFileOpen())
 	{
-		rootOutputFile_->respondToCloseInputFile(fb);
+		activeFile_->file->respondToCloseInputFile(fb);
 	}
 }
 
-void RootDAQOut::write(EventPrincipal& ep)
+void RootDAQOutMF::write(EventPrincipal& ep)
 {
 	std::lock_guard sentry{mutex_};
 	if (dropAllEvents_)
@@ -418,22 +586,32 @@ void RootDAQOut::write(EventPrincipal& ep)
 		ep.addToProcessHistory();
 		ep.refreshProcessHistoryID();
 	}
-	rootOutputFile_->writeOne(ep);
-	fstats_.recordEvent(ep.eventID());
+	auto* bundle = targetBundleForEvent(ep);
+	bundle->file->writeOne(ep);
+	bundle->fstats.recordEvent(ep.eventID());
 	auto const& eid = ep.eventID();
-	auto& sr = subrunStats_[eid.subRunID()];
+	auto& sr = bundle->subrunStats[eid.subRunID()];
 	++sr.nEvents;
 	if (eid.event() < sr.firstEvent) { sr.firstEvent = eid.event(); }
-	if (eid.event() > sr.lastEvent)  { sr.lastEvent  = eid.event(); }
+	if (eid.event() > sr.lastEvent) { sr.lastEvent = eid.event(); }
+	routeToBundle_[makeRoutingKey(ep)] = bundle;
+	subRunToBundles_[makeSubRunIDKey(ep)].insert(bundle);
 }
 
-void RootDAQOut::setSubRunAuxiliaryRangeSetID(RangeSet const& rs)
+void RootDAQOutMF::setSubRunAuxiliaryRangeSetID(RangeSet const& rs)
 {
 	std::lock_guard sentry{mutex_};
-	rootOutputFile_->setSubRunAuxiliaryRangeSetID(rs);
+	if (activeFile_)
+	{
+		activeFile_->file->setSubRunAuxiliaryRangeSetID(rs);
+	}
+	for (auto const& bundle : pendingFiles_)
+	{
+		bundle->file->setSubRunAuxiliaryRangeSetID(rs);
+	}
 }
 
-void RootDAQOut::writeSubRun(SubRunPrincipal& sr)
+void RootDAQOutMF::writeSubRun(SubRunPrincipal& sr)
 {
 	std::lock_guard sentry{mutex_};
 	if (dropAllSubRuns_)
@@ -444,28 +622,60 @@ void RootDAQOut::writeSubRun(SubRunPrincipal& sr)
 	{
 		sr.addToProcessHistory();
 	}
-	rootOutputFile_->writeSubRun(sr);
-	fstats_.recordSubRun(sr.subRunID());
+	auto* const targetBundle = targetBundleForSubRun(sr);
+	std::set<OutputFileBundle*> bundlesToWrite{targetBundle};
+	if (auto const it = subRunToBundles_.find(makeSubRunIDKey(sr));
+	    it != subRunToBundles_.end())
+	{
+		bundlesToWrite.insert(it->second.begin(), it->second.end());
+	}
+	for (auto* bundle : bundlesToWrite)
+	{
+		markLateWrite(bundle);
+		bundle->file->writeSubRun(sr);
+		bundle->fstats.recordSubRun(sr.subRunID());
+		runToBundles_[makeRunIDKey(sr)].insert(bundle);
+	}
+	routeToBundle_[makeRoutingKey(sr)] = targetBundle;
 }
 
-void RootDAQOut::setRunAuxiliaryRangeSetID(RangeSet const& rs)
+void RootDAQOutMF::setRunAuxiliaryRangeSetID(RangeSet const& rs)
 {
 	std::lock_guard sentry{mutex_};
-	rootOutputFile_->setRunAuxiliaryRangeSetID(rs);
+	if (activeFile_)
+	{
+		activeFile_->file->setRunAuxiliaryRangeSetID(rs);
+	}
+	for (auto const& bundle : pendingFiles_)
+	{
+		bundle->file->setRunAuxiliaryRangeSetID(rs);
+	}
 }
 
-void RootDAQOut::writeRun(RunPrincipal& rp)
+void RootDAQOutMF::writeRun(RunPrincipal& rp)
 {
 	std::lock_guard sentry{mutex_};
 	if (hasNewlyDroppedBranch()[InRun])
 	{
 		rp.addToProcessHistory();
 	}
-	rootOutputFile_->writeRun(rp);
-	fstats_.recordRun(rp.runID());
+	auto* const targetBundle = targetBundleForRun(rp);
+	std::set<OutputFileBundle*> bundlesToWrite{targetBundle};
+	if (auto const it = runToBundles_.find(makeRunIDKey(rp));
+	    it != runToBundles_.end())
+	{
+		bundlesToWrite.insert(it->second.begin(), it->second.end());
+	}
+	for (auto* bundle : bundlesToWrite)
+	{
+		markLateWrite(bundle);
+		bundle->file->writeRun(rp);
+		bundle->fstats.recordRun(rp.runID());
+	}
+	routeToBundle_[makeRoutingKey(rp)] = targetBundle;
 }
 
-void RootDAQOut::startEndFile()
+void RootDAQOutMF::startEndFile()
 {
 	std::lock_guard sentry{mutex_};
 	auto resp = make_unique<ResultsPrincipal>(
@@ -479,89 +689,99 @@ void RootDAQOut::startEndFile()
 	}
 	rpm_.for_each_RPWorker(
 	    [&resp](RPWorker& w) { w.rp().doWriteResults(*resp); });
-	rootOutputFile_->writeResults(*resp);
+	activeFile_->file->writeResults(*resp);
 }
 
-void RootDAQOut::writeFileFormatVersion()
+void RootDAQOutMF::writeFileFormatVersion()
 {
 	std::lock_guard sentry{mutex_};
-	rootOutputFile_->writeFileFormatVersion();
+	activeFile_->file->writeFileFormatVersion();
 }
 
-void RootDAQOut::writeFileIndex()
+void RootDAQOutMF::writeFileIndex()
 {
 	std::lock_guard sentry{mutex_};
-	rootOutputFile_->writeFileIndex();
+	activeFile_->file->writeFileIndex();
 }
 
-void RootDAQOut::writeProcessConfigurationRegistry()
+void RootDAQOutMF::writeProcessConfigurationRegistry()
 {
 	std::lock_guard sentry{mutex_};
-	rootOutputFile_->writeProcessConfigurationRegistry();
+	activeFile_->file->writeProcessConfigurationRegistry();
 }
 
-void RootDAQOut::writeProcessHistoryRegistry()
+void RootDAQOutMF::writeProcessHistoryRegistry()
 {
 	std::lock_guard sentry{mutex_};
-	rootOutputFile_->writeProcessHistoryRegistry();
+	activeFile_->file->writeProcessHistoryRegistry();
 }
 
-void RootDAQOut::writeParameterSetRegistry()
+void RootDAQOutMF::writeParameterSetRegistry()
 {
 	std::lock_guard sentry{mutex_};
 	if (writeParameterSets_)
 	{
-		rootOutputFile_->writeParameterSetRegistry();
+		activeFile_->file->writeParameterSetRegistry();
 	}
 }
 
-void RootDAQOut::writeProductDescriptionRegistry()
+void RootDAQOutMF::writeProductDescriptionRegistry()
 {
 	std::lock_guard sentry{mutex_};
-	rootOutputFile_->writeProductDescriptionRegistry();
+	activeFile_->file->writeProductDescriptionRegistry();
 }
 
-void RootDAQOut::writeParentageRegistry()
+void RootDAQOutMF::writeParentageRegistry()
 {
 	std::lock_guard sentry{mutex_};
-	rootOutputFile_->writeParentageRegistry();
+	activeFile_->file->writeParentageRegistry();
 }
 
-void RootDAQOut::doWriteFileCatalogMetadata(
+void RootDAQOutMF::doWriteFileCatalogMetadata(
     FileCatalogMetadata::collection_type const& md,
     FileCatalogMetadata::collection_type const& ssmd)
 {
 	std::lock_guard sentry{mutex_};
-	rootOutputFile_->writeFileCatalogMetadata(fstats_, md, ssmd);
+	lastFileCatalogMetadata_ = md;
+	lastSubRunMetadata_ = ssmd;
+	hasCatalogMetadata_ = true;
+	activeFile_->metadataNeedsRefresh = false;
+	activeFile_->file->writeFileCatalogMetadata(activeFile_->fstats, md, ssmd);
 }
 
-void RootDAQOut::writeProductDependencies()
+void RootDAQOutMF::writeProductDependencies()
 {
 	std::lock_guard sentry{mutex_};
-	rootOutputFile_->writeProductDependencies();
+	activeFile_->file->writeProductDependencies();
 }
 
-void RootDAQOut::finishEndFile()
+void RootDAQOutMF::finishEndFile()
 {
 	std::lock_guard sentry{mutex_};
-	string const currentFileName{rootOutputFile_->currentFileName()};
-	rootOutputFile_->writeTTrees();
-	rootOutputFile_.reset();
-	fstats_.recordFileClose();
-	lastClosedFileName_ = fileNameAtClose(currentFileName);
-	++filesClosedInRun_;
-	TLOG(TLVL_INFO) << __func__ << ": Closed output file \"" << lastClosedFileName_ << "\"";
-	writeSummaryFile(lastClosedFileName_);
-	if (metricMan) {
-			metricMan->sendMetric("Last Closed Output File", lastClosedFileName_, "", 3, artdaq::MetricMode::LastPoint);
-			metricMan->sendMetric("Output Files Closed", filesClosedInRun_, "files", 3, artdaq::MetricMode::LastPoint | artdaq::MetricMode::Persist);
-	}
-	subrunStats_.clear();
+	string const tmpFileName{activeFile_->file->currentFileName()};
+
+	// Record that this file is closed in its stats, then rename it now.
+	// We rename before actually calling TFile::Close() so that the final
+	// name is established immediately (art calls lastClosedFileName()
+	// after this method returns).  On Linux, rename(2) is safe even
+	// while the file descriptor is still open.
+	lastClosedFileName_ = fileNameAtClose(activeFile_->fRenamer, tmpFileName);
+	activeFile_->closedFileName = lastClosedFileName_;
+	TLOG(TLVL_INFO) << __func__ << ": Queued output file \"" << lastClosedFileName_
+	                << "\" for deferred TFile::Close() (pendingFiles will have "
+	                << pendingFiles_.size() + 1 << " entries)";
+
+	// Move the active bundle to the pending queue.  The TFile is still open
+	// in memory; it will be closed (flushed to disk) when closePendingFile()
+	// is called.
+	pendingFiles_.push_back(std::move(activeFile_));
+	activeFile_.reset();  // Mark as "no active file" from art's perspective.
+
 	rpm_.invoke(&ResultsProducer::doClear);
 }
 
-void RootDAQOut::doRegisterProducts(ProductDescriptions& producedProducts,
-                                    ModuleDescription const& md)
+void RootDAQOutMF::doRegisterProducts(ProductDescriptions& producedProducts,
+                                      ModuleDescription const& md)
 {
 	std::lock_guard sentry{mutex_};
 	// Register Results products from ResultsProducers.
@@ -576,50 +796,49 @@ void RootDAQOut::doRegisterProducts(ProductDescriptions& producedProducts,
 		w.rp().registerProducts(producedProducts, w.moduleDescription());
 	});
 	// Form product table for Results products.  We do this here so we
-	// can appropriately set the product tables for the
-	// ResultsPrincipal.
+	// can appropriately set the product tables for the ResultsPrincipal.
 	productsToProduce_ = producedProducts;
 	producedResultsProducts_ = ProductTables{productsToProduce_};
 }
 
-void RootDAQOut::setFileStatus(OutputFileStatus const ofs)
+void RootDAQOutMF::setFileStatus(OutputFileStatus const ofs)
 {
 	std::lock_guard sentry{mutex_};
 	if (isFileOpen())
 	{
-		rootOutputFile_->setFileStatus(ofs);
+		activeFile_->file->setFileStatus(ofs);
 	}
 }
 
-bool RootDAQOut::isFileOpen() const
+bool RootDAQOutMF::isFileOpen() const
 {
 	std::lock_guard sentry{mutex_};
-	return rootOutputFile_.get() != nullptr;
+	return activeFile_ != nullptr;
 }
 
-void RootDAQOut::incrementInputFileNumber()
+void RootDAQOutMF::incrementInputFileNumber()
 {
 	std::lock_guard sentry{mutex_};
 	if (isFileOpen())
 	{
-		rootOutputFile_->incrementInputFileNumber();
+		activeFile_->file->incrementInputFileNumber();
 	}
 }
 
-bool RootDAQOut::requestsToCloseFile() const
+bool RootDAQOutMF::requestsToCloseFile() const
 {
 	std::lock_guard sentry{mutex_};
-	return isFileOpen() ? rootOutputFile_->requestsToCloseFile() : false;
+	return isFileOpen() ? activeFile_->file->requestsToCloseFile() : false;
 }
 
 Granularity
-RootDAQOut::fileGranularity() const
+RootDAQOutMF::fileGranularity() const
 {
 	std::lock_guard sentry{mutex_};
 	return fileProperties_.granularity();
 }
 
-void RootDAQOut::doOpenFile()
+void RootDAQOutMF::doOpenFile()
 {
 	std::lock_guard sentry{mutex_};
 	if (inputFileCount_ == 0)
@@ -628,82 +847,284 @@ void RootDAQOut::doOpenFile()
 		    << "Attempt to open output file before input file. "
 		    << "Please report this to the core framework developers.\n";
 	}
-	rootOutputFile_ = make_unique<RootDAQOutFile>(this,
-	                                              fileNameAtOpen(),
-	                                              fileProperties_,
-	                                              compressionLevel_,
-	                                              freePercent_,
-	                                              freeMB_,
-	                                              saveMemoryObjectThreshold_,
-	                                              treeMaxVirtualSize_,
-	                                              splitLevel_,
-	                                              basketSize_,
-	                                              dropMetaData_,
-	                                              dropMetaDataForDroppedData_);
-	fstats_.recordFileOpen();
-	subrunStats_.clear();
+	activeFile_ = std::make_unique<OutputFileBundle>(moduleLabel_, processName());
+	activeFile_->file = make_unique<RootDAQOutFile>(this,
+	                                                fileNameAtOpen(),
+	                                                fileProperties_,
+	                                                compressionLevel_,
+	                                                freePercent_,
+	                                                freeMB_,
+	                                                saveMemoryObjectThreshold_,
+	                                                treeMaxVirtualSize_,
+	                                                splitLevel_,
+	                                                basketSize_,
+	                                                dropMetaData_,
+	                                                dropMetaDataForDroppedData_);
+	activeFile_->fstats.recordFileOpen();
 	++filesOpenedInRun_;
-	if (metricMan) {
-			metricMan->sendMetric("Output Files Opened", filesOpenedInRun_, "files", 3, artdaq::MetricMode::LastPoint | artdaq::MetricMode::Persist);
+	if (metricMan)
+	{
+		metricMan->sendMetric("Output Files Opened", filesOpenedInRun_, "files", 3, artdaq::MetricMode::LastPoint | artdaq::MetricMode::Persist);
 	}
 	TLOG(TLVL_INFO) << __func__ << ": Opened output file with pattern \"" << filePattern_ << "\"";
 }
 
-string
-RootDAQOut::fileNameAtOpen() const
+void RootDAQOutMF::closePendingFile(std::unique_ptr<OutputFileBundle>& bundle)
 {
-	return (filePattern_ == dev_null) ? dev_null : unique_filename(tmpDir_ + "/RootDAQOut");
+	removeBundleMappings(bundle.get());
+	if (bundle->metadataNeedsRefresh && hasCatalogMetadata_)
+	{
+		bundle->file->writeFileCatalogMetadata(
+		    bundle->fstats, lastFileCatalogMetadata_, lastSubRunMetadata_);
+	}
+	bundle->fstats.recordFileClose();
+	bundle->file->writeTTrees();
+	// Destroying the RootDAQOutFile calls TFile::Close(), which flushes the
+	// ROOT key directory and closes the file descriptor.
+	TLOG(TLVL_INFO) << __func__ << ": Closing pending file (TFile::Close)";
+	writeSummaryFile(summaryDir_, bundle->subrunStats, bundle->closedFileName);
+	++filesClosedInRun_;
+	if (metricMan)
+	{
+		metricMan->sendMetric("Last Closed Output File", bundle->closedFileName, "", 3, artdaq::MetricMode::LastPoint);
+		metricMan->sendMetric("Output Files Closed", filesClosedInRun_, "files", 3, artdaq::MetricMode::LastPoint | artdaq::MetricMode::Persist);
+	}
+	bundle->file.reset();
+	bundle.reset();
+}
+
+void RootDAQOutMF::closeOldestPendingFileIfNeeded()
+{
+	std::lock_guard sentry{mutex_};
+	// Total open files after opening a new active = pendingFiles_.size() + 1.
+	// Close oldest pending entries until we are within the limit.
+	while (!pendingFiles_.empty() &&
+	       (pendingFiles_.size() + 1 > maxOpenFiles_))
+	{
+		TLOG(TLVL_INFO) << __func__
+		                << ": Closing oldest pending file to respect maxOpenFiles="
+		                << maxOpenFiles_
+		                << " (currently pending=" << pendingFiles_.size() << ")";
+		closePendingFile(pendingFiles_.front());
+		pendingFiles_.pop_front();
+	}
+}
+
+void RootDAQOutMF::removeBundleMappings(OutputFileBundle* bundle)
+{
+	for (auto it = routeToBundle_.begin(); it != routeToBundle_.end();)
+	{
+		if (it->second == bundle)
+		{
+			it = routeToBundle_.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
+	for (auto it = subRunToBundles_.begin(); it != subRunToBundles_.end();)
+	{
+		it->second.erase(bundle);
+		if (it->second.empty())
+		{
+			it = subRunToBundles_.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
+	for (auto it = runToBundles_.begin(); it != runToBundles_.end();)
+	{
+		it->second.erase(bundle);
+		if (it->second.empty())
+		{
+			it = runToBundles_.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
+}
+
+void RootDAQOutMF::markLateWrite(OutputFileBundle* bundle)
+{
+	if (bundle != activeFile_.get())
+	{
+		bundle->metadataNeedsRefresh = true;
+	}
+}
+
+RootDAQOutMF::OutputFileBundle*
+RootDAQOutMF::targetBundleForEvent(EventPrincipal const& ep)
+{
+	auto* bundle = activeFile_.get();
+	if (auto const it = routeToBundle_.find(makeRoutingKey(ep));
+	    it != routeToBundle_.end())
+	{
+		bundle = it->second;
+	}
+	markLateWrite(bundle);
+	return bundle;
+}
+
+RootDAQOutMF::OutputFileBundle*
+RootDAQOutMF::targetBundleForSubRun(SubRunPrincipal const& sr)
+{
+	auto* bundle = activeFile_.get();
+	if (auto const it = routeToBundle_.find(makeRoutingKey(sr));
+	    it != routeToBundle_.end())
+	{
+		bundle = it->second;
+	}
+	markLateWrite(bundle);
+	return bundle;
+}
+
+RootDAQOutMF::OutputFileBundle*
+RootDAQOutMF::targetBundleForRun(RunPrincipal const& rp)
+{
+	auto* bundle = activeFile_.get();
+	if (auto const it = routeToBundle_.find(makeRoutingKey(rp));
+	    it != routeToBundle_.end())
+	{
+		bundle = it->second;
+	}
+	markLateWrite(bundle);
+	return bundle;
+}
+
+unsigned
+RootDAQOutMF::bucketIndex(unsigned const idValue, unsigned const maxPerFile) const
+{
+	return (maxPerFile == ClosingCriteria::Defaults::unsigned_max() ||
+	        maxPerFile == 0u || idValue == 0u)
+	           ? 0u
+	           : (idValue - 1u) / maxPerFile;
+}
+
+RootDAQOutMF::RoutingKey
+RootDAQOutMF::makeRoutingKey(EventPrincipal const& ep) const
+{
+	auto const limits = fileProperties_.fileProperties();
+	auto const id = ep.eventID();
+	return {bucketIndex(static_cast<unsigned>(id.run()), limits.nRuns()),
+	        bucketIndex(static_cast<unsigned>(id.subRun()), limits.nSubRuns()),
+	        bucketIndex(static_cast<unsigned>(id.event()), limits.nEvents())};
+}
+
+RootDAQOutMF::RoutingKey
+RootDAQOutMF::makeRoutingKey(SubRunPrincipal const& sr) const
+{
+	auto const limits = fileProperties_.fileProperties();
+	auto const id = sr.subRunID();
+	return {bucketIndex(static_cast<unsigned>(id.run()), limits.nRuns()),
+	        bucketIndex(static_cast<unsigned>(id.subRun()), limits.nSubRuns()),
+	        0u};
+}
+
+RootDAQOutMF::RoutingKey
+RootDAQOutMF::makeRoutingKey(RunPrincipal const& rp) const
+{
+	auto const limits = fileProperties_.fileProperties();
+	return {bucketIndex(static_cast<unsigned>(rp.runID().run()),
+	                    limits.nRuns()),
+	        0u,
+	        0u};
+}
+
+RootDAQOutMF::SubRunIDKey
+RootDAQOutMF::makeSubRunIDKey(EventPrincipal const& ep)
+{
+	auto const id = ep.eventID();
+	return {static_cast<unsigned>(id.run()), static_cast<unsigned>(id.subRun())};
+}
+
+RootDAQOutMF::SubRunIDKey
+RootDAQOutMF::makeSubRunIDKey(SubRunPrincipal const& sr)
+{
+	auto const id = sr.subRunID();
+	return {static_cast<unsigned>(id.run()), static_cast<unsigned>(id.subRun())};
+}
+
+unsigned
+RootDAQOutMF::makeRunIDKey(SubRunPrincipal const& sr)
+{
+	return static_cast<unsigned>(sr.subRunID().run());
+}
+
+unsigned
+RootDAQOutMF::makeRunIDKey(RunPrincipal const& rp)
+{
+	return static_cast<unsigned>(rp.runID().run());
 }
 
 string
-RootDAQOut::fileNameAtClose(std::string const& currentFileName)
+RootDAQOutMF::fileNameAtOpen() const
 {
-	return (filePattern_ == dev_null) ? dev_null : fRenamer_.maybeRenameFile(currentFileName, filePattern_);
+	return (filePattern_ == dev_null) ? dev_null : unique_filename(tmpDir_ + "/RootDAQOutMF");
+}
+
+string
+RootDAQOutMF::fileNameAtClose(PostCloseFileRenamer& renamer,
+                              string const& currentFileName)
+{
+	return (filePattern_ == dev_null) ? dev_null : renamer.maybeRenameFile(currentFileName, filePattern_);
 }
 
 string const&
-RootDAQOut::lastClosedFileName() const
+RootDAQOutMF::lastClosedFileName() const
 {
 	std::lock_guard sentry{mutex_};
 	if (lastClosedFileName_.empty())
 	{
-		throw Exception(errors::LogicError, "RootDAQOut::currentFileName(): ")  // NOLINT(cert-err60-cpp)
+		throw Exception(errors::LogicError, "RootDAQOutMF::lastClosedFileName(): ")  // NOLINT(cert-err60-cpp)
 		    << "called before meaningful.\n";
 	}
 	return lastClosedFileName_;
 }
 
-void RootDAQOut::beginJob()
+void RootDAQOutMF::beginJob()
 {
 	std::lock_guard sentry{mutex_};
 	rpm_.invoke(&ResultsProducer::doBeginJob);
 }
 
-void RootDAQOut::endJob()
+void RootDAQOutMF::endJob()
 {
 	std::lock_guard sentry{mutex_};
+	// Close any files still in the pending queue (TFile::Close not yet called).
+	TLOG(TLVL_INFO) << __func__ << ": Closing " << pendingFiles_.size()
+	                << " pending file(s) at end of job";
+	while (!pendingFiles_.empty())
+	{
+		closePendingFile(pendingFiles_.front());
+		pendingFiles_.pop_front();
+	}
 	rpm_.invoke(&ResultsProducer::doEndJob);
 }
 
-void RootDAQOut::event(EventPrincipal const& ep)
+void RootDAQOutMF::event(EventPrincipal const& ep)
 {
 	std::lock_guard sentry{mutex_};
 	rpm_.for_each_RPWorker([&ep](RPWorker& w) { w.rp().doEvent(ep); });
 }
 
-void RootDAQOut::beginSubRun(SubRunPrincipal const& srp)
+void RootDAQOutMF::beginSubRun(SubRunPrincipal const& srp)
 {
 	std::lock_guard sentry{mutex_};
 	rpm_.for_each_RPWorker([&srp](RPWorker& w) { w.rp().doBeginSubRun(srp); });
 }
 
-void RootDAQOut::endSubRun(SubRunPrincipal const& srp)
+void RootDAQOutMF::endSubRun(SubRunPrincipal const& srp)
 {
 	std::lock_guard sentry{mutex_};
 	rpm_.for_each_RPWorker([&srp](RPWorker& w) { w.rp().doEndSubRun(srp); });
 }
 
-void RootDAQOut::beginRun(RunPrincipal const& rp)
+void RootDAQOutMF::beginRun(RunPrincipal const& rp)
 {
 	std::lock_guard sentry{mutex_};
 	filesOpenedInRun_ = 0;
@@ -711,14 +1132,14 @@ void RootDAQOut::beginRun(RunPrincipal const& rp)
 	rpm_.for_each_RPWorker([&rp](RPWorker& w) { w.rp().doBeginRun(rp); });
 }
 
-void RootDAQOut::endRun(RunPrincipal const& rp)
+void RootDAQOutMF::endRun(RunPrincipal const& rp)
 {
 	std::lock_guard sentry{mutex_};
 	rpm_.for_each_RPWorker([&rp](RPWorker& w) { w.rp().doEndRun(rp); });
 }
 
 std::string
-RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& config)
+RootDAQOutMF::modifyFilePattern(std::string const& inputPattern, Config const& config)
 {
 	// Make sure that the shared memory is connected
 	art::ServiceHandle<ArtdaqSharedMemoryServiceInterface> shm;
@@ -789,7 +1210,7 @@ RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& con
 		TLOG(TLVL_DEBUG + 33) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
 	}
 
-	// if the "Rank" keyword was specified in the filename pattern,
+	// if the "app_name" keyword was specified in the filename pattern,
 	// perform the substitution
 	searchString = "${app_name}";
 	targetLocation = modifiedPattern.find(searchString);
@@ -850,67 +1271,6 @@ RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& con
 	return modifiedPattern;
 }
 
-void RootDAQOut::writeSummaryFile(std::string const& closedFileName)
-{
-	if (summaryDir_.empty()) { return; }
-
-	auto const& seen = fstats_.seenSubRuns();
-	if (seen.empty()) { return; }
-
-	RunNumber_t const run = fstats_.lowestRunID().run();
-
-	// One CSV file per run, appended — matches CFODataReceiver convention
-	std::ostringstream fname;
-	fname << summaryDir_;
-	if (summaryDir_.back() != '/') { fname << '/'; }
-	fname << "subrun_record_run" << std::setw(6) << std::setfill('0') << run << ".csv";
-
-	int fd = open(fname.str().c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
-	if (fd < 0)
-	{
-		TLOG(TLVL_WARNING) << "writeSummaryFile: could not open \"" << fname.str() << "\" for writing";
-		return;
-	}
-
-	flock(fd, LOCK_EX);
-
-	// Build content in memory
-	std::ostringstream content;
-
-	// Write header if file is empty
-	if (lseek(fd, 0, SEEK_END) == 0)
-	{
-		content << "run,subrun,n_events,first_event,last_event,output_file\n";
-	}
-
-	// One row per subrun seen in this output file
-	std::string const outputFile = std::filesystem::path(closedFileName).filename().string();
-	for (auto const& srid : seen)
-	{
-		auto it = subrunStats_.find(srid);
-		// Skip subruns that registered in fstats but had no events written to
-		// this file (e.g. the in-progress subrun at a file-boundary close).
-		if (it == subrunStats_.end()) { continue; }
-
-		content << run
-		        << "," << srid.subRun()
-		        << "," << it->second.nEvents
-		        << "," << it->second.firstEvent
-		        << "," << it->second.lastEvent
-		        << "," << outputFile
-		        << "\n";
-	}
-
-	std::string const buf = content.str();
-	::write(fd, buf.c_str(), buf.size());
-
-	flock(fd, LOCK_UN);
-	close(fd);
-
-	TLOG(TLVL_DEBUG) << "writeSummaryFile: appended " << seen.size()
-	                 << " subrun row(s) to \"" << fname.str() << "\"";
-}
-
 }  // namespace art
 
-DEFINE_ART_MODULE(art::RootDAQOut)  // NOLINT(performance-unnecessary-value-param)
+DEFINE_ART_MODULE(art::RootDAQOutMF)  // NOLINT(performance-unnecessary-value-param)
