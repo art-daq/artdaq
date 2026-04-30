@@ -39,5 +39,14 @@ cet_build_plugin(RootDAQOut art::module
   TRACE::MF
 )
 
+cet_build_plugin(RootDAQOutMF art::module
+  LIBRARIES PRIVATE
+  artdaq::RootDAQOutput
+  artdaq::ArtModules
+  art_root_io::detail
+  art::Framework_IO_detail
+  TRACE::MF
+)
+
 install_headers()
 install_source()
