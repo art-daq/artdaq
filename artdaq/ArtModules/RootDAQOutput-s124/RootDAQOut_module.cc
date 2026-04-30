@@ -908,19 +908,28 @@ void RootDAQOut::writeSummaryFile(std::string const& closedFileName)
 		}
 		buf += rows;
 
-		// Loop to handle partial writes
-		ssize_t total = 0;
-		auto remaining = static_cast<ssize_t>(buf.size());
-		while (remaining > 0)
+		// Loop to handle partial writes and EINTR
+		if (buf.size() > static_cast<size_t>(std::numeric_limits<ssize_t>::max()))
 		{
-			ssize_t written = ::write(fd, buf.c_str() + total, static_cast<size_t>(remaining));
-			if (written < 0)
+			TLOG(TLVL_ERROR) << "writeSummaryFile: buffer too large (" << buf.size() << " bytes) to write to \""
+			                 << fname.str() << "\"";
+		}
+		else
+		{
+			ssize_t total = 0;
+			auto remaining = static_cast<ssize_t>(buf.size());
+			while (remaining > 0)
 			{
-				TLOG(TLVL_ERROR) << "writeSummaryFile: write error to \"" << fname.str() << "\": " << strerror(errno);
-				break;
+				ssize_t written = ::write(fd, buf.c_str() + total, static_cast<size_t>(remaining));
+				if (written < 0)
+				{
+					if (errno == EINTR) { continue; }
+					TLOG(TLVL_ERROR) << "writeSummaryFile: write error to \"" << fname.str() << "\": " << strerror(errno);
+					break;
+				}
+				total += written;
+				remaining -= written;
 			}
-			total += written;
-			remaining -= written;
 		}
 
 		flock(fd, LOCK_UN);
