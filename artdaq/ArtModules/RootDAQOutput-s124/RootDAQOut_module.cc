@@ -154,7 +154,7 @@ public:
 			fhicl::Sequence<fhicl::Table<NewSubStringForApp>> replacementList{fhicl::Name("replacementList")};
 		};
 		fhicl::OptionalSequence<fhicl::Table<FileNameSubstitution>> fileNameSubstitutions{Name("fileNameSubstitutions")};
-		Atom<string> summaryDir{Name("subrun_record_dir"), Comment("Directory for per-file CSV subrun record (subrun/event statistics). Empty = disabled."), ""};
+		Atom<string> summaryDir{Name("subrunRecordDir"), Comment("Directory for per-file CSV subrun record (subrun/event statistics). Empty = disabled."), ""};
 
 		Config()
 		{
