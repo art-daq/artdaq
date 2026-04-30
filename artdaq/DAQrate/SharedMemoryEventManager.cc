@@ -69,7 +69,6 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(const fhicl::Paramete
     , max_subrun_event_map_length_(pset.get<size_t>("max_subrun_lookup_table_size", 100))
     , subrun_transition_hold_time_s_(pset.get<double>("subrun_transition_hold_time_s", 0.001))
     , max_event_list_length_(pset.get<size_t>("max_event_list_length", 100))
-    , update_run_ids_(pset.get<bool>("update_run_ids_on_new_fragment", true))
     , use_sequence_id_for_event_number_(pset.get<bool>("use_sequence_id_for_event_number", true))
     , reset_event_number_for_subruns_(pset.get<bool>("reset_event_number_for_subruns", false))
     , overwrite_mode_(!pset.get<bool>("use_art", true) || pset.get<bool>("overwrite_mode", false) || pset.get<bool>("broadcast_mode", false))
@@ -203,11 +202,7 @@ bool artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader fra
 	}
 
 	auto hdr = getEventHeader_(buffer);
-	if (update_run_ids_)
-	{
-		hdr->run_id = run_id_;
-		hdr->subrun_id = subrun_id_;
-	}
+	hdr->run_id = run_id_;
 	hdr->subrun_id = GetSubrunForSequenceID(frag.sequence_id);
 	hdr->event_id = GetEventIDForFragment(frag.sequence_id, frag.timestamp);
 
@@ -386,11 +381,7 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 
 		TLOG(TLVL_DONEWRITINGFRAGMENT) << "DoneWritingFragment: Received Fragment with sequence ID " << frag.sequence_id << " and fragment id " << frag.fragment_id << " (type " << static_cast<int>(frag.type) << ")";
 		auto hdr = getEventHeader_(buffer);
-		if (update_run_ids_)
-		{
-			hdr->run_id = run_id_;
-			hdr->subrun_id = subrun_id_;
-		}
+		hdr->run_id = run_id_;
 		hdr->subrun_id = GetSubrunForSequenceID(frag.sequence_id);
 		hdr->event_id = GetEventIDForFragment(frag.sequence_id, frag.timestamp);
 
@@ -1447,10 +1438,6 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		auto hdr = getEventHeader_(buf);
 		auto thisEventSize = BufferDataSize(buf);
 
-		if (update_run_ids_ && hdr->subrun_id < subrun_id_)
-		{
-			hdr->subrun_id = subrun_id_;
-		}
 		bool currentSubrun = hdr->subrun_id == subrun_id_;
 
 		if (hdr->subrun_id > subrun_id_ && (available_buffers > 0 || TimeUtils::GetElapsedTime(last_event_time_) < subrun_transition_hold_time_s_))
