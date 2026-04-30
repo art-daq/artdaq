@@ -39,6 +39,10 @@
 #include "fhiclcpp/types/TableFragment.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
+#include <algorithm>
+#include <cerrno>
+#include <cstring>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <fstream>
@@ -856,34 +860,11 @@ void RootDAQOut::writeSummaryFile(std::string const& closedFileName)
 	auto const& seen = fstats_.seenSubRuns();
 	if (seen.empty()) { return; }
 
-	RunNumber_t const run = fstats_.lowestRunID().run();
-
-	// One CSV file per run, appended — matches CFODataReceiver convention
-	std::ostringstream fname;
-	fname << summaryDir_;
-	if (summaryDir_.back() != '/') { fname << '/'; }
-	fname << "subrun_record_run" << std::setw(6) << std::setfill('0') << run << ".csv";
-
-	int fd = open(fname.str().c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
-	if (fd < 0)
-	{
-		TLOG(TLVL_WARNING) << "writeSummaryFile: could not open \"" << fname.str() << "\" for writing";
-		return;
-	}
-
-	flock(fd, LOCK_EX);
-
-	// Build content in memory
-	std::ostringstream content;
-
-	// Write header if file is empty
-	if (lseek(fd, 0, SEEK_END) == 0)
-	{
-		content << "run,subrun,n_events,first_event,last_event,output_file\n";
-	}
-
-	// One row per subrun seen in this output file
 	std::string const outputFile = std::filesystem::path(closedFileName).filename().string();
+
+	// Group rows by run number so that each run gets its own CSV file,
+	// even when an output file spans multiple runs.
+	std::map<RunNumber_t, std::ostringstream> runContents;
 	for (auto const& srid : seen)
 	{
 		auto it = subrunStats_.find(srid);
@@ -891,23 +872,65 @@ void RootDAQOut::writeSummaryFile(std::string const& closedFileName)
 		// this file (e.g. the in-progress subrun at a file-boundary close).
 		if (it == subrunStats_.end()) { continue; }
 
-		content << run
-		        << "," << srid.subRun()
-		        << "," << it->second.nEvents
-		        << "," << it->second.firstEvent
-		        << "," << it->second.lastEvent
-		        << "," << outputFile
-		        << "\n";
+		runContents[srid.run()]
+		    << srid.run()
+		    << "," << srid.subRun()
+		    << "," << it->second.nEvents
+		    << "," << it->second.firstEvent
+		    << "," << it->second.lastEvent
+		    << "," << outputFile
+		    << "\n";
 	}
 
-	std::string const buf = content.str();
-	::write(fd, buf.c_str(), buf.size());
+	// One CSV file per run, appended — matches CFODataReceiver convention
+	for (auto const& [run, contentStream] : runContents)
+	{
+		std::ostringstream fname;
+		fname << summaryDir_;
+		if (summaryDir_.back() != '/') { fname << '/'; }
+		fname << "subrun_record_run" << std::setw(6) << std::setfill('0') << run << ".csv";
 
-	flock(fd, LOCK_UN);
-	close(fd);
+		int fd = open(fname.str().c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
+		if (fd < 0)
+		{
+			TLOG(TLVL_WARNING) << "writeSummaryFile: could not open \"" << fname.str() << "\" for writing";
+			continue;
+		}
 
-	TLOG(TLVL_DEBUG) << "writeSummaryFile: appended " << seen.size()
-	                 << " subrun row(s) to \"" << fname.str() << "\"";
+		flock(fd, LOCK_EX);
+
+		// Write header if file is empty
+		std::string const rows = contentStream.str();
+		std::string buf;
+		if (lseek(fd, 0, SEEK_END) == 0)
+		{
+			buf = "run,subrun,n_events,first_event,last_event,output_file\n";
+		}
+		buf += rows;
+
+		// Loop to handle partial writes
+		ssize_t total = 0;
+		auto remaining = static_cast<ssize_t>(buf.size());
+		while (remaining > 0)
+		{
+			ssize_t written = ::write(fd, buf.c_str() + total, static_cast<size_t>(remaining));
+			if (written < 0)
+			{
+				TLOG(TLVL_ERROR) << "writeSummaryFile: write error to \"" << fname.str() << "\": " << strerror(errno);
+				break;
+			}
+			total += written;
+			remaining -= written;
+		}
+
+		flock(fd, LOCK_UN);
+		close(fd);
+
+		// Count actual data rows written (each row ends with '\n')
+		size_t const rowsWritten = static_cast<size_t>(std::count(rows.begin(), rows.end(), '\n'));
+		TLOG(TLVL_DEBUG) << "writeSummaryFile: appended " << rowsWritten
+		                 << " subrun row(s) to \"" << fname.str() << "\"";
+	}
 }
 
 }  // namespace art
