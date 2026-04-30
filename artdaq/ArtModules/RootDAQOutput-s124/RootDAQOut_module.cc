@@ -54,8 +54,6 @@
 #include <sys/file.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <cerrno>
-#include <cstring>
 
 using namespace std;
 using namespace hep::concurrency;
