@@ -1,7 +1,7 @@
 // vim: set sw=2 expandtab :
 #include "TRACE/tracemf.h"  // TLOG
-#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-utilities/Plugins/MetricData.hh"
+#include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_RootDAQOutMF").c_str()
 
 #include "artdaq/ArtModules/ArtdaqSharedMemoryServiceInterface.h"
@@ -44,6 +44,9 @@
 #include "fhiclcpp/types/TableFragment.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
+#include <fcntl.h>
+#include <sys/file.h>
+#include <unistd.h>
 #include <algorithm>
 #include <cerrno>
 #include <cstring>
@@ -58,9 +61,6 @@
 #include <string>
 #include <tuple>
 #include <utility>
-#include <sys/file.h>
-#include <fcntl.h>
-#include <unistd.h>
 
 using namespace std;
 using namespace hep::concurrency;
@@ -156,7 +156,7 @@ static void writeSummaryFile(
 		                 << " subrun row(s) to \"" << fname.str() << "\"";
 	}
 }
-}
+}  // namespace
 
 namespace art {
 
@@ -563,7 +563,7 @@ void RootDAQOutMF::write(EventPrincipal& ep)
 	auto& sr = bundle->subrunStats[eid.subRunID()];
 	++sr.nEvents;
 	if (eid.event() < sr.firstEvent) { sr.firstEvent = eid.event(); }
-	if (eid.event() > sr.lastEvent)  { sr.lastEvent  = eid.event(); }
+	if (eid.event() > sr.lastEvent) { sr.lastEvent = eid.event(); }
 	routeToBundle_[makeRoutingKey(ep)] = bundle;
 	subRunToBundles_[makeSubRunIDKey(ep)].insert(bundle);
 }

@@ -1,7 +1,7 @@
 // vim: set sw=2 expandtab :
 #include "TRACE/tracemf.h"  // TLOG
-#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-utilities/Plugins/MetricData.hh"
+#include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_RootDAQOut").c_str()
 
 #include "artdaq/ArtModules/ArtdaqSharedMemoryServiceInterface.h"
@@ -39,22 +39,22 @@
 #include "fhiclcpp/types/TableFragment.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
+#include <fcntl.h>
+#include <sys/file.h>
+#include <unistd.h>
 #include <algorithm>
 #include <cerrno>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <iomanip>
+#include <limits>
 #include <map>
 #include <memory>
 #include <mutex>
-#include <fstream>
-#include <filesystem>
-#include <iomanip>
-#include <limits>
 #include <set>
 #include <string>
 #include <vector>
-#include <sys/file.h>
-#include <fcntl.h>
-#include <unistd.h>
 
 using namespace std;
 using namespace hep::concurrency;
@@ -428,7 +428,7 @@ void RootDAQOut::write(EventPrincipal& ep)
 	auto& sr = subrunStats_[eid.subRunID()];
 	++sr.nEvents;
 	if (eid.event() < sr.firstEvent) { sr.firstEvent = eid.event(); }
-	if (eid.event() > sr.lastEvent)  { sr.lastEvent  = eid.event(); }
+	if (eid.event() > sr.lastEvent) { sr.lastEvent = eid.event(); }
 }
 
 void RootDAQOut::setSubRunAuxiliaryRangeSetID(RangeSet const& rs)
@@ -556,9 +556,10 @@ void RootDAQOut::finishEndFile()
 	++filesClosedInRun_;
 	TLOG(TLVL_INFO) << __func__ << ": Closed output file \"" << lastClosedFileName_ << "\"";
 	writeSummaryFile(lastClosedFileName_);
-	if (metricMan) {
-			metricMan->sendMetric("Last Closed Output File", lastClosedFileName_, "", 3, artdaq::MetricMode::LastPoint);
-			metricMan->sendMetric("Output Files Closed", filesClosedInRun_, "files", 3, artdaq::MetricMode::LastPoint | artdaq::MetricMode::Persist);
+	if (metricMan)
+	{
+		metricMan->sendMetric("Last Closed Output File", lastClosedFileName_, "", 3, artdaq::MetricMode::LastPoint);
+		metricMan->sendMetric("Output Files Closed", filesClosedInRun_, "files", 3, artdaq::MetricMode::LastPoint | artdaq::MetricMode::Persist);
 	}
 	subrunStats_.clear();
 	rpm_.invoke(&ResultsProducer::doClear);
@@ -647,8 +648,9 @@ void RootDAQOut::doOpenFile()
 	fstats_.recordFileOpen();
 	subrunStats_.clear();
 	++filesOpenedInRun_;
-	if (metricMan) {
-			metricMan->sendMetric("Output Files Opened", filesOpenedInRun_, "files", 3, artdaq::MetricMode::LastPoint | artdaq::MetricMode::Persist);
+	if (metricMan)
+	{
+		metricMan->sendMetric("Output Files Opened", filesOpenedInRun_, "files", 3, artdaq::MetricMode::LastPoint | artdaq::MetricMode::Persist);
 	}
 	TLOG(TLVL_INFO) << __func__ << ": Opened output file with pattern \"" << filePattern_ << "\"";
 }
