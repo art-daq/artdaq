@@ -39,6 +39,10 @@
 #include "fhiclcpp/types/TableFragment.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
+#include <algorithm>
+#include <cerrno>
+#include <cstring>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <fstream>
@@ -860,24 +864,29 @@ void RootDAQOut::writeSummaryFile(std::string const& closedFileName)
 
 	std::string const outputFile = std::filesystem::path(closedFileName).filename().string();
 
-	// Group SubRunIDs that have stats by run number so each run gets its own CSV.
-	// An output file can span multiple runs when the closing criteria allow it, so
-	// we must not assume a single run number for the whole file.
-	std::map<RunNumber_t, std::vector<art::SubRunID>> byRun;
+	// Group rows by run number so that each run gets its own CSV file,
+	// even when an output file spans multiple runs.
+	std::map<RunNumber_t, std::ostringstream> runContents;
 	for (auto const& srid : seen)
 	{
+		auto it = subrunStats_.find(srid);
 		// Skip subruns that registered in fstats but had no events written to
 		// this file (e.g. the in-progress subrun at a file-boundary close).
-		if (subrunStats_.count(srid))
-		{
-			byRun[srid.run()].push_back(srid);
-		}
+		if (it == subrunStats_.end()) { continue; }
+
+		runContents[srid.run()]
+		    << srid.run()
+		    << "," << srid.subRun()
+		    << "," << it->second.nEvents
+		    << "," << it->second.firstEvent
+		    << "," << it->second.lastEvent
+		    << "," << outputFile
+		    << "\n";
 	}
 
-	std::size_t totalRowsWritten = 0;
-	for (auto const& [run, srids] : byRun)
+	// One CSV file per run, appended — matches CFODataReceiver convention
+	for (auto const& [run, contentStream] : runContents)
 	{
-		// One CSV file per run, appended — matches CFODataReceiver convention
 		std::ostringstream fname;
 		fname << summaryDir_;
 		if (summaryDir_.back() != '/') { fname << '/'; }
@@ -892,52 +901,47 @@ void RootDAQOut::writeSummaryFile(std::string const& closedFileName)
 
 		flock(fd, LOCK_EX);
 
-		// Build content in memory
-		std::ostringstream content;
-
 		// Write header if file is empty
+		std::string const rows = contentStream.str();
+		std::string buf;
 		if (lseek(fd, 0, SEEK_END) == 0)
 		{
-			content << "run,subrun,n_events,first_event,last_event,output_file\n";
+			buf = "run,subrun,n_events,first_event,last_event,output_file\n";
 		}
+		buf += rows;
 
-		for (auto const& srid : srids)
+		// Loop to handle partial writes and EINTR
+		if (buf.size() > static_cast<size_t>(std::numeric_limits<ssize_t>::max()))
 		{
-			auto const& stats = subrunStats_.at(srid);
-			content << run
-			        << "," << srid.subRun()
-			        << "," << stats.nEvents
-			        << "," << stats.firstEvent
-			        << "," << stats.lastEvent
-			        << "," << outputFile
-			        << "\n";
+			TLOG(TLVL_ERROR) << "writeSummaryFile: buffer too large (" << buf.size() << " bytes) to write to \""
+			                 << fname.str() << "\"";
 		}
-
-		std::string const buf = content.str();
-		ssize_t remaining = static_cast<ssize_t>(buf.size());
-		char const* ptr = buf.c_str();
-		while (remaining > 0)
+		else
 		{
-			ssize_t nw = ::write(fd, ptr, static_cast<std::size_t>(remaining));
-			if (nw < 0)
+			ssize_t total = 0;
+			auto remaining = static_cast<ssize_t>(buf.size());
+			while (remaining > 0)
 			{
-				TLOG(TLVL_WARNING) << "writeSummaryFile: write error for \"" << fname.str() << "\": " << strerror(errno);
-				break;
+				ssize_t written = ::write(fd, buf.c_str() + total, static_cast<size_t>(remaining));
+				if (written < 0)
+				{
+					if (errno == EINTR) { continue; }
+					TLOG(TLVL_ERROR) << "writeSummaryFile: write error to \"" << fname.str() << "\": " << strerror(errno);
+					break;
+				}
+				total += written;
+				remaining -= written;
 			}
-			ptr += nw;
-			remaining -= nw;
 		}
 
 		flock(fd, LOCK_UN);
 		close(fd);
 
-		totalRowsWritten += srids.size();
-		TLOG(TLVL_DEBUG) << "writeSummaryFile: appended " << srids.size()
+		// Count actual data rows written (each row ends with '\n')
+		size_t const rowsWritten = static_cast<size_t>(std::count(rows.begin(), rows.end(), '\n'));
+		TLOG(TLVL_DEBUG) << "writeSummaryFile: appended " << rowsWritten
 		                 << " subrun row(s) to \"" << fname.str() << "\"";
 	}
-
-	TLOG(TLVL_DEBUG) << "writeSummaryFile: total " << totalRowsWritten
-	                 << " subrun row(s) appended across " << byRun.size() << " run(s)";
 }
 
 }  // namespace art
