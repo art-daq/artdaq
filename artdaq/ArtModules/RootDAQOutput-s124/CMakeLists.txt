@@ -50,5 +50,24 @@ cet_build_plugin(RootDAQOut art::module
     hep_concurrency::hep_concurrency
 )
 
+cet_build_plugin(RootDAQOutMF art::module
+  LIBRARIES REG
+  artdaq::RootDAQOutput
+  artdaq::ArtModules
+  TRACE::MF
+    art_root_io::detail
+    art_root_io::art_root_io
+    art::Framework_IO
+    art::Framework_IO_detail
+    art::Framework_Core
+    art::Framework_Principal
+    art::Utilities
+    canvas::canvas
+    messagefacility::MF_MessageLogger
+    fhiclcpp::types
+    fhiclcpp::fhiclcpp
+    hep_concurrency::hep_concurrency
+)
+
 install_headers()
 install_source()
