@@ -149,7 +149,7 @@ static void writeSummaryFile(
 		int fd = open(fname.str().c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
 		if (fd < 0)
 		{
-			TLOG(TLVL_WARNING) << "writeSummaryFile: could not open \"" << fname.str() << "\" for writing";
+			TLOG(TLVL_WARNING) << "writeSummaryFile: could not open \"" << fname.str() << "\" for writing: " << strerror(errno);
 			continue;
 		}
 
