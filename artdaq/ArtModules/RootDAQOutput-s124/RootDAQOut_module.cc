@@ -50,6 +50,8 @@
 #include <sys/file.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <cerrno>
+#include <cstring>
 
 using namespace std;
 using namespace hep::concurrency;
@@ -856,58 +858,86 @@ void RootDAQOut::writeSummaryFile(std::string const& closedFileName)
 	auto const& seen = fstats_.seenSubRuns();
 	if (seen.empty()) { return; }
 
-	RunNumber_t const run = fstats_.lowestRunID().run();
-
-	// One CSV file per run, appended — matches CFODataReceiver convention
-	std::ostringstream fname;
-	fname << summaryDir_;
-	if (summaryDir_.back() != '/') { fname << '/'; }
-	fname << "subrun_record_run" << std::setw(6) << std::setfill('0') << run << ".csv";
-
-	int fd = open(fname.str().c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
-	if (fd < 0)
-	{
-		TLOG(TLVL_WARNING) << "writeSummaryFile: could not open \"" << fname.str() << "\" for writing";
-		return;
-	}
-
-	flock(fd, LOCK_EX);
-
-	// Build content in memory
-	std::ostringstream content;
-
-	// Write header if file is empty
-	if (lseek(fd, 0, SEEK_END) == 0)
-	{
-		content << "run,subrun,n_events,first_event,last_event,output_file\n";
-	}
-
-	// One row per subrun seen in this output file
 	std::string const outputFile = std::filesystem::path(closedFileName).filename().string();
+
+	// Group SubRunIDs that have stats by run number so each run gets its own CSV.
+	// An output file can span multiple runs when the closing criteria allow it, so
+	// we must not assume a single run number for the whole file.
+	std::map<RunNumber_t, std::vector<art::SubRunID>> byRun;
 	for (auto const& srid : seen)
 	{
-		auto it = subrunStats_.find(srid);
 		// Skip subruns that registered in fstats but had no events written to
 		// this file (e.g. the in-progress subrun at a file-boundary close).
-		if (it == subrunStats_.end()) { continue; }
-
-		content << run
-		        << "," << srid.subRun()
-		        << "," << it->second.nEvents
-		        << "," << it->second.firstEvent
-		        << "," << it->second.lastEvent
-		        << "," << outputFile
-		        << "\n";
+		if (subrunStats_.count(srid))
+		{
+			byRun[srid.run()].push_back(srid);
+		}
 	}
 
-	std::string const buf = content.str();
-	::write(fd, buf.c_str(), buf.size());
+	std::size_t totalRowsWritten = 0;
+	for (auto const& [run, srids] : byRun)
+	{
+		// One CSV file per run, appended — matches CFODataReceiver convention
+		std::ostringstream fname;
+		fname << summaryDir_;
+		if (summaryDir_.back() != '/') { fname << '/'; }
+		fname << "subrun_record_run" << std::setw(6) << std::setfill('0') << run << ".csv";
 
-	flock(fd, LOCK_UN);
-	close(fd);
+		int fd = open(fname.str().c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
+		if (fd < 0)
+		{
+			TLOG(TLVL_WARNING) << "writeSummaryFile: could not open \"" << fname.str() << "\" for writing: " << strerror(errno);
+			continue;
+		}
 
-	TLOG(TLVL_DEBUG) << "writeSummaryFile: appended " << seen.size()
-	                 << " subrun row(s) to \"" << fname.str() << "\"";
+		flock(fd, LOCK_EX);
+
+		// Build content in memory
+		std::ostringstream content;
+
+		// Write header if file is empty
+		if (lseek(fd, 0, SEEK_END) == 0)
+		{
+			content << "run,subrun,n_events,first_event,last_event,output_file\n";
+		}
+
+		for (auto const& srid : srids)
+		{
+			auto const& stats = subrunStats_.at(srid);
+			content << run
+			        << "," << srid.subRun()
+			        << "," << stats.nEvents
+			        << "," << stats.firstEvent
+			        << "," << stats.lastEvent
+			        << "," << outputFile
+			        << "\n";
+		}
+
+		std::string const buf = content.str();
+		ssize_t remaining = static_cast<ssize_t>(buf.size());
+		char const* ptr = buf.c_str();
+		while (remaining > 0)
+		{
+			ssize_t nw = ::write(fd, ptr, static_cast<std::size_t>(remaining));
+			if (nw < 0)
+			{
+				TLOG(TLVL_WARNING) << "writeSummaryFile: write error for \"" << fname.str() << "\": " << strerror(errno);
+				break;
+			}
+			ptr += nw;
+			remaining -= nw;
+		}
+
+		flock(fd, LOCK_UN);
+		close(fd);
+
+		totalRowsWritten += srids.size();
+		TLOG(TLVL_DEBUG) << "writeSummaryFile: appended " << srids.size()
+		                 << " subrun row(s) to \"" << fname.str() << "\"";
+	}
+
+	TLOG(TLVL_DEBUG) << "writeSummaryFile: total " << totalRowsWritten
+	                 << " subrun row(s) appended across " << byRun.size() << " run(s)";
 }
 
 }  // namespace art
