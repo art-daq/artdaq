@@ -46,6 +46,7 @@
 #include <memory>
 #include <mutex>
 #include <fstream>
+#include <filesystem>
 #include <iomanip>
 #include <limits>
 #include <set>
