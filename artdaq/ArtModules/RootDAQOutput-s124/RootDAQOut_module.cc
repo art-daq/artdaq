@@ -554,7 +554,7 @@ void RootDAQOut::finishEndFile()
 	writeSummaryFile(lastClosedFileName_);
 	if (metricMan) {
 			metricMan->sendMetric("Last Closed Output File", lastClosedFileName_, "", 3, artdaq::MetricMode::LastPoint);
-			metricMan->sendMetric("Output Files Closed", filesClosedInRun_, "files", 3, artdaq::MetricMode::LastPoint);
+			metricMan->sendMetric("Output Files Closed", filesClosedInRun_, "files", 3, artdaq::MetricMode::LastPoint | artdaq::MetricMode::Persist);
 	}
 	subrunStats_.clear();
 	rpm_.invoke(&ResultsProducer::doClear);
@@ -644,7 +644,7 @@ void RootDAQOut::doOpenFile()
 	subrunStats_.clear();
 	++filesOpenedInRun_;
 	if (metricMan) {
-			metricMan->sendMetric("Output Files Opened", filesOpenedInRun_, "files", 3, artdaq::MetricMode::LastPoint);
+			metricMan->sendMetric("Output Files Opened", filesOpenedInRun_, "files", 3, artdaq::MetricMode::LastPoint | artdaq::MetricMode::Persist);
 	}
 	TLOG(TLVL_INFO) << __func__ << ": Opened output file with pattern \"" << filePattern_ << "\"";
 }
