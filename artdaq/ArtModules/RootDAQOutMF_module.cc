@@ -1,10 +1,11 @@
 // vim: set sw=2 expandtab :
 #include "TRACE/tracemf.h"  // TLOG
+#include "artdaq-utilities/Plugins/MetricData.hh"
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_RootDAQOutMF").c_str()
 
 #include "artdaq/ArtModules/ArtdaqSharedMemoryServiceInterface.h"
-#include "artdaq/ArtModules/RootDAQOutput-s124/RootDAQOutFile.h"
+#include "artdaq/ArtModules/RootDAQOutFile.h"
 
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Core/OutputModule.h"
@@ -39,11 +40,21 @@
 #include "fhiclcpp/types/TableFragment.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
+#include <fcntl.h>
+#include <sys/file.h>
+#include <unistd.h>
+#include <algorithm>
+#include <cerrno>
+#include <cstring>
 #include <deque>
+#include <filesystem>
+#include <iomanip>
+#include <limits>
 #include <map>
 #include <memory>
 #include <mutex>
 #include <set>
+#include <sstream>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -94,6 +105,95 @@ auto shouldFastClone(bool const fastCloningSet,
 		    "run boundaries.");
 	}
 	return enabled;
+}
+
+struct SubrunStats
+{
+	size_t nEvents{0};
+	art::EventNumber_t firstEvent{std::numeric_limits<art::EventNumber_t>::max()};
+	art::EventNumber_t lastEvent{0};
+};
+
+static void writeSummaryFile(
+    std::string const& summaryDir,
+    std::map<art::SubRunID, SubrunStats> const& subrunStats,
+    std::string const& closedFileName)
+{
+	if (summaryDir.empty() || subrunStats.empty()) { return; }
+
+	std::string const outputFile = std::filesystem::path(closedFileName).filename().string();
+
+	// Group rows by run number so that each run gets its own CSV file,
+	// even when an output file spans multiple runs.
+	std::map<art::RunNumber_t, std::ostringstream> runContents;
+	for (auto const& [srid, stats] : subrunStats)
+	{
+		runContents[srid.run()]
+		    << srid.run()
+		    << "," << srid.subRun()
+		    << "," << stats.nEvents
+		    << "," << stats.firstEvent
+		    << "," << stats.lastEvent
+		    << "," << outputFile
+		    << "\n";
+	}
+
+	// One CSV file per run, appended — matches CFODataReceiver convention
+	for (auto const& [run, contentStream] : runContents)
+	{
+		std::ostringstream fname;
+		fname << summaryDir;
+		if (summaryDir.back() != '/') { fname << '/'; }
+		fname << "subrun_record_run" << std::setw(6) << std::setfill('0') << run << ".csv";
+
+		int fd = open(fname.str().c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
+		if (fd < 0)
+		{
+			TLOG(TLVL_WARNING) << "writeSummaryFile: could not open \"" << fname.str() << "\" for writing: " << strerror(errno);
+			continue;
+		}
+
+		flock(fd, LOCK_EX);
+
+		std::string const rows = contentStream.str();
+		std::string buf;
+		if (lseek(fd, 0, SEEK_END) == 0)
+		{
+			buf = "run,subrun,n_events,first_event,last_event,output_file\n";
+		}
+		buf += rows;
+
+		// Loop to handle partial writes and EINTR
+		if (buf.size() > static_cast<size_t>(std::numeric_limits<ssize_t>::max()))
+		{
+			TLOG(TLVL_ERROR) << "writeSummaryFile: buffer too large (" << buf.size() << " bytes) to write to \""
+			                 << fname.str() << "\"";
+		}
+		else
+		{
+			ssize_t total = 0;
+			auto remaining = static_cast<ssize_t>(buf.size());
+			while (remaining > 0)
+			{
+				ssize_t written = ::write(fd, buf.c_str() + total, static_cast<size_t>(remaining));
+				if (written < 0)
+				{
+					if (errno == EINTR) { continue; }
+					TLOG(TLVL_ERROR) << "writeSummaryFile: write error to \"" << fname.str() << "\": " << strerror(errno);
+					break;
+				}
+				total += written;
+				remaining -= written;
+			}
+		}
+
+		flock(fd, LOCK_UN);
+		close(fd);
+
+		size_t const rowsWritten = static_cast<size_t>(std::count(rows.begin(), rows.end(), '\n'));
+		TLOG(TLVL_DEBUG) << "writeSummaryFile: appended " << rowsWritten
+		                 << " subrun row(s) to \"" << fname.str() << "\"";
+	}
 }
 }  // namespace
 
@@ -164,6 +264,7 @@ public:
 			fhicl::Sequence<fhicl::Table<NewSubStringForApp>> replacementList{fhicl::Name("replacementList")};
 		};
 		fhicl::OptionalSequence<fhicl::Table<FileNameSubstitution>> fileNameSubstitutions{Name("fileNameSubstitutions")};
+		Atom<string> summaryDir{Name("subrunRecordDir"), Comment("Directory for per-file CSV subrun record (subrun/event statistics). Empty = disabled."), ""};
 
 		Config()
 		{
@@ -255,6 +356,8 @@ private:
 		std::unique_ptr<RootDAQOutFile> file{nullptr};
 		std::string tmpFileName{};
 		bool metadataNeedsRefresh{false};
+		std::string closedFileName{};
+		std::map<art::SubRunID, SubrunStats> subrunStats;
 
 		OutputFileBundle(std::string const& moduleLabel,
 		                 std::string const& processName)
@@ -327,6 +430,9 @@ private:
 	// ParameterSet information in the downstream file, such as when mixing.
 	bool writeParameterSets_;
 	ClosingCriteria fileProperties_;
+	string summaryDir_;
+	size_t filesOpenedInRun_{0};
+	size_t filesClosedInRun_{0};
 	ProductDescriptions productsToProduce_{};
 	ProductTables producedResultsProducts_{ProductTables::invalid()};
 	RPManager rpm_;
@@ -354,6 +460,7 @@ RootDAQOutMF::RootDAQOutMF(Parameters const& config)
     , dropMetaDataForDroppedData_{config().dropMetaDataForDroppedData()}
     , writeParameterSets_{config().writeParameterSets()}
     , fileProperties_{config().fileProperties()}
+    , summaryDir_{config().summaryDir()}
     , rpm_{config.get_PSet()}
 {
 	TLOG(TLVL_INFO) << "RootDAQOutMF_module (s124 version) CONSTRUCTOR Start";
@@ -482,6 +589,11 @@ void RootDAQOutMF::write(EventPrincipal& ep)
 	auto* bundle = targetBundleForEvent(ep);
 	bundle->file->writeOne(ep);
 	bundle->fstats.recordEvent(ep.eventID());
+	auto const& eid = ep.eventID();
+	auto& sr = bundle->subrunStats[eid.subRunID()];
+	++sr.nEvents;
+	if (eid.event() < sr.firstEvent) { sr.firstEvent = eid.event(); }
+	if (eid.event() > sr.lastEvent) { sr.lastEvent = eid.event(); }
 	routeToBundle_[makeRoutingKey(ep)] = bundle;
 	subRunToBundles_[makeSubRunIDKey(ep)].insert(bundle);
 }
@@ -654,6 +766,7 @@ void RootDAQOutMF::finishEndFile()
 	// after this method returns).  On Linux, rename(2) is safe even
 	// while the file descriptor is still open.
 	lastClosedFileName_ = fileNameAtClose(activeFile_->fRenamer, tmpFileName);
+	activeFile_->closedFileName = lastClosedFileName_;
 	TLOG(TLVL_INFO) << __func__ << ": Queued output file \"" << lastClosedFileName_
 	                << "\" for deferred TFile::Close() (pendingFiles will have "
 	                << pendingFiles_.size() + 1 << " entries)";
@@ -748,6 +861,11 @@ void RootDAQOutMF::doOpenFile()
 	                                                dropMetaData_,
 	                                                dropMetaDataForDroppedData_);
 	activeFile_->fstats.recordFileOpen();
+	++filesOpenedInRun_;
+	if (metricMan)
+	{
+		metricMan->sendMetric("Output Files Opened", filesOpenedInRun_, "files", 3, artdaq::MetricMode::LastPoint | artdaq::MetricMode::Persist);
+	}
 	TLOG(TLVL_INFO) << __func__ << ": Opened output file with pattern \"" << filePattern_ << "\"";
 }
 
@@ -764,6 +882,13 @@ void RootDAQOutMF::closePendingFile(std::unique_ptr<OutputFileBundle>& bundle)
 	// Destroying the RootDAQOutFile calls TFile::Close(), which flushes the
 	// ROOT key directory and closes the file descriptor.
 	TLOG(TLVL_INFO) << __func__ << ": Closing pending file (TFile::Close)";
+	writeSummaryFile(summaryDir_, bundle->subrunStats, bundle->closedFileName);
+	++filesClosedInRun_;
+	if (metricMan)
+	{
+		metricMan->sendMetric("Last Closed Output File", bundle->closedFileName, "", 3, artdaq::MetricMode::LastPoint);
+		metricMan->sendMetric("Output Files Closed", filesClosedInRun_, "files", 3, artdaq::MetricMode::LastPoint | artdaq::MetricMode::Persist);
+	}
 	bundle->file.reset();
 	bundle.reset();
 }
@@ -1002,6 +1127,8 @@ void RootDAQOutMF::endSubRun(SubRunPrincipal const& srp)
 void RootDAQOutMF::beginRun(RunPrincipal const& rp)
 {
 	std::lock_guard sentry{mutex_};
+	filesOpenedInRun_ = 0;
+	filesClosedInRun_ = 0;
 	rpm_.for_each_RPWorker([&rp](RPWorker& w) { w.rp().doBeginRun(rp); });
 }
 

@@ -1,37 +1,33 @@
 // vim: set sw=2 expandtab :
 #include "TRACE/tracemf.h"  // TLOG
+#include "artdaq-utilities/Plugins/MetricData.hh"
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_RootDAQOut").c_str()
 
 #include "artdaq/ArtModules/ArtdaqSharedMemoryServiceInterface.h"
-#include "artdaq/ArtModules/RootDAQOutput-s81/RootDAQOutFile.h"
+#include "artdaq/ArtModules/RootDAQOutFile.h"
 
-#include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Core/OutputModule.h"
 #include "art/Framework/Core/RPManager.h"
 #include "art/Framework/Core/ResultsProducer.h"
 #include "art/Framework/IO/ClosingCriteria.h"
 #include "art/Framework/IO/FileStatsCollector.h"
 #include "art/Framework/IO/PostCloseFileRenamer.h"
+#include "art/Framework/IO/detail/SafeFileNameConfig.h"
 #include "art/Framework/IO/detail/logFileAction.h"
 #include "art/Framework/IO/detail/validateFileNamePattern.h"
-#include "art/Framework/Principal/Event.h"
 #include "art/Framework/Principal/EventPrincipal.h"
-#include "art/Framework/Principal/Principal.h"
-#include "art/Framework/Principal/Results.h"
 #include "art/Framework/Principal/ResultsPrincipal.h"
-#include "art/Framework/Principal/Run.h"
 #include "art/Framework/Principal/RunPrincipal.h"
-#include "art/Framework/Principal/SubRun.h"
 #include "art/Framework/Principal/SubRunPrincipal.h"
-#include "art/Framework/Services/Registry/ServiceHandle.h"
+#include "art/Utilities/Globals.h"
 #include "art/Utilities/parent_path.h"
 #include "art/Utilities/unique_filename.h"
 #include "art_root_io/DropMetaData.h"
+#include "art_root_io/FastCloningEnabled.h"
 #include "art_root_io/RootFileBlock.h"
 #include "art_root_io/detail/rootOutputConfigurationTools.h"
 #include "art_root_io/setup.h"
-#include "canvas/Persistency/Provenance/FileFormatVersion.h"
 #include "canvas/Persistency/Provenance/ProductTables.h"
 #include "canvas/Utilities/Exception.h"
 #include "fhiclcpp/ParameterSet.h"
@@ -43,32 +39,78 @@
 #include "fhiclcpp/types/TableFragment.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
+#include <fcntl.h>
+#include <sys/file.h>
+#include <unistd.h>
+#include <algorithm>
+#include <cerrno>
+#include <cstring>
+#include <filesystem>
+#include <fstream>
 #include <iomanip>
-#include <iostream>
+#include <limits>
+#include <map>
 #include <memory>
-#include <sstream>
+#include <mutex>
+#include <set>
 #include <string>
-#include <utility>
+#include <vector>
 
 using namespace std;
 using namespace hep::concurrency;
 
 namespace {
 string const dev_null{"/dev/null"};
+
+bool maxCriterionSpecified(art::ClosingCriteria const& cc)
+{
+	auto fp = mem_fn(&art::ClosingCriteria::fileProperties);
+	return (fp(cc).nEvents() !=
+	        art::ClosingCriteria::Defaults::unsigned_max()) ||
+	       (fp(cc).nSubRuns() !=
+	        art::ClosingCriteria::Defaults::unsigned_max()) ||
+	       (fp(cc).nRuns() != art::ClosingCriteria::Defaults::unsigned_max()) ||
+	       (fp(cc).size() != art::ClosingCriteria::Defaults::size_max()) ||
+	       (fp(cc).age().count() !=
+	        art::ClosingCriteria::Defaults::seconds_max());
 }
+
+auto shouldFastClone(bool const fastCloningSet,
+                     bool const fastCloning,
+                     bool const wantAllEvents,
+                     art::ClosingCriteria const& cc)
+{
+	art::FastCloningEnabled enabled;
+	if (fastCloningSet and not fastCloning)
+	{
+		enabled.disable(
+		    "RootDAQOut configuration explicitly disables fast cloning.");
+		return enabled;
+	}
+
+	if (not wantAllEvents)
+	{
+		enabled.disable(
+		    "Event-selection has been specified in the RootDAQOut configuration.");
+	}
+	if (fastCloning && maxCriterionSpecified(cc) &&
+	    cc.granularity() < art::Granularity::InputFile)
+	{
+		enabled.disable(
+		    "File-switching has been requested at event, subrun, or "
+		    "run boundaries.");
+	}
+	return enabled;
+}
+}  // namespace
 
 namespace art {
 
-class RootDAQOutFile;
-
 class RootDAQOut final : public OutputModule
 {
-	// Constants.
 public:
 	static constexpr char const* default_tmpDir{"<parent-path-of-filename>"};
 
-	// Config.
-public:
 	struct Config
 	{
 		using Name = fhicl::Name;
@@ -89,14 +131,17 @@ public:
 		Atom<int64_t> saveMemoryObjectThreshold{Name("saveMemoryObjectThreshold"),
 		                                        -1l};
 		Atom<int64_t> treeMaxVirtualSize{Name("treeMaxVirtualSize"), -1};
-		Atom<int> splitLevel{Name("splitLevel"), 99};
+		Atom<int> splitLevel{Name("splitLevel"), 1};
 		Atom<int> basketSize{Name("basketSize"), 16384};
 		Atom<bool> dropMetaDataForDroppedData{Name("dropMetaDataForDroppedData"),
 		                                      false};
 		Atom<string> dropMetaData{Name("dropMetaData"), "NONE"};
 		Atom<bool> writeParameterSets{Name("writeParameterSets"), true};
 		fhicl::Table<ClosingCriteria::Config> fileProperties{
-		    Name("fileProperties")};
+		    Name("fileProperties"),
+		    Comment("The 'fileProperties' parameter is specified to enable "
+		            "output-file switching.")};
+		fhicl::TableFragment<detail::SafeFileNameConfig> safeFileName;
 		Atom<int> firstLoggerRank{Name("firstLoggerRank"), -1};
 
 		struct NewSubStringForApp
@@ -110,6 +155,7 @@ public:
 			fhicl::Sequence<fhicl::Table<NewSubStringForApp>> replacementList{fhicl::Name("replacementList")};
 		};
 		fhicl::OptionalSequence<fhicl::Table<FileNameSubstitution>> fileNameSubstitutions{Name("fileNameSubstitutions")};
+		Atom<string> summaryDir{Name("subrunRecordDir"), Comment("Directory for per-file CSV subrun record (subrun/event statistics). Empty = disabled."), ""};
 
 		Config()
 		{
@@ -138,51 +184,44 @@ public:
 
 	using Parameters = fhicl::WrappedTable<Config, Config::KeysToIgnore>;
 
-	// Special Member Functions.
-public:
-	~RootDAQOut() override;
-	explicit RootDAQOut(Parameters const& /*config*/);
+	~RootDAQOut();
+	explicit RootDAQOut(Parameters const&);
 	RootDAQOut(RootDAQOut const&) = delete;
 	RootDAQOut(RootDAQOut&&) = delete;
 	RootDAQOut& operator=(RootDAQOut const&) = delete;
 	RootDAQOut& operator=(RootDAQOut&&) = delete;
 
-	// Member Functions.
-public:
 	void postSelectProducts() override;
 	void beginJob() override;
 	void endJob() override;
-	void beginRun(RunPrincipal const& /*rp*/) override;
-	void endRun(RunPrincipal const& /*rp*/) override;
-	void beginSubRun(SubRunPrincipal const& /*srp*/) override;
-	void endSubRun(SubRunPrincipal const& /*srp*/) override;
-	void event(EventPrincipal const& /*ep*/) override;
+	void beginRun(RunPrincipal const&) override;
+	void endRun(RunPrincipal const&) override;
+	void beginSubRun(SubRunPrincipal const&) override;
+	void endSubRun(SubRunPrincipal const&) override;
+	void event(EventPrincipal const&) override;
 
-	// Member Functions -- Replace OutputModule Functions.
 private:
+	// Replace OutputModule Functions.
 	string fileNameAtOpen() const;
 	string fileNameAtClose(string const& currentFileName);
 	string const& lastClosedFileName() const override;
 	Granularity fileGranularity() const override;
-	void openFile(FileBlock const& /*fb*/) override;
-	void respondToOpenInputFile(FileBlock const& /*fb*/) override;
+	void openFile(FileBlock const&) override;
+	void respondToOpenInputFile(FileBlock const&) override;
 	void readResults(ResultsPrincipal const& resp) override;
-	void respondToCloseInputFile(FileBlock const& /*fb*/) override;
+	void respondToCloseInputFile(FileBlock const&) override;
 	void incrementInputFileNumber() override;
-	void write(EventPrincipal& /*ep*/) override;
-	void writeSubRun(SubRunPrincipal& /*sr*/) override;
-	void writeRun(RunPrincipal& /*rp*/) override;
-	void setSubRunAuxiliaryRangeSetID(RangeSet const& /*rs*/) override;
-	void setRunAuxiliaryRangeSetID(RangeSet const& /*rs*/) override;
+	void write(EventPrincipal&) override;
+	void writeSubRun(SubRunPrincipal&) override;
+	void writeRun(RunPrincipal&) override;
+	void setSubRunAuxiliaryRangeSetID(RangeSet const&) override;
+	void setRunAuxiliaryRangeSetID(RangeSet const&) override;
 	bool isFileOpen() const override;
-	void setFileStatus(OutputFileStatus /*ofs*/) override;
+	void setFileStatus(OutputFileStatus) override;
 	bool requestsToCloseFile() const override;
 	void startEndFile() override;
 	void writeFileFormatVersion() override;
 	void writeFileIndex() override;
-#if ART_HEX_VERSION < 0x31100
-	void writeEventHistory() override;
-#endif
 	void writeProcessConfigurationRegistry() override;
 	void writeProcessHistoryRegistry() override;
 	void writeParameterSetRegistry() override;
@@ -193,16 +232,15 @@ private:
 	    FileCatalogMetadata::collection_type const& ssmd) override;
 	void writeProductDependencies() override;
 	void finishEndFile() override;
-	void doRegisterProducts(ProductDescriptions& producedProducts,
+	void doRegisterProducts(ProductDescriptions& productsToProduce,
 	                        ModuleDescription const& md) override;
 	std::string modifyFilePattern(std::string const& /*inputPattern*/, Config const& /*config*/);
+	void writeSummaryFile(std::string const& closedFileName);
 
-	// Member Functions -- Implementation Details.
-private:
+	// Implementation Details.
 	void doOpenFile();
 
 	// Data Members.
-private:
 	mutable std::recursive_mutex mutex_;
 	string const catalog_;
 	bool dropAllEvents_{false};
@@ -224,11 +262,21 @@ private:
 	int const basketSize_;
 	DropMetaData dropMetaData_;
 	bool dropMetaDataForDroppedData_;
-	bool fastCloningEnabled_{true};
+	FastCloningEnabled fastCloningEnabled_{};
 	// Set false only for cases where we are guaranteed never to need historical
 	// ParameterSet information in the downstream file, such as when mixing.
 	bool writeParameterSets_;
 	ClosingCriteria fileProperties_;
+	string summaryDir_;
+	size_t filesOpenedInRun_{0};
+	size_t filesClosedInRun_{0};
+	struct SubrunStats
+	{
+		size_t nEvents{0};
+		art::EventNumber_t firstEvent{std::numeric_limits<art::EventNumber_t>::max()};
+		art::EventNumber_t lastEvent{0};
+	};
+	std::map<art::SubRunID, SubrunStats> subrunStats_;
 	ProductDescriptions productsToProduce_{};
 	ProductTables producedResultsProducts_{ProductTables::invalid()};
 	RPManager rpm_;
@@ -237,13 +285,8 @@ private:
 RootDAQOut::~RootDAQOut() = default;
 
 RootDAQOut::RootDAQOut(Parameters const& config)
-#if ART_HEX_VERSION < 0x31100
-    : OutputModule{
-          config().omConfig, config.get_PSet()}
-#else
     : OutputModule{
           config().omConfig}
-#endif
     , catalog_{config().catalog()}
     , dropAllSubRuns_{config().dropAllSubRuns()}
     , moduleLabel_{config.get_PSet().get<string>("module_label")}
@@ -261,12 +304,15 @@ RootDAQOut::RootDAQOut(Parameters const& config)
     , dropMetaData_{config().dropMetaData()}
     , dropMetaDataForDroppedData_{config().dropMetaDataForDroppedData()}
     , writeParameterSets_{config().writeParameterSets()}
-    , fileProperties_{(detail::validateFileNamePattern(config.get_PSet().has_key(config().fileProperties.name()),
-                                                       filePattern_),  // comma operator!
-                       config().fileProperties())}
+    , fileProperties_{config().fileProperties()}
+    , summaryDir_{config().summaryDir()}
     , rpm_{config.get_PSet()}
 {
-	TLOG(TLVL_INFO) << "RootDAQOut_module (s81 version) CONSTRUCTOR Start";
+	TLOG(TLVL_INFO) << "RootDAQOut_module (s124 version) CONSTRUCTOR Start";
+	bool const check_filename = config.get_PSet().has_key("fileProperties") and
+	                            config().safeFileName().checkFileName();
+	detail::validateFileNamePattern(check_filename, filePattern_);
+
 	// Setup the streamers and error handlers.
 	root::setup();
 
@@ -278,9 +324,18 @@ RootDAQOut::RootDAQOut(Parameters const& config)
 	//      to ensure that the Event tree from the InputFile is not
 	//      accidentally cloned to the output file before the output
 	//      module has seen the events that are going to be processed.
-	bool const fastCloningSet{config().fastCloning(fastCloningEnabled_)};
-	fastCloningEnabled_ = RootDAQOutFile::shouldFastClone(
-	    fastCloningSet, fastCloningEnabled_, wantAllEvents(), fileProperties_);
+	bool fastCloningEnabled{true};
+	bool const fastCloningSet{config().fastCloning(fastCloningEnabled)};
+	fastCloningEnabled_ = shouldFastClone(
+	    fastCloningSet, fastCloningEnabled, wantAllEvents(), fileProperties_);
+
+	if (auto const n = Globals::instance()->nschedules(); n > 1)
+	{
+		std::ostringstream oss;
+		oss << "More than one schedule (" << n << ") is being used.";
+		fastCloningEnabled_.disable(oss.str());
+	}
+
 	if (!writeParameterSets_)
 	{
 		mf::LogWarning("PROVENANCE")
@@ -326,22 +381,16 @@ void RootDAQOut::respondToOpenInputFile(FileBlock const& fb)
 		return;
 	}
 	auto const* rfb = dynamic_cast<RootFileBlock const*>(&fb);
-	bool fastCloneThisOne = fastCloningEnabled_ && (rfb != nullptr) &&
-	                        (rfb->tree() != nullptr);
-	if (fastCloningEnabled_ && !fastCloneThisOne)
+	auto fastCloneThisOne = fastCloningEnabled_;
+	if (!rfb)
 	{
-		mf::LogWarning("FastCloning")
-		    << "Fast cloning deactivated for this input file due to "
-		    << "empty event tree and/or event limits.";
+		fastCloneThisOne.disable("Input source does not read art/ROOT files.");
 	}
-	if (fastCloneThisOne && !rfb->fastClonable())
+	else
 	{
-		mf::LogWarning("FastCloning")
-		    << "Fast cloning deactivated for this input file due to "
-		    << "information in FileBlock.";
-		fastCloneThisOne = false;
+		fastCloneThisOne.merge(rfb->fastClonable());
 	}
-	rootOutputFile_->beginInputFile(rfb, fastCloneThisOne);
+	rootOutputFile_->beginInputFile(rfb, std::move(fastCloneThisOne));
 	fstats_.recordInputFile(fb.fileName());
 }
 
@@ -371,9 +420,15 @@ void RootDAQOut::write(EventPrincipal& ep)
 	if (hasNewlyDroppedBranch()[InEvent])
 	{
 		ep.addToProcessHistory();
+		ep.refreshProcessHistoryID();
 	}
 	rootOutputFile_->writeOne(ep);
 	fstats_.recordEvent(ep.eventID());
+	auto const& eid = ep.eventID();
+	auto& sr = subrunStats_[eid.subRunID()];
+	++sr.nEvents;
+	if (eid.event() < sr.firstEvent) { sr.firstEvent = eid.event(); }
+	if (eid.event() > sr.lastEvent) { sr.lastEvent = eid.event(); }
 }
 
 void RootDAQOut::setSubRunAuxiliaryRangeSetID(RangeSet const& rs)
@@ -420,11 +475,7 @@ void RootDAQOut::startEndFile()
 	auto resp = make_unique<ResultsPrincipal>(
 	    ResultsAuxiliary{}, moduleDescription().processConfiguration(), nullptr);
 	resp->createGroupsForProducedProducts(producedResultsProducts_);
-#if ART_HEX_VERSION < 0x31100
-	resp->enableLookupOfProducedProducts(producedResultsProducts_);
-#else
 	resp->enableLookupOfProducedProducts();
-#endif
 	if (!producedResultsProducts_.descriptions(InResults).empty() ||
 	    hasNewlyDroppedBranch()[InResults])
 	{
@@ -446,14 +497,6 @@ void RootDAQOut::writeFileIndex()
 	std::lock_guard sentry{mutex_};
 	rootOutputFile_->writeFileIndex();
 }
-
-#if ART_HEX_VERSION < 0x31100
-void RootDAQOut::writeEventHistory()
-{
-	std::lock_guard sentry{mutex_};
-	rootOutputFile_->writeEventHistory();
-}
-#endif
 
 void RootDAQOut::writeProcessConfigurationRegistry()
 {
@@ -510,7 +553,15 @@ void RootDAQOut::finishEndFile()
 	rootOutputFile_.reset();
 	fstats_.recordFileClose();
 	lastClosedFileName_ = fileNameAtClose(currentFileName);
+	++filesClosedInRun_;
 	TLOG(TLVL_INFO) << __func__ << ": Closed output file \"" << lastClosedFileName_ << "\"";
+	writeSummaryFile(lastClosedFileName_);
+	if (metricMan)
+	{
+		metricMan->sendMetric("Last Closed Output File", lastClosedFileName_, "", 3, artdaq::MetricMode::LastPoint);
+		metricMan->sendMetric("Output Files Closed", filesClosedInRun_, "files", 3, artdaq::MetricMode::LastPoint | artdaq::MetricMode::Persist);
+	}
+	subrunStats_.clear();
 	rpm_.invoke(&ResultsProducer::doClear);
 }
 
@@ -548,7 +599,7 @@ void RootDAQOut::setFileStatus(OutputFileStatus const ofs)
 bool RootDAQOut::isFileOpen() const
 {
 	std::lock_guard sentry{mutex_};
-	return rootOutputFile_ != nullptr;
+	return rootOutputFile_.get() != nullptr;
 }
 
 void RootDAQOut::incrementInputFileNumber()
@@ -593,9 +644,14 @@ void RootDAQOut::doOpenFile()
 	                                              splitLevel_,
 	                                              basketSize_,
 	                                              dropMetaData_,
-	                                              dropMetaDataForDroppedData_,
-	                                              fastCloningEnabled_);
+	                                              dropMetaDataForDroppedData_);
 	fstats_.recordFileOpen();
+	subrunStats_.clear();
+	++filesOpenedInRun_;
+	if (metricMan)
+	{
+		metricMan->sendMetric("Output Files Opened", filesOpenedInRun_, "files", 3, artdaq::MetricMode::LastPoint | artdaq::MetricMode::Persist);
+	}
 	TLOG(TLVL_INFO) << __func__ << ": Opened output file with pattern \"" << filePattern_ << "\"";
 }
 
@@ -656,6 +712,8 @@ void RootDAQOut::endSubRun(SubRunPrincipal const& srp)
 void RootDAQOut::beginRun(RunPrincipal const& rp)
 {
 	std::lock_guard sentry{mutex_};
+	filesOpenedInRun_ = 0;
+	filesClosedInRun_ = 0;
 	rpm_.for_each_RPWorker([&rp](RPWorker& w) { w.rp().doBeginRun(rp); });
 }
 
@@ -796,6 +854,95 @@ RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& con
 
 	TLOG(TLVL_DEBUG + 32) << __func__ << ": modifiedPattern = \"" << modifiedPattern << "\"";
 	return modifiedPattern;
+}
+
+void RootDAQOut::writeSummaryFile(std::string const& closedFileName)
+{
+	if (summaryDir_.empty()) { return; }
+
+	auto const& seen = fstats_.seenSubRuns();
+	if (seen.empty()) { return; }
+
+	std::string const outputFile = std::filesystem::path(closedFileName).filename().string();
+
+	// Group rows by run number so that each run gets its own CSV file,
+	// even when an output file spans multiple runs.
+	std::map<RunNumber_t, std::ostringstream> runContents;
+	for (auto const& srid : seen)
+	{
+		auto it = subrunStats_.find(srid);
+		// Skip subruns that registered in fstats but had no events written to
+		// this file (e.g. the in-progress subrun at a file-boundary close).
+		if (it == subrunStats_.end()) { continue; }
+
+		runContents[srid.run()]
+		    << srid.run()
+		    << "," << srid.subRun()
+		    << "," << it->second.nEvents
+		    << "," << it->second.firstEvent
+		    << "," << it->second.lastEvent
+		    << "," << outputFile
+		    << "\n";
+	}
+
+	// One CSV file per run, appended — matches CFODataReceiver convention
+	for (auto const& [run, contentStream] : runContents)
+	{
+		std::ostringstream fname;
+		fname << summaryDir_;
+		if (summaryDir_.back() != '/') { fname << '/'; }
+		fname << "subrun_record_run" << std::setw(6) << std::setfill('0') << run << ".csv";
+
+		int fd = open(fname.str().c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
+		if (fd < 0)
+		{
+			TLOG(TLVL_WARNING) << "writeSummaryFile: could not open \"" << fname.str() << "\" for writing: " << strerror(errno);
+			continue;
+		}
+
+		flock(fd, LOCK_EX);
+
+		// Write header if file is empty
+		std::string const rows = contentStream.str();
+		std::string buf;
+		if (lseek(fd, 0, SEEK_END) == 0)
+		{
+			buf = "run,subrun,n_events,first_event,last_event,output_file\n";
+		}
+		buf += rows;
+
+		// Loop to handle partial writes and EINTR
+		if (buf.size() > static_cast<size_t>(std::numeric_limits<ssize_t>::max()))
+		{
+			TLOG(TLVL_ERROR) << "writeSummaryFile: buffer too large (" << buf.size() << " bytes) to write to \""
+			                 << fname.str() << "\"";
+		}
+		else
+		{
+			ssize_t total = 0;
+			auto remaining = static_cast<ssize_t>(buf.size());
+			while (remaining > 0)
+			{
+				ssize_t written = ::write(fd, buf.c_str() + total, static_cast<size_t>(remaining));
+				if (written < 0)
+				{
+					if (errno == EINTR) { continue; }
+					TLOG(TLVL_ERROR) << "writeSummaryFile: write error to \"" << fname.str() << "\": " << strerror(errno);
+					break;
+				}
+				total += written;
+				remaining -= written;
+			}
+		}
+
+		flock(fd, LOCK_UN);
+		close(fd);
+
+		// Count actual data rows written (each row ends with '\n')
+		size_t const rowsWritten = static_cast<size_t>(std::count(rows.begin(), rows.end(), '\n'));
+		TLOG(TLVL_DEBUG) << "writeSummaryFile: appended " << rowsWritten
+		                 << " subrun row(s) to \"" << fname.str() << "\"";
+	}
 }
 
 }  // namespace art
