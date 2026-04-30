@@ -150,7 +150,9 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 
 		TLOG(TLVL_DEBUG + 32) << "FHiCL parameter set used to initialize the fragment generator which threw an exception: " << fr_pset.to_string();
 
-		ExceptionHandler(ExceptionHandlerRethrow::yes, exception_string.str());
+		ExceptionHandler(ExceptionHandlerRethrow::no, exception_string.str());
+
+		return false;
 	}
 
 	try
