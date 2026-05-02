@@ -760,12 +760,13 @@ void RootDAQOutMF::finishEndFile()
 	std::lock_guard sentry{mutex_};
 	string const tmpFileName{activeFile_->file->currentFileName()};
 
-	// Record that this file is closed in its stats, then rename it now.
-	// We rename before actually calling TFile::Close() so that the final
-	// name is established immediately (art calls lastClosedFileName()
-	// after this method returns).  On Linux, rename(2) is safe even
-	// while the file descriptor is still open.
-	lastClosedFileName_ = fileNameAtClose(activeFile_->fRenamer, tmpFileName);
+	// Determine the final output file name now, but defer the actual rename
+	// until the file has been fully closed.
+	activeFile_->tmpFileName = tmpFileName;
+	lastClosedFileName_ = (filePattern_ == dev_null)
+	                          ? dev_null
+	                          : activeFile_->fRenamer.applySubstitutions(
+	                                filePattern_);
 	activeFile_->closedFileName = lastClosedFileName_;
 	TLOG(TLVL_INFO) << __func__ << ": Queued output file \"" << lastClosedFileName_
 	                << "\" for deferred TFile::Close() (pendingFiles will have "
@@ -882,6 +883,9 @@ void RootDAQOutMF::closePendingFile(std::unique_ptr<OutputFileBundle>& bundle)
 	// Destroying the RootDAQOutFile calls TFile::Close(), which flushes the
 	// ROOT key directory and closes the file descriptor.
 	TLOG(TLVL_INFO) << __func__ << ": Closing pending file (TFile::Close)";
+	bundle->file.reset();
+	bundle->closedFileName =
+	    fileNameAtClose(bundle->fRenamer, bundle->tmpFileName);
 	writeSummaryFile(summaryDir_, bundle->subrunStats, bundle->closedFileName);
 	++filesClosedInRun_;
 	if (metricMan)
@@ -889,7 +893,6 @@ void RootDAQOutMF::closePendingFile(std::unique_ptr<OutputFileBundle>& bundle)
 		metricMan->sendMetric("Last Closed Output File", bundle->closedFileName, "", 3, artdaq::MetricMode::LastPoint);
 		metricMan->sendMetric("Output Files Closed", filesClosedInRun_, "files", 3, artdaq::MetricMode::LastPoint | artdaq::MetricMode::Persist);
 	}
-	bundle->file.reset();
 	bundle.reset();
 }
 
