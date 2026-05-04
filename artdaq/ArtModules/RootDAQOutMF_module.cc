@@ -1118,7 +1118,8 @@ RootDAQOutMF::fileNameAtClose(PostCloseFileRenamer& renamer,
 	static const std::string kSentinel{"__SEQIDX__"};
 
 	bool const hasSeq = boost::regex_search(filePattern_, kSeqRe);
-	if (!hasSeq) {
+	if (!hasSeq)
+	{
 		// No %# in pattern — delegate directly to the bundle's renamer.
 		return renamer.maybeRenameFile(currentFileName, filePattern_);
 	}
@@ -1127,7 +1128,8 @@ RootDAQOutMF::fileNameAtClose(PostCloseFileRenamer& renamer,
 	unsigned width = 3;
 	{
 		boost::smatch m;
-		if (boost::regex_search(filePattern_, m, boost::regex{R"(%([0-9]+)#)"})) {
+		if (boost::regex_search(filePattern_, m, boost::regex{R"(%([0-9]+)#)"}))
+		{
 			width = static_cast<unsigned>(std::stoul(m[1].str()));
 		}
 	}
@@ -1143,7 +1145,8 @@ RootDAQOutMF::fileNameAtClose(PostCloseFileRenamer& renamer,
 
 	// Assign the next unique index for this base name across all bundles.
 	size_t const idx = ++sharedFileIndex_[intermediateName];
-	if (idx > 1) {
+	if (idx > 1)
+	{
 		TLOG(TLVL_INFO) << __func__ << ": shared %# index=" << idx
 		                << " for base pattern \"" << intermediateName
 		                << "\" (multiple bundles had the same run/subrun)";
@@ -1158,7 +1161,8 @@ RootDAQOutMF::fileNameAtClose(PostCloseFileRenamer& renamer,
 	// Rename intermediate → final (single atomic rename on same filesystem).
 	std::error_code ec;
 	std::filesystem::rename(intermediateName, finalName, ec);
-	if (ec) {
+	if (ec)
+	{
 		// Cross-filesystem fallback: copy then remove.
 		std::filesystem::copy_file(intermediateName, finalName,
 		                           std::filesystem::copy_options::overwrite_existing);
