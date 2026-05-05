@@ -390,6 +390,10 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 				TLOG(TLVL_WARNING) << "ArtdaqEvent with run = " << next_event->header->run_id << ", subrun = " << next_event->header->subrun_id << ", seq = " << next_event->header->sequence_id << " (32b mask " << seq_mask << "), and type " << static_cast<int>(next_event->FirstFragmentType()) << " is from a previous subrun! (current=" << current_subrun_ << ")";
 			}
 			event_ordering_.push_back(next_event);
+			if (event_ordering_.size() > 1)
+			{
+				TLOG(TLVL_INFO) << "event_ordering_ size is now " << event_ordering_.size();
+			}
 			event_ordering_.sort();
 		}
 	}
