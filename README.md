@@ -20,3 +20,5 @@ The _artdaq_ suite consists of the following packages:
 ## About this package
 
 This package contains the implementations for the applications and data transfer protocol that form the backbone of the artdaq framework. It also contains several useful executables that can be used to test and debug _artdaq_ systems.
+
+SQA testing documentation (test plan, test cases, and release result recording procedure) is maintained in `doc/SQA_Testing.rst`.
