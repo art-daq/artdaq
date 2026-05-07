@@ -20,3 +20,14 @@ The _artdaq_ suite consists of the following packages:
 ## About this package
 
 This package contains the implementations for the applications and data transfer protocol that form the backbone of the artdaq framework. It also contains several useful executables that can be used to test and debug _artdaq_ systems.
+
+## Software quality assurance (SQA)
+
+_artdaq_ is maintained under the lab software quality assurance program and follows documented procedures for how software is designed, developed, reviewed, tested, and maintained.
+
+For SQA process details, see:
+
+* [artdaq Wiki](https://github.com/art-daq/artdaq/wiki)
+* [Fermilab Software QA working documents (SharePoint)](https://fermipoint.fnal.gov/organization/cs/ocio/opm/QA/SoftwareQA/WorkingDocuments/Shared%20Documents/Forms/AllItems.aspx)
+
+As _art_ SQA documentation is finalized, _artdaq_ should review and adopt those materials where applicable, and keep references current in the wiki and project documentation.
