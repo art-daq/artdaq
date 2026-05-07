@@ -44,13 +44,14 @@ bool artdaq::DataLoggerCore::initialize(fhicl::ParameterSet const& pset)
 		agg_pset.put<bool>("shared_memory_ordering", true);
 	}
 
-    auto art_analyzer_count = agg_pset.get<size_t>("art_analyzer_count", 1);
-    if (art_analyzer_count > 1 && shared_memory_ordering) {
+	auto art_analyzer_count = agg_pset.get<size_t>("art_analyzer_count", 1);
+	if (art_analyzer_count > 1 && shared_memory_ordering)
+	{
 		TLOG(TLVL_WARNING) << "Multiple art analyzers are configured to receive events from the DataLogger! This is generally not recommended. For more detail, see the TRACEs printed to " << TRACE_NAME << " level 50.";
 		TLOG(50) << "The Datalogger uses \"shared_memory_ordering\", which uses the event ID to help sort events in the shared memory. This interferes with SharedMemoryManager's round-robin code, and can cause issues where no art process receives events.";
 		TLOG(50) << "It is generally recommended to start additional DataLogger processes if additional disk-writing bandwidth is needed, this also allows for targeting different disk areas.";
 		TLOG(50) << "In any case, if you are using multiple art analyzers, make sure to set \"shared_memory_ordering\" to false in the DataLogger configuration to avoid issues with events not being received by the art analyzers.";
-    }
+	}
 
 	// initialize the MetricManager and the names of our metrics
 	fhicl::ParameterSet metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet());
