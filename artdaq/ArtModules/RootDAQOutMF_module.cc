@@ -785,13 +785,15 @@ void RootDAQOutMF::finishEndFile()
 	// Record the close before computing the final name so the %# sequence
 	// advances the same way it does in RootDAQOut.
 	activeFile_->fstats.recordFileClose();
-
-	// Rename it now.
-	// We rename before actually calling TFile::Close() so that the final
-	// name is established immediately (art calls lastClosedFileName()
-	// after this method returns).  On Linux, rename(2) is safe even
-	// while the file descriptor is still open.
-	lastClosedFileName_ = fileNameAtClose(activeFile_->fRenamer, tmpFileName);
+  
+	// Determine the final output file name now, but defer the actual rename
+	// until the file has been fully closed.
+	activeFile_->tmpFileName = tmpFileName;
+	lastClosedFileName_ = (filePattern_ == dev_null)
+	                          ? dev_null
+	                          : activeFile_->fRenamer.applySubstitutions(
+	                                filePattern_);
+  
 	activeFile_->closedFileName = lastClosedFileName_;
 	TLOG(TLVL_INFO) << __func__ << ": Queued output file \"" << lastClosedFileName_
 	                << "\" for deferred TFile::Close() (pendingFiles will have "
@@ -909,6 +911,9 @@ void RootDAQOutMF::closePendingFile(std::unique_ptr<OutputFileBundle>& bundle)
 	// Destroying the RootDAQOutFile calls TFile::Close(), which flushes the
 	// ROOT key directory and closes the file descriptor.
 	TLOG(TLVL_INFO) << __func__ << ": Closing pending file (TFile::Close)";
+	bundle->file.reset();
+	bundle->closedFileName =
+	    fileNameAtClose(bundle->fRenamer, bundle->tmpFileName);
 	writeSummaryFile(summaryDir_, bundle->subrunStats, bundle->closedFileName);
 	++filesClosedInRun_;
 	TLOG(TLVL_DEBUG) << __func__ << ": filesClosedInRun_ now " << filesClosedInRun_
@@ -918,7 +923,6 @@ void RootDAQOutMF::closePendingFile(std::unique_ptr<OutputFileBundle>& bundle)
 		metricMan->sendMetric("Last Closed Output File", bundle->closedFileName, "", 3, artdaq::MetricMode::LastPoint);
 		metricMan->sendMetric("Output Files Closed", filesClosedInRun_, "files", 3, artdaq::MetricMode::LastPoint | artdaq::MetricMode::Persist);
 	}
-	bundle->file.reset();
 	bundle.reset();
 }
 
@@ -1118,7 +1122,8 @@ RootDAQOutMF::fileNameAtClose(PostCloseFileRenamer& renamer,
 	static const std::string kSentinel{"__SEQIDX__"};
 
 	bool const hasSeq = boost::regex_search(filePattern_, kSeqRe);
-	if (!hasSeq) {
+	if (!hasSeq)
+	{
 		// No %# in pattern — delegate directly to the bundle's renamer.
 		return renamer.maybeRenameFile(currentFileName, filePattern_);
 	}
@@ -1127,7 +1132,8 @@ RootDAQOutMF::fileNameAtClose(PostCloseFileRenamer& renamer,
 	unsigned width = 3;
 	{
 		boost::smatch m;
-		if (boost::regex_search(filePattern_, m, boost::regex{R"(%([0-9]+)#)"})) {
+		if (boost::regex_search(filePattern_, m, boost::regex{R"(%([0-9]+)#)"}))
+		{
 			width = static_cast<unsigned>(std::stoul(m[1].str()));
 		}
 	}
@@ -1143,7 +1149,8 @@ RootDAQOutMF::fileNameAtClose(PostCloseFileRenamer& renamer,
 
 	// Assign the next unique index for this base name across all bundles.
 	size_t const idx = ++sharedFileIndex_[intermediateName];
-	if (idx > 1) {
+	if (idx > 1)
+	{
 		TLOG(TLVL_INFO) << __func__ << ": shared %# index=" << idx
 		                << " for base pattern \"" << intermediateName
 		                << "\" (multiple bundles had the same run/subrun)";
@@ -1158,7 +1165,8 @@ RootDAQOutMF::fileNameAtClose(PostCloseFileRenamer& renamer,
 	// Rename intermediate → final (single atomic rename on same filesystem).
 	std::error_code ec;
 	std::filesystem::rename(intermediateName, finalName, ec);
-	if (ec) {
+	if (ec)
+	{
 		// Cross-filesystem fallback: copy then remove.
 		std::filesystem::copy_file(intermediateName, finalName,
 		                           std::filesystem::copy_options::overwrite_existing);
