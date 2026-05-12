@@ -31,6 +31,7 @@
 #include "art_root_io/setup.h"
 #include "canvas/Persistency/Provenance/ProductTables.h"
 #include "canvas/Utilities/Exception.h"
+#include "cetlib_except/exception.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/types/Atom.h"
 #include "fhiclcpp/types/ConfigurationTable.h"
@@ -449,6 +450,39 @@ RootDAQOutMF::~RootDAQOutMF()
 	                << " filesClosedInRun_=" << filesClosedInRun_
 	                << " activeFile=" << (activeFile_ ? "non-null" : "null")
 	                << " pendingFiles=" << pendingFiles_.size();
+
+	if (activeFile_)
+	{
+		TLOG(TLVL_WARNING) << "RootDAQOutMF DESTRUCTOR: active output file still present at destruction. "
+		                   << "This indicates shutdown before normal end-file finalization.";
+	}
+
+	// Best-effort fallback: if endJob is bypassed but destruction proceeds
+	// normally, close any pending files so metadata/trees are flushed.
+	// This must never throw from a destructor.
+	try
+	{
+		std::lock_guard sentry{mutex_};
+		while (!pendingFiles_.empty())
+		{
+			closePendingFile(pendingFiles_.front());
+			pendingFiles_.pop_front();
+		}
+	}
+	catch (cet::exception const& ex)
+	{
+		TLOG(TLVL_ERROR) << "RootDAQOutMF DESTRUCTOR: exception while closing pending files: "
+		                 << ex.what();
+	}
+	catch (std::exception const& ex)
+	{
+		TLOG(TLVL_ERROR) << "RootDAQOutMF DESTRUCTOR: std::exception while closing pending files: "
+		                 << ex.what();
+	}
+	catch (...)
+	{
+		TLOG(TLVL_ERROR) << "RootDAQOutMF DESTRUCTOR: unknown exception while closing pending files";
+	}
 }
 
 RootDAQOutMF::RootDAQOutMF(Parameters const& config)
@@ -720,7 +754,11 @@ void RootDAQOutMF::writeFileFormatVersion()
 void RootDAQOutMF::writeFileIndex()
 {
 	std::lock_guard sentry{mutex_};
-	activeFile_->file->writeFileIndex();
+	// Intentionally deferred for RootDAQOutMF:
+	// events may still be routed to a pending file after finishEndFile().
+	// Writing the index here can therefore miss late events.  We write the
+	// FileIndex immediately before writeTTrees() when the pending file is
+	// actually being closed in closePendingFile().
 }
 
 void RootDAQOutMF::writeProcessConfigurationRegistry()
@@ -732,7 +770,11 @@ void RootDAQOutMF::writeProcessConfigurationRegistry()
 void RootDAQOutMF::writeProcessHistoryRegistry()
 {
 	std::lock_guard sentry{mutex_};
-	activeFile_->file->writeProcessHistoryRegistry();
+	// Intentionally deferred for RootDAQOutMF:
+	// events may still be routed to a pending file after finishEndFile().
+	// Writing ProcessHistory here can therefore miss entries needed by late
+	// events. We write ProcessHistory immediately before writeTTrees() when the
+	// pending file is actually being closed in closePendingFile().
 }
 
 void RootDAQOutMF::writeParameterSetRegistry()
@@ -907,6 +949,12 @@ void RootDAQOutMF::closePendingFile(std::unique_ptr<OutputFileBundle>& bundle)
 		bundle->file->writeFileCatalogMetadata(
 		    bundle->fstats, lastFileCatalogMetadata_, lastSubRunMetadata_);
 	}
+	// ProcessHistory must be written at true close time so it captures all
+	// history information needed by late-routed events.
+	bundle->file->writeProcessHistoryRegistry();
+	// FileIndex must be written at true close time so it captures all events
+	// that may have been routed to this file while it was pending.
+	bundle->file->writeFileIndex();
 	bundle->file->writeTTrees();
 	// Destroying the RootDAQOutFile calls TFile::Close(), which flushes the
 	// ROOT key directory and closes the file descriptor.
