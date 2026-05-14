@@ -268,7 +268,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 
 		start_time = std::chrono::steady_clock::now();
 
-		TLOG(TLVL_DEBUG + 35) << "runReceiver_: About to call receiveFragmentHeader, source_rank=" << source_rank;
+		TLOG(TLVL_DEBUG + 35) << "runReceiver_: About to call receiveFragmentHeader, source_rank=" << source_rank << ", tmo=" << receive_timeout_;
 		ret = source_plugins_[source_rank]->receiveFragmentHeader(header, receive_timeout_);
 		TLOG(TLVL_DEBUG + 35) << "runReceiver_: receiveFragmentHeader returned: ret=" << ret << " seqid=" << header.sequence_id << " fragid=" << header.fragment_id << " type=" << (int)header.type;
 		if (ret != source_rank)
