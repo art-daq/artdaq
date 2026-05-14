@@ -827,7 +827,7 @@ void RootDAQOutMF::finishEndFile()
 	// Record the close before computing the final name so the %# sequence
 	// advances the same way it does in RootDAQOut.
 	activeFile_->fstats.recordFileClose();
-  
+
 	// Determine the final output file name now, but defer the actual rename
 	// until the file has been fully closed.
 	activeFile_->tmpFileName = tmpFileName;
@@ -835,7 +835,7 @@ void RootDAQOutMF::finishEndFile()
 	                          ? dev_null
 	                          : activeFile_->fRenamer.applySubstitutions(
 	                                filePattern_);
-  
+
 	activeFile_->closedFileName = lastClosedFileName_;
 	TLOG(TLVL_INFO) << __func__ << ": Queued output file \"" << lastClosedFileName_
 	                << "\" for deferred TFile::Close() (pendingFiles will have "
