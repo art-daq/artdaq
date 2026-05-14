@@ -268,9 +268,9 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 
 		start_time = std::chrono::steady_clock::now();
 
-		TLOG(TLVL_DEBUG + 35) << "runReceiver_: Calling receiveFragmentHeader tmo=" << receive_timeout_;
+		TLOG(TLVL_DEBUG + 35) << "runReceiver_: About to call receiveFragmentHeader, source_rank=" << source_rank << ", tmo=" << receive_timeout_;
 		ret = source_plugins_[source_rank]->receiveFragmentHeader(header, receive_timeout_);
-		TLOG(TLVL_DEBUG + 35) << "runReceiver_: Done with receiveFragmentHeader, ret=" << ret << " (should be " << source_rank << ")";
+		TLOG(TLVL_DEBUG + 35) << "runReceiver_: receiveFragmentHeader returned: ret=" << ret << " seqid=" << header.sequence_id << " fragid=" << header.fragment_id << " type=" << (int)header.type;
 		if (ret != source_rank)
 		{
 			if (ret >= 0)
@@ -296,7 +296,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 
 		if (Fragment::isUserFragmentType(header.type) || header.type == Fragment::DataFragmentType || header.type == Fragment::EmptyFragmentType || header.type == Fragment::ContainerFragmentType)
 		{
-			TLOG(TLVL_DEBUG + 33) << "Received Fragment Header from rank " << source_rank << ", sequence ID " << header.sequence_id << ", timestamp " << header.timestamp << ", type " << header.type;
+			TLOG(TLVL_DEBUG + 33) << "Received Fragment Header from rank " << source_rank << ", sequence ID " << header.sequence_id << ", fragment_id " << header.fragment_id << ", timestamp " << header.timestamp << ", type " << header.type;
 			RawDataType* loc = nullptr;
 			size_t retries = 0;
 			auto latency_s = header.getLatency(true);
@@ -353,7 +353,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			}
 
 			shm_manager_->DoneWritingFragment(header);
-			TLOG(TLVL_DEBUG + 33) << "Done receiving fragment with sequence ID " << header.sequence_id << " from rank " << source_rank;
+			TLOG(TLVL_DEBUG + 33) << "Done receiving fragment with sequence ID " << header.sequence_id << " fragment_id " << header.fragment_id << " from rank " << source_rank;
 
 			recv_frag_count_.incSlot(source_rank);
 			recv_frag_size_.incSlot(source_rank, header.word_count * sizeof(RawDataType));
