@@ -28,7 +28,11 @@ public:
 	 * WARNING: This function may create unintended side-effets. NullTransfer should
 	 * only really be used in Role::kSend!
 	 */
-	int receiveFragment(artdaq::Fragment& /*fragment*/, size_t /*receiveTimeout*/) override { return source_rank(); }
+	int receiveFragment(artdaq::Fragment& /*fragment*/, size_t /*receiveTimeout*/) override
+	{
+		std::this_thread::sleep_for(sleep_time_);
+		return source_rank();
+	}
 
 	/**
 	 * \brief Pretend to receive a Fragment Header
@@ -37,7 +41,11 @@ public:
 	 * WARNING: This function may create unintended side-effets. NullTransfer should
 	 * only really be used in Role::kSend!
 	 */
-	int receiveFragmentHeader(detail::RawFragmentHeader& /*header*/, size_t /*receiveTimeout*/) override { return source_rank(); }
+	int receiveFragmentHeader(detail::RawFragmentHeader& /*header*/, size_t /*receiveTimeout*/) override
+	{
+		std::this_thread::sleep_for(sleep_time_);
+		return source_rank();
+	}
 
 	/**
 	 * \brief Pretend to receive Fragment Data
@@ -46,7 +54,11 @@ public:
 	 * WARNING: This function may create unintended side-effets. NullTransfer should
 	 * only really be used in Role::kSend!
 	 */
-	int receiveFragmentData(RawDataType* /*destination*/ /*destination*/ /*destination*/ /*destination*/, size_t /*wordCount*/) override { return source_rank(); }
+	int receiveFragmentData(RawDataType* /*destination*/ /*destination*/ /*destination*/ /*destination*/, size_t /*wordCount*/) override
+	{
+		std::this_thread::sleep_for(sleep_time_);
+		return source_rank();
+	}
 
 	/**
 	 * \brief Pretend to send a Fragment to a destination
@@ -80,10 +92,14 @@ private:
 	NullTransfer(NullTransfer&&) = delete;
 	NullTransfer& operator=(NullTransfer const&) = delete;
 	NullTransfer& operator=(NullTransfer&&) = delete;
+
+    std::chrono::microseconds sleep_time_;
 };
 }  // namespace artdaq
 
 artdaq::NullTransfer::NullTransfer(const fhicl::ParameterSet& pset, Role role)
-    : TransferInterface(pset, role) {}
+    : TransferInterface(pset, role)
+    , sleep_time_(pset.get<size_t>("sleep_time_us", 1000))
+{}
 
 DEFINE_ARTDAQ_TRANSFER(artdaq::NullTransfer)
