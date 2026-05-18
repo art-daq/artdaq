@@ -376,7 +376,7 @@ void artdaq::BoardReaderCore::receive_fragments()
 
 		if (!receiver_thread_active_) { break; }
 
-        size_t fragments_processed = frags.size();
+		size_t fragments_processed = frags.size();
 		if (fragments_processed > 0)
 		{
 			TLOG(TLVL_DEBUG + 35) << "receive_fragments AddFragmentsToBuffer start";
