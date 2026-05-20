@@ -93,7 +93,7 @@ private:
 	NullTransfer& operator=(NullTransfer const&) = delete;
 	NullTransfer& operator=(NullTransfer&&) = delete;
 
-    std::chrono::microseconds sleep_time_;
+	std::chrono::microseconds sleep_time_;
 };
 }  // namespace artdaq
 
