@@ -235,6 +235,8 @@ private:
 
 	std::string buildStatisticsString_();
 
+	void sendMetrics_();
+
 	bool verbose_;  ///< Whether to log transition messages
 };
 
