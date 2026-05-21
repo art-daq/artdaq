@@ -556,7 +556,14 @@ void artdaq::BoardReaderCore::send_fragments()
 			            : "Sending fragment " + std::to_string(fragment_count_))
 			    << " with SeqID " << sequence_id << ".";
 		}
-		if (statsHelper_.statsRollingWindowHasMoved()) { sendMetrics_(); }
+
+		if (counter > 0) {
+		  metricMan->sendMetric("Fragment Count", fragment_count_, "fragments", 1, MetricMode::LastPoint);
+		  metricMan->sendMetric("Fragment Rate", counter, "fragments", 1, MetricMode::Rate);
+		  metricMan->sendMetric("Fragment Size", total_bytes / counter, "bytes/fragment", 2, MetricMode::Average | MetricMode::Accumulate | MetricMode::Maximum | MetricMode::Minimum);
+		  metricMan->sendMetric("Data Rate", total_bytes, "bytes", 2, MetricMode::Rate);
+		}
+
 		frags.clear();
 		std::this_thread::yield();
 	}
