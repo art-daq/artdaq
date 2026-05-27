@@ -392,7 +392,7 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 			event_ordering_.push_back(next_event);
 			if (event_ordering_.size() > 1)
 			{
-				TLOG(TLVL_INFO) << "event_ordering_ size is now " << event_ordering_.size();
+				TLOG(TLVL_RECEIVEEVENT_2) << "event_ordering_ size is now " << event_ordering_.size();
 			}
 			event_ordering_.sort();
 		}
