@@ -943,6 +943,78 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 	TLOG(TLVL_ENDOFDATA) << "endOfData: Done flushing, there are now " << GetOpenEventCount()
 	                     << " stale events in the SharedMemoryEventManager.";
 
+	size_t incomplete_at_shutdown = active_buffers_.size();
+	size_t force_flushed_count = 0;
+
+	// Grace period: wait up to one stale_buffer_timeout for late fragments to arrive and complete events
+	if (!active_buffers_.empty())
+	{
+		auto grace_timeout_us = GetBufferTimeout();
+		TLOG(TLVL_ENDOFDATA) << "endOfData: Waiting up to " << (grace_timeout_us / 1000000.0)
+		                     << " s for " << active_buffers_.size() << " incomplete events to finish";
+		start = std::chrono::steady_clock::now();
+		while (!active_buffers_.empty() && TimeUtils::GetElapsedTimeMicroseconds(start) < grace_timeout_us)
+		{
+			usleep(10000);
+			counter = active_buffers_.size();
+			while (!active_buffers_.empty() && counter > 0)
+			{
+				complete_buffer_(*active_buffers_.begin());
+				counter--;
+			}
+		}
+
+		// Force-flush any remaining incomplete events
+		if (!active_buffers_.empty())
+		{
+			TLOG(TLVL_ENDOFDATA) << "endOfData: Force-flushing " << active_buffers_.size() << " incomplete events after grace period";
+			std::unique_lock<std::mutex> lk(sequence_id_mutex_);
+			auto buffers_to_flush = active_buffers_;
+			for (auto buf : buffers_to_flush)
+			{
+				if (buffer_writes_pending_[buf].load() != 0)
+				{
+					continue;
+				}
+				auto hdr = getEventHeader_(buf);
+				if (requests_)
+				{
+					requests_->RemoveRequest(hdr->sequence_id);
+				}
+				active_buffers_.erase(buf);
+				pending_buffers_.insert(buf);
+				run_incomplete_event_count_++;
+				force_flushed_count++;
+				if (released_incomplete_events_.count(hdr->sequence_id) == 0u)
+				{
+					released_incomplete_events_[hdr->sequence_id] = num_fragments_per_event_ - GetFragmentCountInBuffer(buf);
+				}
+				else
+				{
+					released_incomplete_events_[hdr->sequence_id] -= GetFragmentCountInBuffer(buf);
+				}
+				TLOG(TLVL_WARNING) << "endOfData: Event " << hdr->sequence_id
+				                   << " is incomplete (missing " << released_incomplete_events_[hdr->sequence_id]
+				                   << " Fragments). Force-releasing to art.";
+			}
+			check_pending_buffers_(lk);
+		}
+	}
+
+	if (incomplete_at_shutdown == 0)
+	{
+		TLOG(TLVL_INFO) << "endOfData summary: All events were complete at shutdown.";
+	}
+	else if (force_flushed_count == 0)
+	{
+		TLOG(TLVL_INFO) << "endOfData summary: " << incomplete_at_shutdown << " incomplete events all completed during grace period.";
+	}
+	else
+	{
+		TLOG(TLVL_INFO) << "endOfData summary: " << force_flushed_count << " of " << incomplete_at_shutdown
+		                << " incomplete events were force-flushed after grace period.";
+	}
+
 	TLOG(TLVL_ENDOFDATA) << "Waiting for " << (ReadReadyCount() + (size() - WriteReadyCount(overwrite_mode_))) << " outstanding buffers...";
 	start = std::chrono::steady_clock::now();
 	auto lastReadCount = ReadReadyCount() + (size() - WriteReadyCount(overwrite_mode_));
