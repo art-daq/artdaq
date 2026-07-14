@@ -311,9 +311,9 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 					// First Fragment is broadcast (begin/end run/subrun), but there's more in event ordering!
 					TLOG(TLVL_RECEIVEEVENT) << "Returning Broadcast Fragment due to subrun closure";
 
-                    if (released_broadcast_sequence_ids_.count(event_ordering_.front()->header->sequence_id) == 0)
+					if (released_broadcast_sequence_ids_.count(event_ordering_.front()->header->sequence_id) == 0)
 					{
-                        output_event = event_ordering_.front();
+						output_event = event_ordering_.front();
 						released_broadcast_sequence_ids_.insert(event_ordering_.front()->header->sequence_id);
 					}
 					event_ordering_.pop_front();
