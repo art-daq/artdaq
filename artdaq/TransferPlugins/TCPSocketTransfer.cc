@@ -5,8 +5,10 @@
 // rev="$Revision: 1.30 $$Date: 2016/03/01 14:27:27 $";
 
 // C Includes
-#include <arpa/inet.h>   // ntohl, ntohs
-#include <poll.h>        // struct pollfd
+#include <arpa/inet.h>       // ntohl, ntohs
+#include <linux/sockios.h>   // SIOCOUTQ
+#include <poll.h>            // struct pollfd
+#include <sys/ioctl.h>       // ioctl
 #include <sys/socket.h>  // socket, socklen_t
 #include <sys/types.h>   // size_t
 #include <sys/un.h>      // sockaddr_un
@@ -671,6 +673,18 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(F
 	{
 		TLOG(TLVL_INFO) << GetTraceName() << "reconnection attempt failed, returning quickly.";
 		return TransferInterface::CopyStatus::kErrorNotRequiringException;
+	}
+
+	// Report the kernel TCP send queue occupancy (bytes accepted by the socket but not yet ACKed by the receiver), at most once per second
+	if (metricMan && send_fd_ != -1 &&
+	    std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - last_outq_metric_time_).count() >= 1000)
+	{
+		last_outq_metric_time_ = std::chrono::steady_clock::now();
+		int outq_bytes = 0;
+		if (ioctl(send_fd_, SIOCOUTQ, &outq_bytes) == 0)
+		{
+			metricMan->sendMetric("TCP Send Queue Bytes to Rank " + std::to_string(destination_rank()), static_cast<unsigned long>(outq_bytes), "B", 3, MetricMode::LastPoint);
+		}
 	}
 
 	// Send Fragment Header

@@ -112,12 +112,18 @@ public:
 			std::unique_lock<std::mutex> lk(fragment_mutex_);
 			if (current_buffer_size_bytes_ > max_hold_size_bytes_)
 			{
+				auto wait_start = std::chrono::steady_clock::now();
 				fragment_cv_.wait_for(lk, std::chrono::microseconds(send_timeout_usec), [&] { return current_buffer_size_bytes_ < max_hold_size_bytes_; });
+				report_wait_time_(std::chrono::duration<double>(std::chrono::steady_clock::now() - wait_start).count());
 			}
 
 			if (current_buffer_size_bytes_ > max_hold_size_bytes_)
 			{
 				TLOG(TLVL_WARNING) << GetTraceName() << "Dropping data due to timeout in min_blocking_mode";
+				if (metricMan)
+				{
+					metricMan->sendMetric("Bundle Dropped Events to Rank " + std::to_string(destination_rank()), 1, "events/s", 2, MetricMode::Rate);
+				}
 				return CopyStatus::kTimeout;
 			}
 
@@ -128,9 +134,14 @@ public:
 				system_fragment_cached_ = true;
 			}
 
+			if (fragment_buffer_.empty())
+			{
+				buffer_oldest_time_ = std::chrono::steady_clock::now();
+			}
 			current_buffer_size_bytes_ += fragment.sizeBytes();
 			// Eww, we have to copy
 			fragment_buffer_.emplace_back(fragment);
+			report_buffer_metrics_();
 		}
 		TLOG(TLVL_DEBUG + 35) << GetTraceName() << "transfer_fragment_min_blocking_mode END";
 		return last_copy_status_;  // Might be a lie, but we're going to send from the thread proc
@@ -147,9 +158,14 @@ public:
 		last_send_call_reliable_ = true;
 		{
 			std::unique_lock<std::mutex> lk(fragment_mutex_);
-			while (current_buffer_size_bytes_ > max_hold_size_bytes_)
+			if (current_buffer_size_bytes_ > max_hold_size_bytes_)
 			{
-				fragment_cv_.wait(lk, [&] { return current_buffer_size_bytes_ < max_hold_size_bytes_; });
+				auto wait_start = std::chrono::steady_clock::now();
+				while (current_buffer_size_bytes_ > max_hold_size_bytes_)
+				{
+					fragment_cv_.wait(lk, [&] { return current_buffer_size_bytes_ < max_hold_size_bytes_; });
+				}
+				report_wait_time_(std::chrono::duration<double>(std::chrono::steady_clock::now() - wait_start).count());
 			}
 
 			TLOG(TLVL_DEBUG + 36) << GetTraceName() << "transfer_fragment_reliable_mode after wait for buffer";
@@ -160,8 +176,13 @@ public:
 				system_fragment_cached_ = true;
 			}
 
+			if (fragment_buffer_.empty())
+			{
+				buffer_oldest_time_ = std::chrono::steady_clock::now();
+			}
 			current_buffer_size_bytes_ += fragment.sizeBytes();
 			fragment_buffer_.emplace_back(std::move(fragment));
+			report_buffer_metrics_();
 		}
 		TLOG(TLVL_DEBUG + 36) << GetTraceName() << "transfer_fragment_reliable_mode END";
 		return last_copy_status_;  // Might be a lie, but we're going to send from the thread proc
@@ -197,6 +218,8 @@ private:
 	CopyStatus last_copy_status_{CopyStatus::kSuccess};
 
 	std::chrono::steady_clock::time_point send_fragment_started_;
+	std::chrono::steady_clock::time_point buffer_oldest_time_{std::chrono::steady_clock::now()};
+	std::chrono::steady_clock::time_point last_metric_report_{std::chrono::steady_clock::now()};
 	std::atomic<size_t> current_buffer_size_bytes_{0};
 	std::unique_ptr<boost::thread> send_timeout_thread_;
 	std::atomic<bool> system_fragment_cached_{false};
@@ -212,6 +235,28 @@ private:
 	void send_timeout_thread_proc_();
 	bool send_bundle_fragment_(bool forceSend = false);
 	void receive_bundle_fragment_(size_t receiveTimeout);
+
+	/// Report time spent blocked waiting for space in the bundle buffer (sender-side back-pressure)
+	void report_wait_time_(double waitSeconds)
+	{
+		if (metricMan)
+		{
+			metricMan->sendMetric("Bundle Buffer Wait Time to Rank " + std::to_string(destination_rank()), waitSeconds, "s", 2, MetricMode::Accumulate | MetricMode::Maximum);
+		}
+	}
+
+	/// Report bundle buffer occupancy metrics, at most once per second. Requires fragment_mutex_ to be held.
+	void report_buffer_metrics_()
+	{
+		if (!metricMan) return;
+		if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - last_metric_report_).count() < 1000) return;
+		last_metric_report_ = std::chrono::steady_clock::now();
+		auto rankString = std::to_string(destination_rank());
+		metricMan->sendMetric("Bundle Buffer Occupancy to Rank " + rankString, current_buffer_size_bytes_.load(), "B", 2, MetricMode::LastPoint);
+		metricMan->sendMetric("Bundle Buffer Events to Rank " + rankString, static_cast<unsigned long>(fragment_buffer_.size()), "events", 2, MetricMode::LastPoint);
+		double oldestAge = fragment_buffer_.empty() ? 0.0 : std::chrono::duration<double>(std::chrono::steady_clock::now() - buffer_oldest_time_).count();
+		metricMan->sendMetric("Bundle Buffer Oldest Event Age to Rank " + rankString, oldestAge, "s", 2, MetricMode::LastPoint);
+	}
 };
 }  // namespace artdaq
 
@@ -317,6 +362,8 @@ bool artdaq::BundleTransfer::send_bundle_fragment_(bool forceSend)
 	{
 		std::unique_lock<std::mutex> lk(fragment_mutex_);
 
+		report_buffer_metrics_();
+
 		bool send_fragment = check_send_(forceSend);
 
 		if (send_fragment && fragment_buffer_.size() > 0)
@@ -324,6 +371,7 @@ bool artdaq::BundleTransfer::send_bundle_fragment_(bool forceSend)
 			TLOG(TLVL_DEBUG + 38) << GetTraceName() << "Swapping in new buffer";
 			Fragments temp_buffer;
 			size_t size = current_buffer_size_bytes_;
+			size_t bundle_event_count = fragment_buffer_.size();
 			fragment_buffer_.swap(temp_buffer);
 			send_fragment_started_ = std::chrono::steady_clock::now();
 			system_fragment_cached_ = false;
@@ -363,6 +411,13 @@ bool artdaq::BundleTransfer::send_bundle_fragment_(bool forceSend)
 			{
 				auto sts_string = sts == CopyStatus::kTimeout ? "timeout" : "other error";
 				TLOG(TLVL_WARNING) << GetTraceName() << "Transfer of Bundle fragment returned status " << sts_string;
+			}
+			else if (metricMan)
+			{
+				auto rankString = std::to_string(destination_rank());
+				metricMan->sendMetric("Bundle Output Event Rate to Rank " + rankString, bundle_event_count, "events/s", 2, MetricMode::Rate);
+				metricMan->sendMetric("Bundle Output Data Rate to Rank " + rankString, size, "B/s", 2, MetricMode::Rate);
+				metricMan->sendMetric("Bundle Size to Rank " + rankString, size, "B", 3, MetricMode::Average | MetricMode::Maximum);
 			}
 
 			TLOG(TLVL_DEBUG + 38) << GetTraceName() << "Done sending Bundle Fragment";
