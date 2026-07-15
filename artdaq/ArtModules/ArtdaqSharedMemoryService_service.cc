@@ -316,10 +316,11 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 						output_event = event_ordering_.front();
 						released_broadcast_sequence_ids_.insert(event_ordering_.front()->header->sequence_id);
 						while (released_broadcast_sequence_ids_.size() > 1000) { released_broadcast_sequence_ids_.erase(released_broadcast_sequence_ids_.begin()); }
-                    }
-                    else {
+					}
+					else
+					{
 						TLOG(TLVL_WARNING) << "Discarding duplicate Broadcast with sequence ID " << event_ordering_.front()->header->sequence_id << " and count " << event_ordering_.front()->fragments.size();
-                    }
+					}
 					event_ordering_.pop_front();
 					continue;  // while(output_event == nullptr)
 				}

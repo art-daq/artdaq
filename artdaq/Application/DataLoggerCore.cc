@@ -53,10 +53,11 @@ bool artdaq::DataLoggerCore::initialize(fhicl::ParameterSet const& pset)
 		TLOG(50) << "In any case, if you are using multiple art analyzers, make sure to set \"shared_memory_ordering\" to false in the DataLogger configuration to avoid issues with events not being received by the art analyzers.";
 	}
 
-    if (!agg_pset.has_key("init_fragment_count")) {
+	if (!agg_pset.has_key("init_fragment_count"))
+	{
 		TLOG(TLVL_ERROR) << "ERROR: init_fragment_count must be set for the DataLogger to function properly. Please set `init_fragment_count: 0` in the DataLogger configuration. (Will be book-kept by DAQInterface)";
 		return false;
-    }
+	}
 
 	// initialize the MetricManager and the names of our metrics
 	fhicl::ParameterSet metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet());
