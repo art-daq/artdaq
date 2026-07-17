@@ -226,18 +226,18 @@ public:
 		Atom<bool> dropAllSubRuns{Name("dropAllSubRuns"), false};
 		OptionalAtom<bool> fastCloning{Name("fastCloning")};
 		Atom<string> tmpDir{Name("tmpDir"), default_tmpDir};
-		Atom<int> compressionLevel{Name("compressionLevel"), 7};
+		Atom<int> compressionLevel{Name("compressionLevel"), 501};
 		Atom<unsigned> freePercent{Name("freePercent"), 0};
 		Atom<unsigned> freeMB{Name("freeMB"), 0};
 		Atom<int64_t> saveMemoryObjectThreshold{Name("saveMemoryObjectThreshold"),
 		                                        -1l};
 		Atom<int64_t> treeMaxVirtualSize{Name("treeMaxVirtualSize"), -1};
-		Atom<int> splitLevel{Name("splitLevel"), 1};
-		Atom<int> basketSize{Name("basketSize"), 16384};
+		Atom<int> splitLevel{Name("splitLevel"), 0};
+		Atom<int> basketSize{Name("basketSize"), 65536};
 		Atom<bool> dropMetaDataForDroppedData{Name("dropMetaDataForDroppedData"),
 		                                      false};
 		Atom<string> dropMetaData{Name("dropMetaData"), "NONE"};
-		Atom<bool> writeParameterSets{Name("writeParameterSets"), true};
+		Atom<bool> writeParameterSets{Name("writeParameterSets"), false};
 		fhicl::Table<ClosingCriteria::Config> fileProperties{
 		    Name("fileProperties"),
 		    Comment("The 'fileProperties' parameter is specified to enable "
