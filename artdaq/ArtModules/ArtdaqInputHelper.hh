@@ -601,25 +601,20 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 	}
 	else if (msg_type_code == artdaq::NetMonHeader::MessageType::Subrun)
 	{
-		if (outSR == nullptr)
-		{
-			TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "SubrunDataFragment for current Subrun received, returning Flush event";
-			art::EventID const evid(art::EventID::flushEvent(inSR->subRunID()));
-			outE = pm_.makeEventPrincipal(evid, currentTime);
-		}
+		TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "SubrunDataFragment received, returning Flush event";
+		art::SubRunID srID = outSR ? outSR->subRunID() : inSR->subRunID();
+		art::EventID const evid(art::EventID::flushEvent(srID));
+		outE = pm_.makeEventPrincipal(evid, currentTime);
 	}
 	else if (msg_type_code == artdaq::NetMonHeader::MessageType::Run)
 	{
-		if (outR == nullptr)
+		art::RunID rID = outR ? outR->runID() : inR->runID();
+		art::EventID const evid(art::EventID::flushEvent(rID));
+		if (inSR == nullptr || inSR->subRunID() != evid.subRunID())
 		{
-			TLOG(TLVL_DEBUG + 43, "ArtdaqInputHelper") << "RunDataFragment for current Run received, returning Flush subrun/event";
-			art::EventID const evid(art::EventID::flushEvent(inR->runID()));
-			if (inSR == nullptr || inSR->subRunID() != evid.subRunID())
-			{
-				outSR = pm_.makeSubRunPrincipal(evid.subRunID(), currentTime);
-			}
-			outE = pm_.makeEventPrincipal(evid, currentTime);
+			outSR = pm_.makeSubRunPrincipal(evid.subRunID(), currentTime);
 		}
+		outE = pm_.makeEventPrincipal(evid, currentTime);
 	}
 }
 
