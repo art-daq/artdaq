@@ -59,9 +59,9 @@
 #include "TTree.h"
 
 #include <fcntl.h>        // posix_fadvise POSIX_FADV_DONTNEED
-#include <fstream>        // /proc/meminfo
 #include <sys/sysinfo.h>  // sysinfo(sysinfo*)
 #include <algorithm>
+#include <fstream>  // /proc/meminfo
 #include <utility>
 #include <vector>
 
