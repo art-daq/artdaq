@@ -117,6 +117,7 @@ private:
 	int send_fd_;
 	std::map<int, int> active_receive_fds_;
 	std::map<int, int> last_active_receive_fds_;
+	std::chrono::steady_clock::time_point last_outq_metric_time_{std::chrono::steady_clock::now()};
 
 	union
 	{

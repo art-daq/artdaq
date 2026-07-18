@@ -54,6 +54,7 @@ cet_build_plugin(RootDAQOutMF art::module
   LIBRARIES REG
   artdaq::RootDAQOutput
   artdaq::ArtModules
+  artdaq_plugin_types::ArtdaqRunInfoService
   TRACE::MF
     art_root_io::detail
     art_root_io::art_root_io
@@ -126,6 +127,21 @@ cet_make_library(SOURCE
   artdaq_plugin_types::ArtdaqSharedMemoryService
   artdaq::DAQdata
   art::Framework_Services_Registry
+)
+
+cet_make_library(LIBRARY_NAME ArtdaqRunInfoService INTERFACE
+  EXPORT_SET AMPluginTypes
+  SOURCE ArtdaqRunInfoServiceInterface.h
+  LIBRARIES INTERFACE
+  canvas::canvas
+  art_plugin_types::serviceDeclaration
+)
+
+cet_build_plugin(ArtdaqRunInfoService art::service
+  LIBRARIES PRIVATE
+  artdaq_plugin_types::ArtdaqRunInfoService
+  fhiclcpp::fhiclcpp
+  TRACE::MF
 )
 
 cet_make_library(LIBRARY_NAME ArtdaqFragmentNamingService INTERFACE
