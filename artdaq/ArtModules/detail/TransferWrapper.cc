@@ -146,9 +146,9 @@ artdaq::FragmentPtrs artdaq::TransferWrapper::receiveMessage()
 					{
 						suffix = "-rd";
 					}
-					TLOG(TLVL_INFO) << "Received " << cntr << suffix << " event, "
-					                << "seqID == " << fragmentPtr->sequenceID()
-					                << ", type == " << fragmentPtr->typeString();
+					TLOG(TLVL_DEBUG + 32) << "Received " << cntr << suffix << " event, "
+					                      << "seqID == " << fragmentPtr->sequenceID()
+					                      << ", type == " << fragmentPtr->typeString();
 					last_received_data_ = std::chrono::steady_clock::now();
 					continue;
 				}
