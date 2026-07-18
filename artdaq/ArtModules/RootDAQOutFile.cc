@@ -61,6 +61,7 @@
 #include <fcntl.h>        // posix_fadvise POSIX_FADV_DONTNEED
 #include <sys/sysinfo.h>  // sysinfo(sysinfo*)
 #include <algorithm>
+#include <fstream>  // /proc/meminfo
 #include <utility>
 #include <vector>
 
@@ -425,13 +426,40 @@ RootDAQOutFile::RootDAQOutFile(OutputModule* om,
 
 art::RootDAQOutFile::~RootDAQOutFile()
 {
-	struct sysinfo info;
-	int sts = sysinfo(&info);
-	auto free_percent = static_cast<unsigned>(info.freeram * 100 / info.totalram);
-	auto free_MB = static_cast<unsigned>(info.freeram * info.mem_unit >> 20);                 // round down (1024.9 => 1024 MB)
-	TRACE(TLVL_DEBUG + 32, "~RootDAQOutFile free %%%u %.1fMB (%u) buffers=%fGB mem_unit=%u",  // NOLINT
-	      free_percent, static_cast<float>(info.freeram * info.mem_unit / (1024 * 1024.0)),
-	      free_MB, static_cast<float>(info.bufferram * info.mem_unit / (1024 * 1024 * 1024.0)), info.mem_unit);
+	// Use MemAvailable from /proc/meminfo (includes reclaimable page cache)
+	uint64_t available_kB = 0;
+	uint64_t total_kB = 0;
+	std::ifstream proc_meminfo("/proc/meminfo");
+	if (proc_meminfo.is_open())
+	{
+		std::string line;
+		while (std::getline(proc_meminfo, line))
+		{
+			if (line.compare(0, 13, "MemAvailable:") == 0)
+			{
+				std::sscanf(line.c_str(), "MemAvailable: %lu", &available_kB);
+			}
+			else if (line.compare(0, 9, "MemTotal:") == 0)
+			{
+				std::sscanf(line.c_str(), "MemTotal: %lu", &total_kB);
+			}
+		}
+	}
+	if (total_kB == 0)
+	{
+		// Fallback to sysinfo (misses cached/reclaimable pages)
+		struct sysinfo info;
+		if (sysinfo(&info) == 0)
+		{
+			available_kB = (info.freeram + info.bufferram) * info.mem_unit / 1024;
+			total_kB = info.totalram * info.mem_unit / 1024;
+		}
+	}
+	auto free_percent = total_kB > 0 ? static_cast<unsigned>(available_kB * 100 / total_kB) : 0u;
+	auto free_MB = static_cast<unsigned>(available_kB / 1024);
+	TRACE(TLVL_DEBUG + 32, "~RootDAQOutFile available %%%u %uMB",  // NOLINT
+	      free_percent, free_MB);
+	int sts = 0;
 	if (free_percent < freePercent_ || free_MB < freeMB_)
 	{
 		TLOG(TLVL_DEBUG + 32) << "RootDAQOutFile Flush/DONTNEED";
