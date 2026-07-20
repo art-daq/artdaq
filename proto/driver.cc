@@ -257,10 +257,11 @@ template<typename B, typename D>
 std::unique_ptr<D>
 dynamic_unique_ptr_cast(std::unique_ptr<B>& p)
 {
-	D* result = dynamic_cast<D*>(p.release());
+	D* result = dynamic_cast<D*>(p.get());
 
 	if (result)
 	{
+		p.release();
 		return std::unique_ptr<D>(result);
 	}
 	return nullptr;
