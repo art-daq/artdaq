@@ -21,6 +21,8 @@ The _artdaq_ suite consists of the following packages:
 
 This package contains the implementations for the applications and data transfer protocol that form the backbone of the artdaq framework. It also contains several useful executables that can be used to test and debug _artdaq_ systems.
 
+SQA testing documentation (test plan, test cases, and release result recording procedure) is maintained in `doc/SQA_Testing.rst`.
+
 ## Basic operation (SQA)
 
 For first-time setup and a complete walk-through of downloading, building, and running a working system, use the [artdaq-demo](https://art-daq.github.io/artdaq_doxygen/artdaq-demo) instructions. Those instructions remain the recommended "getting started" path for basic _artdaq_ operation.
