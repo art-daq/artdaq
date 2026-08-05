@@ -31,6 +31,7 @@
 #include "art_root_io/setup.h"
 #include "canvas/Persistency/Provenance/ProductTables.h"
 #include "canvas/Utilities/Exception.h"
+#include "cetlib_except/exception.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/types/Atom.h"
 #include "fhiclcpp/types/ConfigurationTable.h"
@@ -433,12 +434,56 @@ private:
 	string summaryDir_;
 	size_t filesOpenedInRun_{0};
 	size_t filesClosedInRun_{0};
+	// Shared %# sequence counter across all OutputFileBundle instances.
+	// Key = intermediate filename with sentinel in place of the index.
+	std::map<std::string, size_t> sharedFileIndex_;
 	ProductDescriptions productsToProduce_{};
 	ProductTables producedResultsProducts_{ProductTables::invalid()};
 	RPManager rpm_;
 };
 
-RootDAQOutMF::~RootDAQOutMF() = default;
+RootDAQOutMF::~RootDAQOutMF()
+{
+	TLOG(TLVL_INFO) << "RootDAQOutMF DESTRUCTOR this=" << static_cast<void const*>(this)
+	                << " label=" << moduleLabel_
+	                << " filesOpenedInRun_=" << filesOpenedInRun_
+	                << " filesClosedInRun_=" << filesClosedInRun_
+	                << " activeFile=" << (activeFile_ ? "non-null" : "null")
+	                << " pendingFiles=" << pendingFiles_.size();
+
+	if (activeFile_)
+	{
+		TLOG(TLVL_WARNING) << "RootDAQOutMF DESTRUCTOR: active output file still present at destruction. "
+		                   << "This indicates shutdown before normal end-file finalization.";
+	}
+
+	// Best-effort fallback: if endJob is bypassed but destruction proceeds
+	// normally, close any pending files so metadata/trees are flushed.
+	// This must never throw from a destructor.
+	try
+	{
+		std::lock_guard sentry{mutex_};
+		while (!pendingFiles_.empty())
+		{
+			closePendingFile(pendingFiles_.front());
+			pendingFiles_.pop_front();
+		}
+	}
+	catch (cet::exception const& ex)
+	{
+		TLOG(TLVL_ERROR) << "RootDAQOutMF DESTRUCTOR: exception while closing pending files: "
+		                 << ex.what();
+	}
+	catch (std::exception const& ex)
+	{
+		TLOG(TLVL_ERROR) << "RootDAQOutMF DESTRUCTOR: std::exception while closing pending files: "
+		                 << ex.what();
+	}
+	catch (...)
+	{
+		TLOG(TLVL_ERROR) << "RootDAQOutMF DESTRUCTOR: unknown exception while closing pending files";
+	}
+}
 
 RootDAQOutMF::RootDAQOutMF(Parameters const& config)
     : OutputModule{
@@ -463,7 +508,8 @@ RootDAQOutMF::RootDAQOutMF(Parameters const& config)
     , summaryDir_{config().summaryDir()}
     , rpm_{config.get_PSet()}
 {
-	TLOG(TLVL_INFO) << "RootDAQOutMF_module (s124 version) CONSTRUCTOR Start";
+	TLOG(TLVL_INFO) << "RootDAQOutMF_module (s124 version) CONSTRUCTOR Start this=" << static_cast<void const*>(this)
+	                << " label=" << moduleLabel_;
 
 	if (maxOpenFiles_ == 0)
 	{
@@ -514,6 +560,9 @@ RootDAQOutMF::RootDAQOutMF(Parameters const& config)
 void RootDAQOutMF::openFile(FileBlock const& fb)
 {
 	std::lock_guard sentry{mutex_};
+	TLOG(TLVL_DEBUG) << __func__ << ": entered, isFileOpen=" << isFileOpen()
+	                 << ", pendingFiles=" << pendingFiles_.size()
+	                 << ", filesOpenedInRun_=" << filesOpenedInRun_;
 	// Note: The file block here refers to the currently open
 	//       input file, so we can find out about the available
 	//       products by looping over the branches of the input
@@ -524,6 +573,10 @@ void RootDAQOutMF::openFile(FileBlock const& fb)
 		closeOldestPendingFileIfNeeded();
 		doOpenFile();
 		respondToOpenInputFile(fb);
+	}
+	else
+	{
+		TLOG(TLVL_DEBUG) << __func__ << ": skipped doOpenFile because file already open";
 	}
 }
 
@@ -701,7 +754,11 @@ void RootDAQOutMF::writeFileFormatVersion()
 void RootDAQOutMF::writeFileIndex()
 {
 	std::lock_guard sentry{mutex_};
-	activeFile_->file->writeFileIndex();
+	// Intentionally deferred for RootDAQOutMF:
+	// events may still be routed to a pending file after finishEndFile().
+	// Writing the index here can therefore miss late events.  We write the
+	// FileIndex immediately before writeTTrees() when the pending file is
+	// actually being closed in closePendingFile().
 }
 
 void RootDAQOutMF::writeProcessConfigurationRegistry()
@@ -713,7 +770,11 @@ void RootDAQOutMF::writeProcessConfigurationRegistry()
 void RootDAQOutMF::writeProcessHistoryRegistry()
 {
 	std::lock_guard sentry{mutex_};
-	activeFile_->file->writeProcessHistoryRegistry();
+	// Intentionally deferred for RootDAQOutMF:
+	// events may still be routed to a pending file after finishEndFile().
+	// Writing ProcessHistory here can therefore miss entries needed by late
+	// events. We write ProcessHistory immediately before writeTTrees() when the
+	// pending file is actually being closed in closePendingFile().
 }
 
 void RootDAQOutMF::writeParameterSetRegistry()
@@ -758,14 +819,23 @@ void RootDAQOutMF::writeProductDependencies()
 void RootDAQOutMF::finishEndFile()
 {
 	std::lock_guard sentry{mutex_};
+	TLOG(TLVL_DEBUG) << __func__ << ": entered, isFileOpen=" << (activeFile_ != nullptr)
+	                 << ", pendingFiles before move=" << pendingFiles_.size()
+	                 << ", filesClosedInRun_=" << filesClosedInRun_;
 	string const tmpFileName{activeFile_->file->currentFileName()};
 
-	// Record that this file is closed in its stats, then rename it now.
-	// We rename before actually calling TFile::Close() so that the final
-	// name is established immediately (art calls lastClosedFileName()
-	// after this method returns).  On Linux, rename(2) is safe even
-	// while the file descriptor is still open.
-	lastClosedFileName_ = fileNameAtClose(activeFile_->fRenamer, tmpFileName);
+	// Record the close before computing the final name so the %# sequence
+	// advances the same way it does in RootDAQOut.
+	activeFile_->fstats.recordFileClose();
+
+	// Determine the final output file name now, but defer the actual rename
+	// until the file has been fully closed.
+	activeFile_->tmpFileName = tmpFileName;
+	lastClosedFileName_ = (filePattern_ == dev_null)
+	                          ? dev_null
+	                          : activeFile_->fRenamer.applySubstitutions(
+	                                filePattern_);
+
 	activeFile_->closedFileName = lastClosedFileName_;
 	TLOG(TLVL_INFO) << __func__ << ": Queued output file \"" << lastClosedFileName_
 	                << "\" for deferred TFile::Close() (pendingFiles will have "
@@ -862,6 +932,8 @@ void RootDAQOutMF::doOpenFile()
 	                                                dropMetaDataForDroppedData_);
 	activeFile_->fstats.recordFileOpen();
 	++filesOpenedInRun_;
+	TLOG(TLVL_DEBUG) << __func__ << ": filesOpenedInRun_ now " << filesOpenedInRun_
+	                 << ", metricMan=" << (metricMan ? "non-null" : "NULL");
 	if (metricMan)
 	{
 		metricMan->sendMetric("Output Files Opened", filesOpenedInRun_, "files", 3, artdaq::MetricMode::LastPoint | artdaq::MetricMode::Persist);
@@ -877,19 +949,28 @@ void RootDAQOutMF::closePendingFile(std::unique_ptr<OutputFileBundle>& bundle)
 		bundle->file->writeFileCatalogMetadata(
 		    bundle->fstats, lastFileCatalogMetadata_, lastSubRunMetadata_);
 	}
-	bundle->fstats.recordFileClose();
+	// ProcessHistory must be written at true close time so it captures all
+	// history information needed by late-routed events.
+	bundle->file->writeProcessHistoryRegistry();
+	// FileIndex must be written at true close time so it captures all events
+	// that may have been routed to this file while it was pending.
+	bundle->file->writeFileIndex();
 	bundle->file->writeTTrees();
 	// Destroying the RootDAQOutFile calls TFile::Close(), which flushes the
 	// ROOT key directory and closes the file descriptor.
 	TLOG(TLVL_INFO) << __func__ << ": Closing pending file (TFile::Close)";
+	bundle->file.reset();
+	bundle->closedFileName =
+	    fileNameAtClose(bundle->fRenamer, bundle->tmpFileName);
 	writeSummaryFile(summaryDir_, bundle->subrunStats, bundle->closedFileName);
 	++filesClosedInRun_;
+	TLOG(TLVL_DEBUG) << __func__ << ": filesClosedInRun_ now " << filesClosedInRun_
+	                 << ", metricMan=" << (metricMan ? "non-null" : "NULL");
 	if (metricMan)
 	{
 		metricMan->sendMetric("Last Closed Output File", bundle->closedFileName, "", 3, artdaq::MetricMode::LastPoint);
 		metricMan->sendMetric("Output Files Closed", filesClosedInRun_, "files", 3, artdaq::MetricMode::LastPoint | artdaq::MetricMode::Persist);
 	}
-	bundle->file.reset();
 	bundle.reset();
 }
 
@@ -1071,7 +1152,75 @@ string
 RootDAQOutMF::fileNameAtClose(PostCloseFileRenamer& renamer,
                               string const& currentFileName)
 {
-	return (filePattern_ == dev_null) ? dev_null : renamer.maybeRenameFile(currentFileName, filePattern_);
+	if (filePattern_ == dev_null) return dev_null;
+
+	// We need a shared %# index counter across all OutputFileBundle instances,
+	// because multiple bundles may write files with the same %r/%s values
+	// (same subrun), causing independent per-bundle counters to produce the
+	// same destination filename.
+	//
+	// Strategy:
+	//  1. Replace "%N#" in the pattern with a sentinel literal that the renamer
+	//     will pass through unchanged (it only substitutes %X tokens).
+	//  2. Let the bundle's renamer resolve %r, %s, timestamps, etc., producing
+	//     an intermediate filename that contains the sentinel.
+	//  3. Use that intermediate name as the key into the module-level shared
+	//     counter, increment it, then rename to the final destination.
+	static const boost::regex kSeqRe{R"(%([0-9]*)#)"};
+	static const std::string kSentinel{"__SEQIDX__"};
+
+	bool const hasSeq = boost::regex_search(filePattern_, kSeqRe);
+	if (!hasSeq)
+	{
+		// No %# in pattern — delegate directly to the bundle's renamer.
+		return renamer.maybeRenameFile(currentFileName, filePattern_);
+	}
+
+	// Extract optional width from the first %N# occurrence (default 3).
+	unsigned width = 3;
+	{
+		boost::smatch m;
+		if (boost::regex_search(filePattern_, m, boost::regex{R"(%([0-9]+)#)"}))
+		{
+			width = static_cast<unsigned>(std::stoul(m[1].str()));
+		}
+	}
+
+	// Build a modified pattern with %N# replaced by the sentinel literal.
+	std::string const sentinelPattern =
+	    boost::regex_replace(filePattern_, kSeqRe, kSentinel);
+
+	// Rename tmpFile → intermediate path (sentinel still present in name).
+	// This resolves %r, %s, timestamps, etc. via the bundle's renamer.
+	std::string const intermediateName =
+	    renamer.maybeRenameFile(currentFileName, sentinelPattern);
+
+	// Assign the next unique index for this base name across all bundles.
+	size_t const idx = ++sharedFileIndex_[intermediateName];
+	if (idx > 1)
+	{
+		TLOG(TLVL_INFO) << __func__ << ": shared %# index=" << idx
+		                << " for base pattern \"" << intermediateName
+		                << "\" (multiple bundles had the same run/subrun)";
+	}
+
+	// Build final name by replacing the sentinel with the formatted index.
+	std::ostringstream oss;
+	oss << std::setfill('0') << std::setw(width) << idx;
+	std::string const finalName =
+	    boost::regex_replace(intermediateName, boost::regex{kSentinel}, oss.str());
+
+	// Rename intermediate → final (single atomic rename on same filesystem).
+	std::error_code ec;
+	std::filesystem::rename(intermediateName, finalName, ec);
+	if (ec)
+	{
+		// Cross-filesystem fallback: copy then remove.
+		std::filesystem::copy_file(intermediateName, finalName,
+		                           std::filesystem::copy_options::overwrite_existing);
+		std::filesystem::remove(intermediateName);
+	}
+	return finalName;
 }
 
 string const&
@@ -1127,8 +1276,6 @@ void RootDAQOutMF::endSubRun(SubRunPrincipal const& srp)
 void RootDAQOutMF::beginRun(RunPrincipal const& rp)
 {
 	std::lock_guard sentry{mutex_};
-	filesOpenedInRun_ = 0;
-	filesClosedInRun_ = 0;
 	rpm_.for_each_RPWorker([&rp](RPWorker& w) { w.rp().doBeginRun(rp); });
 }
 

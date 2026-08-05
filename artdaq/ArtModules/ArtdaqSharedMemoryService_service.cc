@@ -298,7 +298,7 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 			}
 			if (current_subrun_ != 0 && first_sr <= current_subrun_)
 			{
-				if (artdaq::Fragment::isUserFragmentType(first_type) || first_type == artdaq::Fragment::DataFragmentType)
+				if (artdaq::Fragment::isUserFragmentType(first_type) || first_type == artdaq::Fragment::ContainerFragmentType || first_type == artdaq::Fragment::EmptyFragmentType || first_type == artdaq::Fragment::DataFragmentType)
 				{
 					TLOG(TLVL_RECEIVEEVENT) << "Returning Fragment due to subrun match";
 					output_event = event_ordering_.front();
@@ -332,7 +332,7 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 
 			if (current_subrun_ == 0)
 			{
-				if (artdaq::Fragment::isUserFragmentType(first_type) || first_type == artdaq::Fragment::DataFragmentType)
+				if (artdaq::Fragment::isUserFragmentType(first_type) || first_type == artdaq::Fragment::ContainerFragmentType || first_type == artdaq::Fragment::EmptyFragmentType || first_type == artdaq::Fragment::DataFragmentType)
 				{
 					TLOG(TLVL_RECEIVEEVENT) << "Returning Fragment due to unset subrun";
 					output_event = event_ordering_.front();
@@ -390,6 +390,10 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 				TLOG(TLVL_WARNING) << "ArtdaqEvent with run = " << next_event->header->run_id << ", subrun = " << next_event->header->subrun_id << ", seq = " << next_event->header->sequence_id << " (32b mask " << seq_mask << "), and type " << static_cast<int>(next_event->FirstFragmentType()) << " is from a previous subrun! (current=" << current_subrun_ << ")";
 			}
 			event_ordering_.push_back(next_event);
+			if (event_ordering_.size() > 1)
+			{
+				TLOG(TLVL_RECEIVEEVENT_2) << "event_ordering_ size is now " << event_ordering_.size();
+			}
 			event_ordering_.sort();
 		}
 	}
