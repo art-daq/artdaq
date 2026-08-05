@@ -51,3 +51,14 @@ Common operational errors are usually visible in process logs:
 * **Art process startup/runtime failures**  
   Symptoms include repeated restart attempts or "art processes have died" messages in logs.  
   Action: check PMT/MessageFacility logs for the first error, correct the underlying configuration/runtime issue, and restart.
+  
+## Software quality assurance (SQA)
+
+_artdaq_ is maintained under the lab software quality assurance program and follows documented procedures for how software is designed, developed, reviewed, tested, and maintained.
+
+For SQA process details, see:
+
+* [artdaq Wiki](https://github.com/art-daq/artdaq/wiki)
+* [Fermilab Software QA working documents (SharePoint)](https://fermipoint.fnal.gov/organization/cs/ocio/opm/QA/SoftwareQA/WorkingDocuments/Shared%20Documents/Forms/AllItems.aspx)
+
+As _art_ SQA documentation is finalized, _artdaq_ should review and adopt those materials where applicable, and keep references current in the wiki and project documentation.

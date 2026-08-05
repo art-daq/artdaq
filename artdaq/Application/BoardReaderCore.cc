@@ -193,7 +193,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 	rt_priority_ = fr_pset.get<int>("rt_priority", 0);
 
 	// fetch the monitoring parameters and create the MonitoredQuantity instances
-	statsHelper_.createCollectors(fr_pset, 100, 30.0, 60.0, FRAGMENTS_PER_READ_STAT_KEY);
+	statsHelper_.createCollectors(fr_pset, 100, 30.0, 60.0, FRAGMENTS_PROCESSED_STAT_KEY);
 
 	// check if we should skip the sequence ID test...
 	skip_seqId_test_ = (fr_pset.get<bool>("skip_seqID_test", false) || generator_ptr_->fragmentIDs().size() > 1 || fragment_buffer_ptr_->request_mode() != RequestMode::Ignored);
@@ -375,21 +375,36 @@ void artdaq::BoardReaderCore::receive_fragments()
 		after_input = artdaq::MonitoredQuantity::getCurrentTime();
 
 		if (!receiver_thread_active_) { break; }
-		statsHelper_.addSample(FRAGMENTS_PER_READ_STAT_KEY, frags.size());
 
-		if (frags.size() > 0)
+		size_t fragments_processed = frags.size();
+		if (fragments_processed > 0)
 		{
 			TLOG(TLVL_DEBUG + 35) << "receive_fragments AddFragmentsToBuffer start";
 			fragment_buffer_ptr_->AddFragmentsToBuffer(std::move(frags));
 			TLOG(TLVL_DEBUG + 35) << "receive_fragments AddFragmentsToBuffer done";
+
+			after_buffer = artdaq::MonitoredQuantity::getCurrentTime();
+
+			double input_wait_time = after_input - startTime;
+			double buffer_wait_time = after_buffer - after_input;
+			TLOG(TLVL_DEBUG + 34) << "receive_fragments INPUT_WAIT=" << input_wait_time << ", BUFFER_WAIT=" << buffer_wait_time << ", frags.size()=" << fragments_processed;
+			statsHelper_.addSample(INPUT_WAIT_STAT_KEY, input_wait_time);
+			TLOG(TLVL_DEBUG + 34) << "receive_fragments input wait metric=" << input_wait_time / static_cast<double>(fragments_processed);
+			metricMan->sendMetric("Input Wait Time", input_wait_time / static_cast<double>(fragments_processed), "seconds/fragment", 3, MetricMode::Average | MetricMode::Accumulate | MetricMode::Maximum | MetricMode::Minimum);
+			statsHelper_.addSample(BUFFER_WAIT_STAT_KEY, buffer_wait_time);
+			TLOG(TLVL_DEBUG + 34) << "receive_fragments buffer wait metric=" << buffer_wait_time / static_cast<double>(fragments_processed);
+			metricMan->sendMetric("Buffer Wait Time", buffer_wait_time / static_cast<double>(fragments_processed), "seconds/fragment", 3, MetricMode::Average | MetricMode::Accumulate | MetricMode::Maximum | MetricMode::Minimum);
+			metricMan->sendMetric("Frags Per Read", fragments_processed, "fragments/read", 4, MetricMode::Average | MetricMode::Maximum);
 		}
 
-		after_buffer = artdaq::MonitoredQuantity::getCurrentTime();
-		TLOG(TLVL_DEBUG + 34) << "receive_fragments INPUT_WAIT=" << (after_input - startTime) << ", BUFFER_WAIT=" << (after_buffer - after_input);
-		statsHelper_.addSample(INPUT_WAIT_STAT_KEY, after_input - startTime);
-		statsHelper_.addSample(BUFFER_WAIT_STAT_KEY, after_buffer - after_input);
-		if (statsHelper_.statsRollingWindowHasMoved()) { sendMetrics_(); }
+		statsHelper_.addSample(FRAGMENTS_PER_READ_STAT_KEY, fragments_processed);
 		frags.clear();
+
+		bool readyToReport = statsHelper_.readyToReport();
+		if (readyToReport)
+		{
+			TLOG(TLVL_INFO) << buildStatisticsString_();
+		}
 	}
 
 	// 11-May-2015, KAB: call MetricManager::do_stop whenever we exit the
@@ -477,8 +492,12 @@ void artdaq::BoardReaderCore::send_fragments()
 
 		TLOG(TLVL_DEBUG + 34) << "send_fragments REQUEST_WAIT=" << delta_time;
 		statsHelper_.addSample(REQUEST_WAIT_STAT_KEY, delta_time);
+		metricMan->sendMetric("Avg Request Response Wait Time", delta_time, "seconds/fragment", 3, MetricMode::Average);
 
 		if (!sender_thread_active_) { break; }
+
+		size_t counter = 0;
+		size_t total_bytes = 0;
 
 		for (auto& fragPtr : frags)
 		{
@@ -492,20 +511,22 @@ void artdaq::BoardReaderCore::send_fragments()
 			{
 				TLOG(TLVL_DEBUG + 32) << "Received first Fragment from Fragment Generator, sequence ID " << fragPtr->sequenceID() << ", size = " << fragPtr->sizeBytes() << " bytes.";
 			}
+			counter++;
+			total_bytes += fragPtr->sizeBytes();
 
 			if (artdaq::Fragment::isBroadcastFragmentType(fragPtr->type()))
 			{
 				// Just broadcast any system Fragments in the output
 				artdaq::Fragment::sequence_id_t sequence_id = fragPtr->sequenceID();
 				statsHelper_.addSample(FRAGMENTS_PROCESSED_STAT_KEY, fragPtr->sizeBytes());
-
 				startTime = artdaq::MonitoredQuantity::getCurrentTime();
 				TLOG(TLVL_DEBUG + 36) << "send_fragments seq=" << sequence_id << " sendFragment start";
 				auto res = sender_ptr_->sendFragment(std::move(*fragPtr));
 				TLOG(TLVL_DEBUG + 36) << "send_fragments seq=" << sequence_id << " sendFragment done (dest=" << res.first << ", sts=" << TransferInterface::CopyStatusToString(res.second) << ")";
 				++fragment_count_;
-				statsHelper_.addSample(OUTPUT_WAIT_STAT_KEY,
-				                       artdaq::MonitoredQuantity::getCurrentTime() - startTime);
+				auto output_wait = artdaq::MonitoredQuantity::getCurrentTime() - startTime;
+				statsHelper_.addSample(OUTPUT_WAIT_STAT_KEY, output_wait);
+				metricMan->sendMetric("Output Wait Time", output_wait, "seconds/fragment", 3, MetricMode::Average | MetricMode::Accumulate | MetricMode::Maximum | MetricMode::Minimum);
 				continue;
 			}
 
@@ -539,8 +560,9 @@ void artdaq::BoardReaderCore::send_fragments()
 			}
 			TLOG(TLVL_DEBUG + 36) << "send_fragments seq=" << sequence_id << " sendFragment done (dest=" << res.first << ", sts=" << TransferInterface::CopyStatusToString(res.second) << ")";
 			++fragment_count_;
-			statsHelper_.addSample(OUTPUT_WAIT_STAT_KEY,
-			                       artdaq::MonitoredQuantity::getCurrentTime() - startTime);
+			auto output_wait = artdaq::MonitoredQuantity::getCurrentTime() - startTime;
+			statsHelper_.addSample(OUTPUT_WAIT_STAT_KEY, output_wait);
+			metricMan->sendMetric("Output Wait Time", output_wait, "seconds/fragment", 3, MetricMode::Average | MetricMode::Accumulate | MetricMode::Maximum | MetricMode::Minimum);
 
 			bool readyToReport = statsHelper_.readyToReport();
 			if (readyToReport)
@@ -556,7 +578,15 @@ void artdaq::BoardReaderCore::send_fragments()
 			            : "Sending fragment " + std::to_string(fragment_count_))
 			    << " with SeqID " << sequence_id << ".";
 		}
-		if (statsHelper_.statsRollingWindowHasMoved()) { sendMetrics_(); }
+
+		if (counter > 0)
+		{
+			metricMan->sendMetric("Fragment Count", fragment_count_, "fragments", 1, MetricMode::LastPoint);
+			metricMan->sendMetric("Fragment Rate", counter, "fragments", 1, MetricMode::Rate);
+			metricMan->sendMetric("Fragment Size", total_bytes / counter, "bytes/fragment", 2, MetricMode::Average | MetricMode::Accumulate | MetricMode::Maximum | MetricMode::Minimum);
+			metricMan->sendMetric("Data Rate", total_bytes, "bytes", 2, MetricMode::Rate);
+		}
+
 		frags.clear();
 		std::this_thread::yield();
 	}
@@ -713,57 +743,4 @@ std::string artdaq::BoardReaderCore::buildStatisticsString_()
 	oss << fragment_buffer_ptr_->getStatReport();
 
 	return oss.str();
-}
-
-void artdaq::BoardReaderCore::sendMetrics_()
-{
-	// TLOG(TLVL_DEBUG + 32) << "Sending metrics " << __LINE__ ;
-	double fragmentCount = 1.0;
-	artdaq::MonitoredQuantityPtr mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(FRAGMENTS_PROCESSED_STAT_KEY);
-	if (mqPtr.get() != nullptr)
-	{
-		artdaq::MonitoredQuantityStats stats;
-		mqPtr->getStats(stats);
-		fragmentCount = std::max(double(stats.recentSampleCount), 1.0);
-		metricMan->sendMetric("Fragment Count", stats.fullSampleCount, "fragments", 1, MetricMode::LastPoint);
-		metricMan->sendMetric("Fragment Rate", stats.recentSampleRate, "fragments/sec", 1, MetricMode::Average);
-		metricMan->sendMetric("Average Fragment Size", stats.recentValueAverage, "bytes/fragment", 2, MetricMode::Average);
-		metricMan->sendMetric("Data Rate", stats.recentValueRate, "bytes/sec", 2, MetricMode::Average);
-	}
-
-	// 31-Dec-2014, KAB - Just a reminder that using "fragmentCount" in the
-	// denominator of the calculations below is important because the way that
-	// the accumulation of these statistics is done is not fragment-by-fragment
-	// but read-by-read (where each read can contain multiple fragments).
-	// 29-Aug-2016, KAB - BRSYNC_WAIT and OUTPUT_WAIT are now done fragment-by-
-	// fragment, but we'll leave the calculation the same. (The alternative
-	// would be to use recentValueAverage().)
-
-	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(INPUT_WAIT_STAT_KEY);
-	if (mqPtr.get() != nullptr)
-	{
-		metricMan->sendMetric("Avg Input Wait Time", (mqPtr->getRecentValueSum() / fragmentCount), "seconds/fragment", 3, MetricMode::Average);
-	}
-
-	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(BUFFER_WAIT_STAT_KEY);
-	if (mqPtr.get() != 0)
-	{
-		metricMan->sendMetric("Avg Buffer Wait Time", (mqPtr->getRecentValueSum() / fragmentCount), "seconds/fragment", 3, MetricMode::Average);
-	}
-	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(REQUEST_WAIT_STAT_KEY);
-	if (mqPtr.get() != 0)
-	{
-		metricMan->sendMetric("Avg Request Response Wait Time", (mqPtr->getRecentValueSum() / fragmentCount), "seconds/fragment", 3, MetricMode::Average);
-	}
-	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(OUTPUT_WAIT_STAT_KEY);
-	if (mqPtr.get() != nullptr)
-	{
-		metricMan->sendMetric("Avg Output Wait Time", (mqPtr->getRecentValueSum() / fragmentCount), "seconds/fragment", 3, MetricMode::Average);
-	}
-
-	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(FRAGMENTS_PER_READ_STAT_KEY);
-	if (mqPtr.get() != nullptr)
-	{
-		metricMan->sendMetric("Avg Frags Per Read", mqPtr->getRecentValueAverage(), "fragments/read", 4, MetricMode::Average);
-	}
 }
