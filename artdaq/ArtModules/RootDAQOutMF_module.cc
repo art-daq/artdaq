@@ -4,6 +4,7 @@
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_RootDAQOutMF").c_str()
 
+#include "artdaq/ArtModules/ArtdaqRunInfoServiceInterface.h"
 #include "artdaq/ArtModules/ArtdaqSharedMemoryServiceInterface.h"
 #include "artdaq/ArtModules/RootDAQOutFile.h"
 
@@ -41,12 +42,9 @@
 #include "fhiclcpp/types/TableFragment.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
-#include <fcntl.h>
-#include <sys/file.h>
 #include <unistd.h>
+
 #include <algorithm>
-#include <cerrno>
-#include <cstring>
 #include <deque>
 #include <filesystem>
 #include <iomanip>
@@ -115,87 +113,6 @@ struct SubrunStats
 	art::EventNumber_t lastEvent{0};
 };
 
-static void writeSummaryFile(
-    std::string const& summaryDir,
-    std::map<art::SubRunID, SubrunStats> const& subrunStats,
-    std::string const& closedFileName)
-{
-	if (summaryDir.empty() || subrunStats.empty()) { return; }
-
-	std::string const outputFile = std::filesystem::path(closedFileName).filename().string();
-
-	// Group rows by run number so that each run gets its own CSV file,
-	// even when an output file spans multiple runs.
-	std::map<art::RunNumber_t, std::ostringstream> runContents;
-	for (auto const& [srid, stats] : subrunStats)
-	{
-		runContents[srid.run()]
-		    << srid.run()
-		    << "," << srid.subRun()
-		    << "," << stats.nEvents
-		    << "," << stats.firstEvent
-		    << "," << stats.lastEvent
-		    << "," << outputFile
-		    << "\n";
-	}
-
-	// One CSV file per run, appended — matches CFODataReceiver convention
-	for (auto const& [run, contentStream] : runContents)
-	{
-		std::ostringstream fname;
-		fname << summaryDir;
-		if (summaryDir.back() != '/') { fname << '/'; }
-		fname << "subrun_record_run" << std::setw(6) << std::setfill('0') << run << ".csv";
-
-		int fd = open(fname.str().c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
-		if (fd < 0)
-		{
-			TLOG(TLVL_WARNING) << "writeSummaryFile: could not open \"" << fname.str() << "\" for writing: " << strerror(errno);
-			continue;
-		}
-
-		flock(fd, LOCK_EX);
-
-		std::string const rows = contentStream.str();
-		std::string buf;
-		if (lseek(fd, 0, SEEK_END) == 0)
-		{
-			buf = "run,subrun,n_events,first_event,last_event,output_file\n";
-		}
-		buf += rows;
-
-		// Loop to handle partial writes and EINTR
-		if (buf.size() > static_cast<size_t>(std::numeric_limits<ssize_t>::max()))
-		{
-			TLOG(TLVL_ERROR) << "writeSummaryFile: buffer too large (" << buf.size() << " bytes) to write to \""
-			                 << fname.str() << "\"";
-		}
-		else
-		{
-			ssize_t total = 0;
-			auto remaining = static_cast<ssize_t>(buf.size());
-			while (remaining > 0)
-			{
-				ssize_t written = ::write(fd, buf.c_str() + total, static_cast<size_t>(remaining));
-				if (written < 0)
-				{
-					if (errno == EINTR) { continue; }
-					TLOG(TLVL_ERROR) << "writeSummaryFile: write error to \"" << fname.str() << "\": " << strerror(errno);
-					break;
-				}
-				total += written;
-				remaining -= written;
-			}
-		}
-
-		flock(fd, LOCK_UN);
-		close(fd);
-
-		size_t const rowsWritten = static_cast<size_t>(std::count(rows.begin(), rows.end(), '\n'));
-		TLOG(TLVL_DEBUG) << "writeSummaryFile: appended " << rowsWritten
-		                 << " subrun row(s) to \"" << fname.str() << "\"";
-	}
-}
 }  // namespace
 
 namespace art {
@@ -265,7 +182,17 @@ public:
 			fhicl::Sequence<fhicl::Table<NewSubStringForApp>> replacementList{fhicl::Name("replacementList")};
 		};
 		fhicl::OptionalSequence<fhicl::Table<FileNameSubstitution>> fileNameSubstitutions{Name("fileNameSubstitutions")};
-		Atom<string> summaryDir{Name("subrunRecordDir"), Comment("Directory for per-file CSV subrun record (subrun/event statistics). Empty = disabled."), ""};
+		Atom<string> datastream{Name("datastream"),
+		    Comment("Datastream label included in summary records written by\n"
+		            "ArtdaqRunInfoServiceInterface (e.g. \"triggered\", \"lumistream\").\n"
+		            "The default implementation (ArtdaqRunInfoService) writes CSV files;\n"
+		            "experiments can provide their own (e.g. Postgres).\n"
+		            "Enable the service in FHiCL:\n"
+		            "  services.ArtdaqRunInfoServiceInterface: {\n"
+		            "    service_provider: \"ArtdaqRunInfoService\"\n"
+		            "    summaryDir: \"/path/to/output\"\n"
+		            "  }"),
+		    "default"};
 
 		Config()
 		{
@@ -431,7 +358,8 @@ private:
 	// ParameterSet information in the downstream file, such as when mixing.
 	bool writeParameterSets_;
 	ClosingCriteria fileProperties_;
-	string summaryDir_;
+	string datastream_;
+	ArtdaqRunInfoServiceInterface* runInfoService_{nullptr};
 	size_t filesOpenedInRun_{0};
 	size_t filesClosedInRun_{0};
 	// Shared %# sequence counter across all OutputFileBundle instances.
@@ -505,7 +433,7 @@ RootDAQOutMF::RootDAQOutMF(Parameters const& config)
     , dropMetaDataForDroppedData_{config().dropMetaDataForDroppedData()}
     , writeParameterSets_{config().writeParameterSets()}
     , fileProperties_{config().fileProperties()}
-    , summaryDir_{config().summaryDir()}
+    , datastream_{config().datastream()}
     , rpm_{config.get_PSet()}
 {
 	TLOG(TLVL_INFO) << "RootDAQOutMF_module (s124 version) CONSTRUCTOR Start this=" << static_cast<void const*>(this)
@@ -554,6 +482,20 @@ RootDAQOutMF::RootDAQOutMF(Parameters const& config)
 		    << "Check your experiment's policy on this issue to avoid future "
 		       "problems\n"
 		    << "with analysis reproducibility.\n";
+	}
+
+	// Probe for ArtdaqRunInfoServiceInterface — writes per-subrun and per-file
+	// summary records at file close.  See the "datastream" Config comment above.
+	try
+	{
+		art::ServiceHandle<ArtdaqRunInfoServiceInterface> svc;
+		runInfoService_ = &*svc;
+		TLOG(TLVL_INFO) << "RootDAQOutMF: ArtdaqRunInfoServiceInterface available";
+	}
+	catch (art::Exception const&)
+	{
+		runInfoService_ = nullptr;
+		TLOG(TLVL_INFO) << "RootDAQOutMF: ArtdaqRunInfoServiceInterface not configured, summary records disabled";
 	}
 }
 
@@ -962,7 +904,39 @@ void RootDAQOutMF::closePendingFile(std::unique_ptr<OutputFileBundle>& bundle)
 	bundle->file.reset();
 	bundle->closedFileName =
 	    fileNameAtClose(bundle->fRenamer, bundle->tmpFileName);
-	writeSummaryFile(summaryDir_, bundle->subrunStats, bundle->closedFileName);
+	if (runInfoService_ && !bundle->subrunStats.empty())
+	{
+		for (auto const& [srid, stats] : bundle->subrunStats)
+		{
+			runInfoService_->addSubrunRecord(
+			    srid.run(), srid.subRun(),
+			    stats.nEvents, stats.firstEvent, stats.lastEvent,
+			    datastream_);
+		}
+
+		art::SubRunNumber_t firstSubrun = bundle->subrunStats.begin()->first.subRun();
+		art::SubRunNumber_t lastSubrun  = bundle->subrunStats.rbegin()->first.subRun();
+		size_t totalEvents = 0;
+		for (auto const& [_, stats] : bundle->subrunStats)
+			totalEvents += stats.nEvents;
+
+		size_t fileSize = 0;
+		std::error_code ec;
+		auto sz = std::filesystem::file_size(bundle->closedFileName, ec);
+		if (!ec) fileSize = static_cast<size_t>(sz);
+
+		art::RunNumber_t run = bundle->subrunStats.begin()->first.run();
+
+		std::string dirPath = std::filesystem::path(bundle->closedFileName).parent_path().string();
+		char hostname[256] = {};
+		gethostname(hostname, sizeof(hostname) - 1);
+		std::string metadata = "{\"path\":\"" + dirPath + "\",\"hostname\":\"" + hostname + "\"}";
+
+		runInfoService_->addFileSummary(
+		    bundle->closedFileName, run,
+		    firstSubrun, lastSubrun, totalEvents, fileSize,
+		    metadata, datastream_);
+	}
 	++filesClosedInRun_;
 	TLOG(TLVL_DEBUG) << __func__ << ": filesClosedInRun_ now " << filesClosedInRun_
 	                 << ", metricMan=" << (metricMan ? "non-null" : "NULL");
