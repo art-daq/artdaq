@@ -7,6 +7,7 @@
 #include "artdaq/Application/BoardReaderCore.hh"
 #include "artdaq/Application/TaskType.hh"
 #include "artdaq/Generators/makeCommandableFragmentGenerator.hh"
+#include "artdaq-core/Plugins/makeFragmentGenerator.hh"
 
 #include "cetlib_except/exception.h"
 #include "fhiclcpp/ParameterSet.h"
@@ -60,6 +61,8 @@ artdaq::BoardReaderCore::~BoardReaderCore()
 
 bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64_t /*unused*/, uint64_t /*unused*/)
 {
+	last_init_error_.clear();
+
 	TLOG(TLVL_DEBUG + 32) << "initialize method called with "
 	                      << "ParameterSet = \"" << pset.to_string() << "\".";
 
@@ -140,17 +143,38 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 
 	try
 	{
-		generator_ptr_ = artdaq::makeCommandableFragmentGenerator(frag_gen_name, fr_pset);
+		auto gen = artdaq::makeFragmentGenerator(frag_gen_name, fr_pset);
+		auto* commandable = dynamic_cast<artdaq::CommandableFragmentGenerator*>(gen.get());
+		if (commandable)
+		{
+			gen.release();
+			generator_ptr_.reset(commandable);
+		}
+		else
+		{
+			TLOG(TLVL_ERROR) << "Generator \"" << frag_gen_name
+			                 << "\" is not a CommandableFragmentGenerator and cannot be used in a BoardReader. "
+			                 << "Use DEFINE_ARTDAQ_COMMANDABLE_GENERATOR for BoardReader-compatible generators.";
+			return false;
+		}
 	}
 	catch (...)
 	{
+		std::string error_detail;
+		try { throw; }
+		catch (const std::exception& e) { error_detail = e.what(); }
+		catch (...) { error_detail = "unknown exception type"; }
+
 		std::stringstream exception_string;
 		exception_string << "Exception thrown during initialization of fragment generator of type \""
 		                 << frag_gen_name << "\"";
+		if (!error_detail.empty()) { exception_string << ": " << error_detail; }
+
+		last_init_error_ = exception_string.str();
 
 		TLOG(TLVL_DEBUG + 32) << "FHiCL parameter set used to initialize the fragment generator which threw an exception: " << fr_pset.to_string();
 
-		ExceptionHandler(ExceptionHandlerRethrow::no, exception_string.str());
+		TLOG(TLVL_ERROR) << exception_string.str();
 
 		return false;
 	}
@@ -161,10 +185,18 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 	}
 	catch (...)
 	{
+		std::string error_detail;
+		try { throw; }
+		catch (const std::exception& e) { error_detail = e.what(); }
+		catch (...) { error_detail = "unknown exception type"; }
+
 		std::stringstream exception_string;
 		exception_string << "Exception thrown during initialization of Fragment Buffer";
+		if (!error_detail.empty()) { exception_string << ": " << error_detail; }
 
-		ExceptionHandler(ExceptionHandlerRethrow::no, exception_string.str());
+		last_init_error_ = exception_string.str();
+
+		TLOG(TLVL_ERROR) << exception_string.str();
 
 		TLOG(TLVL_DEBUG + 32) << "FHiCL parameter set used to initialize the fragment buffer which threw an exception: " << fr_pset.to_string();
 
@@ -182,7 +214,18 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 	}
 	catch (...)
 	{
-		ExceptionHandler(ExceptionHandlerRethrow::no, "Exception thrown during initialization of request receiver");
+		std::string error_detail;
+		try { throw; }
+		catch (const std::exception& e) { error_detail = e.what(); }
+		catch (...) { error_detail = "unknown exception type"; }
+
+		std::stringstream exception_string;
+		exception_string << "Exception thrown during initialization of request receiver";
+		if (!error_detail.empty()) { exception_string << ": " << error_detail; }
+
+		last_init_error_ = exception_string.str();
+
+		TLOG(TLVL_ERROR) << exception_string.str();
 
 		TLOG(TLVL_DEBUG + 32) << "FHiCL parameter set used to initialize the request receiver which threw an exception: " << fr_pset.to_string();
 
