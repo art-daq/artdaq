@@ -366,7 +366,7 @@ std::shared_ptr<ArtdaqEvent> ArtdaqSharedMemoryService::ReceiveEvent(bool broadc
 
 			if (artdaq::TimeUtils::GetElapsedTime(start_time) > safety_valve_timeout_s_)
 			{
-				TLOG(subrun_closure_threshold_ >= 0 ? TLVL_INFO : TLVL_WARNING) << "Returning Fragment due to safety valve timeout (" << safety_valve_timeout_s_ << " s). event_ordering_ size=" << event_ordering_.size()
+				TLOG(subrun_closure_threshold_ < 0 ? TLVL_INFO : TLVL_WARNING) << "Returning Fragment due to safety valve timeout (" << safety_valve_timeout_s_ << " s). event_ordering_ size=" << event_ordering_.size()
 				                   << " (th=" << subrun_closure_threshold_ << "), first event type=" << static_cast<int>(first_type) << " sr="
 				                   << first_sr << " (c=" << current_subrun_ << ")";
 				output_event = event_ordering_.front();
