@@ -29,6 +29,7 @@ cet_make_library(LIBRARY_NAME_VAR APP_TARGET
   TRACE::MF
   PRIVATE
   artdaq_plugin_support::CFGMaker
+  artdaq_plugin_support::generatorMaker
   artdaq_plugin_support::policyMaker
   artdaq::DAQdata
   artdaq-core::Data
