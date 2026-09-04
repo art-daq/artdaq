@@ -232,12 +232,8 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 		helper.reconstitutes<artdaq::Fragments, art::InRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
 		helper.reconstitutes<artdaq::Fragments, art::InSubRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
 
-		helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
-		helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InSubRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
-		helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InRun>(pretend_module_name, "StartOfRun");
-		helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InRun>(pretend_module_name, "EndOfRun");
-		helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InSubRun>(pretend_module_name, "StartOfSubrun");
-		helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InSubRun>(pretend_module_name, "EndOfSubrun");
+		helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InRun>(pretend_module_name, "ArtdaqMetadata");
+		helper.reconstitutes<std::vector<artdaq::ArtdaqMetadata>, art::InSubRun>(pretend_module_name, "ArtdaqMetadata");
 
 		std::set<std::string> instance_names = translator->GetAllProductInstanceNames();
 		for (const auto& set_iter : instance_names)
@@ -829,69 +825,26 @@ std::pair<bool, bool> art::ArtdaqInputHelper<U>::readFragments(std::unordered_ma
 		auto type_code = fragmentTypePair.first;
 		if (artdaq::Fragment::isSystemFragmentType(type_code) && type_code != artdaq::Fragment::ContainerFragmentType && type_code != artdaq::Fragment::EmptyFragmentType)
 		{
-			if (type_code == artdaq::Fragment::EndOfRunFragmentType)
+			if (type_code == artdaq::Fragment::EndOfRunFragmentType || type_code == artdaq::Fragment::EndOfSubrunFragmentType)
 			{
-				std::unordered_map<std::string, std::unique_ptr<std::vector<artdaq::ArtdaqMetadata>>> metadata_coll;
+				std::unique_ptr<std::vector<artdaq::ArtdaqMetadata>> metadata_coll = std::make_unique<std::vector<artdaq::ArtdaqMetadata>>();
 				for (auto& frag : *fragmentTypePair.second)
 				{
 					artdaq::MetadataFragment mf(frag);
 					auto md = mf.get_metadata();
 
-					std::pair<bool, std::string> instance_name_result =
-					    translator->GetInstanceNameForFragment(frag);
-					std::string label = instance_name_result.second;
-					if (!instance_name_result.first)
-					{
-						TLOG_WARNING("ArtdaqInputHelper")
-						    << "UnknownFragmentType: The product instance name mapping for fragment type \"" << static_cast<int>(type_code)
-						    << "\" is not known. Fragments of this "
-						    << "type will be stored in the event with an instance name of \"" << label << "\".";
-					}
-					if (!metadata_coll.count(label))
-					{
-						TLOG(TLVL_DEBUG + 44, "ArtdaqInputHelper") << "Creating output ArtdaqMetadata storage for label " << label;
-						metadata_coll[label] = std::make_unique<std::vector<artdaq::ArtdaqMetadata>>();
-					}
-					TLOG(TLVL_DEBUG + 44, "ArtdaqInputHelper") << "Adding Fragment " << frag.fragmentID() << " to storage with label " << label << " (sz=" << metadata_coll[label]->size() + 1 << ")";
-					metadata_coll[label]->push_back(md);
+					TLOG(TLVL_DEBUG + 44, "ArtdaqInputHelper") << "Adding ArtdaqMetadata " << frag.fragmentID() << " to storage (sz=" << metadata_coll->size() + 1 << ")";
+					metadata_coll->push_back(md);
 				}
-				for (auto& type : metadata_coll)
-				{
-					TLOG(TLVL_DEBUG + 44, "ArtdaqInputHelper") << "Adding " << type.second->size() << " ArtdaqMetadatas with label " << type.first << " to Run.";
-					put_product_in_principal(std::move(type.second), *theRun, pretend_module_name, type.first);
-				}
-			}
-			else if (type_code == artdaq::Fragment::EndOfSubrunFragmentType)
-			{
-				std::unordered_map<std::string, std::unique_ptr<std::vector<artdaq::ArtdaqMetadata>>> metadata_coll;
-				for (auto& frag : *fragmentTypePair.second)
-				{
-					artdaq::MetadataFragment mf(frag);
-					auto md = mf.get_metadata();
 
-					std::pair<bool, std::string> instance_name_result =
-					    translator->GetInstanceNameForFragment(frag);
-					std::string label = instance_name_result.second;
-					if (!instance_name_result.first)
-					{
-						TLOG_WARNING("ArtdaqInputHelper")
-						    << "UnknownFragmentType: The product instance name mapping for fragment type \"" << static_cast<int>(type_code)
-						    << "\" is not known. Fragments of this "
-						    << "type will be stored in the event with an instance name of \"" << label << "\".";
-					}
-					if (!metadata_coll.count(label))
-					{
-						TLOG(TLVL_DEBUG + 44, "ArtdaqInputHelper") << "Creating output ArtdaqMetadata storage for label " << label;
-						metadata_coll[label] = std::make_unique<std::vector<artdaq::ArtdaqMetadata>>();
-					}
-					TLOG(TLVL_DEBUG + 44, "ArtdaqInputHelper") << "Adding Fragment " << frag.fragmentID() << " to storage with label " << label << " (sz=" << metadata_coll[label]->size() + 1 << ")";
-					metadata_coll[label]->push_back(md);
-				}
-				for (auto& type : metadata_coll)
+				TLOG(TLVL_DEBUG + 44, "ArtdaqInputHelper") << "Adding " << metadata_coll->size() << " ArtdaqMetadatas to Run.";
+				if (type_code == artdaq::Fragment::EndOfRunFragmentType)
 				{
-					TLOG(TLVL_DEBUG + 44, "ArtdaqInputHelper") << "Adding " << type.second->size() << " ArtdaqMetadatas with label " << type.first << " to SubRun.";
-					put_product_in_principal(std::move(type.second), *theSubRun, pretend_module_name, type.first);
-					subrunProductsRead = true;
+					put_product_in_principal(std::move(metadata_coll), *theRun, pretend_module_name, "ArtdaqMetadata");
+				}
+				else if (type_code == artdaq::Fragment::EndOfSubrunFragmentType)
+				{
+					put_product_in_principal(std::move(metadata_coll), *theSubRun, pretend_module_name, "ArtdaqMetadata");
 				}
 			}
 			else
