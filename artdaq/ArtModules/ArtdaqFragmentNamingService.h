@@ -26,6 +26,9 @@ public:
 	 * ArtdaqFragmentNamingServiceInterface accepts the following Parameters:
 	 * "unidentified_instance_name" (Default: "unidentified"): Name to use for any Fragments which are not successfully translated by the ArtdaqFragmentNamingServiceInterface
 	 * "fragment_type_map" (Default: []): A list of Fragment type_t to string pairs for additional types to register with the ArtdaqFragmentNamingServiceInterface
+	 * "helper_plugin" (Default: "Artdaq"): The name of the FragmentNameHelper plugin to use for resolving Fragment names
+	 * "enabled_fragment_types" (Default: []): A list of Fragment instance names which are allowed to be used.  If empty, all types are allowed.
+	 * "register_metadata_types" (Default: true): Whether to register the ArtdaqMetadata types with art for run and subrun products
 	 */
 	ArtdaqFragmentNamingServiceInterface(fhicl::ParameterSet const& ps)
 	    : nameHelper_(nullptr)
@@ -34,13 +37,27 @@ public:
 		auto extraTypes = ps.get<std::vector<std::pair<artdaq::Fragment::type_t, std::string>>>("fragment_type_map", std::vector<std::pair<artdaq::Fragment::type_t, std::string>>());
 		auto fragmentNameHelperPluginType = ps.get<std::string>("helper_plugin", "Artdaq");
 
+		enabled_fragment_names_ = ps.get<std::vector<std::string>>("enabled_fragment_types", std::vector<std::string>());
+		should_register_metadata_ = ps.get<bool>("register_metadata_types", true);
+
 		nameHelper_ = artdaq::makeNameHelper(fragmentNameHelperPluginType, unidentified_instance_name, extraTypes);
 	}
 
 	/**
 	 * \brief Returns the basic translation for the specified type. Must be implemented by derived classes
 	 */
-	std::string GetInstanceNameForType(artdaq::Fragment::type_t type_id) const { return nameHelper_->GetInstanceNameForType(type_id); }
+	std::string GetInstanceNameForType(artdaq::Fragment::type_t type_id) const
+	{
+		auto name = nameHelper_->GetInstanceNameForType(type_id);
+		if (!enabled_fragment_names_.empty() && std::find(enabled_fragment_names_.begin(), enabled_fragment_names_.end(), name) == enabled_fragment_names_.end())
+		{
+			TLOG(TLVL_WARNING, "ArtdaqFragmentNamingServiceInterface") << "DisabledFragmentType: The product instance name mapping for fragment type \"" << name
+			                                                           << "\" is not enabled. Fragments of this "
+			                                                           << "type will be stored in the event with an instance name of \"" << nameHelper_->GetUnidentifiedInstanceName() << "\".";
+			return nameHelper_->GetUnidentifiedInstanceName();
+		}
+		return name;
+	}
 
 	/**
 	 * \brief Returns the full set of product instance names which may be present in the data, based on
@@ -48,7 +65,19 @@ public:
 	 *        *does* include "container" types, if the container type mapping is part of the basic types.
 	 *  Must be implemented by derived classes
 	 */
-	std::set<std::string> GetAllProductInstanceNames() const { return nameHelper_->GetAllProductInstanceNames(); }
+	std::set<std::string> GetAllProductInstanceNames() const
+	{
+		if (!enabled_fragment_names_.empty())
+		{
+			std::set<std::string> names;
+			for (const auto& name : enabled_fragment_names_)
+			{
+				names.insert(name);
+			}
+			return names;
+		}
+		return nameHelper_->GetAllProductInstanceNames();
+	}
 
 	/**
 	 * \brief Returns the product instance name for the specified fragment, based on the types that have
@@ -58,7 +87,18 @@ public:
 	 * Must be implemented by derived classes
 	 */
 	std::pair<bool, std::string>
-	GetInstanceNameForFragment(artdaq::Fragment const& fragment) const { return nameHelper_->GetInstanceNameForFragment(fragment); }
+	GetInstanceNameForFragment(artdaq::Fragment const& fragment) const
+	{
+		auto name_pair = nameHelper_->GetInstanceNameForFragment(fragment);
+		if (!enabled_fragment_names_.empty() && std::find(enabled_fragment_names_.begin(), enabled_fragment_names_.end(), name_pair.second) == enabled_fragment_names_.end())
+		{
+			TLOG(TLVL_WARNING, "ArtdaqFragmentNamingServiceInterface") << "DisabledFragmentType: The product instance name mapping for fragment type \"" << name_pair.second
+			                                                           << "\" is not enabled. Fragments of this "
+			                                                           << "type will be stored in the event with an instance name of \"" << nameHelper_->GetUnidentifiedInstanceName() << "\".";
+			return std::make_pair(false, nameHelper_->GetUnidentifiedInstanceName());
+		}
+		return name_pair;
+	}
 
 	/**
 	 * @brief Get the name used for unidentified Fragment types
@@ -66,8 +106,12 @@ public:
 	 */
 	std::string GetUnidentifiedInstanceName() const { return nameHelper_->GetUnidentifiedInstanceName(); }
 
+	bool RegisterMetadataTypes() const { return should_register_metadata_; }
+
 protected:
 	std::shared_ptr<artdaq::FragmentNameHelper> nameHelper_;  ///< FragmentNameHelper plugin used to resolve Fragment names
+	std::vector<std::string> enabled_fragment_names_{};
+	bool should_register_metadata_ {true};
 
 private:
 	ArtdaqFragmentNamingServiceInterface(ArtdaqFragmentNamingServiceInterface const&) = delete;
