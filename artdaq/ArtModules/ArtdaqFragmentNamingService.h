@@ -28,7 +28,6 @@ public:
 	 * "fragment_type_map" (Default: []): A list of Fragment type_t to string pairs for additional types to register with the ArtdaqFragmentNamingServiceInterface
 	 * "helper_plugin" (Default: "Artdaq"): The name of the FragmentNameHelper plugin to use for resolving Fragment names
 	 * "enabled_fragment_types" (Default: []): A list of Fragment instance names which are allowed to be used.  If empty, all types are allowed.
-	 * "register_metadata_types" (Default: true): Whether to register the ArtdaqMetadata types with art for run and subrun products
 	 */
 	ArtdaqFragmentNamingServiceInterface(fhicl::ParameterSet const& ps)
 	    : nameHelper_(nullptr)
@@ -38,7 +37,6 @@ public:
 		auto fragmentNameHelperPluginType = ps.get<std::string>("helper_plugin", "Artdaq");
 
 		enabled_fragment_names_ = ps.get<std::vector<std::string>>("enabled_fragment_types", std::vector<std::string>());
-		should_register_metadata_ = ps.get<bool>("register_metadata_types", true);
 
 		nameHelper_ = artdaq::makeNameHelper(fragmentNameHelperPluginType, unidentified_instance_name, extraTypes);
 	}
@@ -106,12 +104,9 @@ public:
 	 */
 	std::string GetUnidentifiedInstanceName() const { return nameHelper_->GetUnidentifiedInstanceName(); }
 
-	bool RegisterMetadataTypes() const { return should_register_metadata_; }
-
 protected:
 	std::shared_ptr<artdaq::FragmentNameHelper> nameHelper_;  ///< FragmentNameHelper plugin used to resolve Fragment names
 	std::vector<std::string> enabled_fragment_names_{};
-	bool should_register_metadata_ {true};
 
 private:
 	ArtdaqFragmentNamingServiceInterface(ArtdaqFragmentNamingServiceInterface const&) = delete;
