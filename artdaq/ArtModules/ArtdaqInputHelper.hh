@@ -838,7 +838,14 @@ std::pair<bool, bool> art::ArtdaqInputHelper<U>::readFragments(std::unordered_ma
 				}
 
 				TLOG(TLVL_DEBUG + 44, "ArtdaqInputHelper") << "Adding " << metadata_coll->size() << " ArtdaqMetadatas to Run.";
-				put_product_in_principal(std::move(metadata_coll), *theRun, pretend_module_name, "ArtdaqMetadata");
+				if (type_code == artdaq::Fragment::EndOfRunFragmentType)
+				{
+					put_product_in_principal(std::move(metadata_coll), *theRun, pretend_module_name, "ArtdaqMetadata");
+				}
+				else if (type_code == artdaq::Fragment::EndOfSubrunFragmentType)
+				{
+					put_product_in_principal(std::move(metadata_coll), *theSubRun, pretend_module_name, "ArtdaqMetadata");
+				}
 			}
 			else
 			{
