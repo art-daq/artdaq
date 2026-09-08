@@ -3,11 +3,11 @@
 
 #include "artdaq-core/Core/MonitoredQuantity.hh"
 #include "artdaq-core/Data/Fragment.hh"
+#include "artdaq-core/Plugins/makeFragmentGenerator.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq/Application/BoardReaderCore.hh"
 #include "artdaq/Application/TaskType.hh"
 #include "artdaq/Generators/makeCommandableFragmentGenerator.hh"
-#include "artdaq-core/Plugins/makeFragmentGenerator.hh"
 
 #include "cetlib_except/exception.h"
 #include "fhiclcpp/ParameterSet.h"
@@ -161,9 +161,18 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 	catch (...)
 	{
 		std::string error_detail;
-		try { throw; }
-		catch (const std::exception& e) { error_detail = e.what(); }
-		catch (...) { error_detail = "unknown exception type"; }
+		try
+		{
+			throw;
+		}
+		catch (const std::exception& e)
+		{
+			error_detail = e.what();
+		}
+		catch (...)
+		{
+			error_detail = "unknown exception type";
+		}
 
 		std::stringstream exception_string;
 		exception_string << "Exception thrown during initialization of fragment generator of type \""
@@ -186,9 +195,18 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 	catch (...)
 	{
 		std::string error_detail;
-		try { throw; }
-		catch (const std::exception& e) { error_detail = e.what(); }
-		catch (...) { error_detail = "unknown exception type"; }
+		try
+		{
+			throw;
+		}
+		catch (const std::exception& e)
+		{
+			error_detail = e.what();
+		}
+		catch (...)
+		{
+			error_detail = "unknown exception type";
+		}
 
 		std::stringstream exception_string;
 		exception_string << "Exception thrown during initialization of Fragment Buffer";
@@ -215,9 +233,18 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 	catch (...)
 	{
 		std::string error_detail;
-		try { throw; }
-		catch (const std::exception& e) { error_detail = e.what(); }
-		catch (...) { error_detail = "unknown exception type"; }
+		try
+		{
+			throw;
+		}
+		catch (const std::exception& e)
+		{
+			error_detail = e.what();
+		}
+		catch (...)
+		{
+			error_detail = "unknown exception type";
+		}
 
 		std::stringstream exception_string;
 		exception_string << "Exception thrown during initialization of request receiver";
