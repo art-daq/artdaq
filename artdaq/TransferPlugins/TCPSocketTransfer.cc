@@ -5,14 +5,14 @@
 // rev="$Revision: 1.30 $$Date: 2016/03/01 14:27:27 $";
 
 // C Includes
-#include <arpa/inet.h>       // ntohl, ntohs
-#include <linux/sockios.h>   // SIOCOUTQ
-#include <poll.h>            // struct pollfd
-#include <sys/ioctl.h>       // ioctl
-#include <sys/socket.h>  // socket, socklen_t
-#include <sys/types.h>   // size_t
-#include <sys/un.h>      // sockaddr_un
-#include <cstdlib>       // atoi, strtoul
+#include <arpa/inet.h>      // ntohl, ntohs
+#include <linux/sockios.h>  // SIOCOUTQ
+#include <poll.h>           // struct pollfd
+#include <sys/ioctl.h>      // ioctl
+#include <sys/socket.h>     // socket, socklen_t
+#include <sys/types.h>      // size_t
+#include <sys/un.h>         // sockaddr_un
+#include <cstdlib>          // atoi, strtoul
 
 // C++ Includes
 #include <atomic>
