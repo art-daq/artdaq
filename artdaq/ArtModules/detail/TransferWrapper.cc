@@ -132,23 +132,36 @@ artdaq::FragmentPtrs artdaq::TransferWrapper::receiveMessage()
 					fragments_received++;
 
 					static size_t cntr = 0;
-					auto mod = ++cntr % 10;
-					auto suffix = "-th";
-					if (mod == 1)
+					++cntr;
+
+					// Report the first 10 events, then every 10th, then every 100th, and so
+					// on, so a long run does not put one line per event into the log.
+					size_t report_interval = 1;
+					while (cntr / report_interval >= 10)
 					{
-						suffix = "-st";
+						report_interval *= 10;
 					}
-					if (mod == 2)
+
+					if (cntr % report_interval == 0)
 					{
-						suffix = "-nd";
+						auto mod = cntr % 10;
+						auto suffix = "-th";
+						if (mod == 1)
+						{
+							suffix = "-st";
+						}
+						if (mod == 2)
+						{
+							suffix = "-nd";
+						}
+						if (mod == 3)
+						{
+							suffix = "-rd";
+						}
+						TLOG(TLVL_INFO) << "Received " << cntr << suffix << " event, "
+						                << "seqID == " << fragmentPtr->sequenceID()
+						                << ", type == " << fragmentPtr->typeString();
 					}
-					if (mod == 3)
-					{
-						suffix = "-rd";
-					}
-					TLOG(TLVL_DEBUG + 32) << "Received " << cntr << suffix << " event, "
-					                      << "seqID == " << fragmentPtr->sequenceID()
-					                      << ", type == " << fragmentPtr->typeString();
 					last_received_data_ = std::chrono::steady_clock::now();
 					continue;
 				}
