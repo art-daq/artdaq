@@ -1053,7 +1053,16 @@ void RootDAQOutFile::fillBranches(Principal const& principal,
 			// able to get a pointer to it from the passed principal and
 			// write it out.
 			auto const& rs = getRangeSet<BT>(oh, principalRS, produced);
-			if (detail::range_sets_supported(BT) && !rs.is_valid())
+			// keepProvenance guard: when dropMetaData is ALL (or PRIOR, for
+			// input products) the `if (keepProvenance)` block above is skipped
+			// for every product, so `prov` is still keptprv.begin() on an empty
+			// set, i.e. end(). Dereferencing it below threw
+			// "KeptProvenance::setStatus Attempt to set product status for
+			// product whose provenance is not being recorded." at end of job.
+			// If we are not recording provenance there is no status to fix up;
+			// the double-counting protection is unaffected, since getProduct()
+			// independently substitutes the dummy product for an invalid rs.
+			if (keepProvenance && detail::range_sets_supported(BT) && !rs.is_valid())
 			{
 				// At this point we are now going to write out a dummy product
 				// whose Wrapper present flag is false because the range set

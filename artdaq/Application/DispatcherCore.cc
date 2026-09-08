@@ -65,6 +65,11 @@ bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 		return false;
 	}
 
+	if (!agg_pset.has_key("init_fragment_count"))
+	{
+		TLOG(TLVL_ERROR) << "ERROR: init_fragment_count must be set for the Dispatcher to function properly. Please set `init_fragment_count: 0` in the Dispatcher configuration. (Will be book-kept by DAQInterface)";
+		return false;
+	}
 	broadcast_mode_ = agg_pset.get<bool>("broadcast_mode", true);
 	allow_label_overwrites_ = agg_pset.get<bool>("allow_label_overwrites", true);
 	if (broadcast_mode_ && !agg_pset.has_key("broadcast_mode"))

@@ -1802,7 +1802,7 @@ void artdaq::SharedMemoryEventManager::send_init_frags_()
 	}
 	else if (init_fragment_count_ > 0 && init_fragment_map_size_() == 0)
 	{
-		TLOG(TLVL_WARNING) << "Cannot send Init Fragment(s) because I haven't yet received them! Set send_init_fragments to false or init_fragment_count to 0 if this process does not receive serialized art events to avoid potentially lengthy timeouts!";
+		TLOG(TLVL_INFO) << "Cannot send Init Fragment(s) because I haven't yet received any! Set send_init_fragments to false or init_fragment_count to 0 if this process does not receive serialized art events to avoid potentially lengthy timeouts!";
 	}
 	else if (init_fragment_count_ > 0)
 	{
