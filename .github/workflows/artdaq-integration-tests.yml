@@ -6,17 +6,10 @@ permissions:
 # Controls when the action will run. Workflow runs when manually triggered using the UI
 # or API.
 on:
-  push:
-    branches-ignore:
-      - develop
-      - stable
-    paths-ignore:
-      - 'docs/**'
-      - '.github/**'
   pull_request:
     branches: [ develop ]
   schedule:
-    - cron: "0 7 * * *"
+    - cron: "0 7 * * 1"
 
   workflow_dispatch:
 
