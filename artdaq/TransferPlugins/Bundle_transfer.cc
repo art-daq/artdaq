@@ -219,7 +219,6 @@ private:
 
 	std::chrono::steady_clock::time_point send_fragment_started_;
 	std::chrono::steady_clock::time_point buffer_oldest_time_{std::chrono::steady_clock::now()};
-	std::chrono::steady_clock::time_point last_metric_report_{std::chrono::steady_clock::now()};
 	std::atomic<size_t> current_buffer_size_bytes_{0};
 	std::unique_ptr<boost::thread> send_timeout_thread_;
 	std::atomic<bool> system_fragment_cached_{false};
@@ -245,12 +244,10 @@ private:
 		}
 	}
 
-	/// Report bundle buffer occupancy metrics, at most once per second. Requires fragment_mutex_ to be held.
+	/// Report bundle buffer occupancy metrics. Requires fragment_mutex_ to be held.
 	void report_buffer_metrics_()
 	{
 		if (!metricMan) return;
-		if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - last_metric_report_).count() < 1000) return;
-		last_metric_report_ = std::chrono::steady_clock::now();
 		auto rankString = std::to_string(destination_rank());
 		metricMan->sendMetric("Bundle Buffer Occupancy to Rank " + rankString, current_buffer_size_bytes_.load(), "B", 2, MetricMode::LastPoint);
 		metricMan->sendMetric("Bundle Buffer Events to Rank " + rankString, static_cast<unsigned long>(fragment_buffer_.size()), "events", 2, MetricMode::LastPoint);
