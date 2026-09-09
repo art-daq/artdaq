@@ -49,9 +49,17 @@ bool artdaq::BoardReaderApp::do_initialize(fhicl::ParameterSet const& pset, uint
 	}
 	if (!external_request_status_)
 	{
-		report_string_ = "Error initializing ";
-		report_string_.append(app_name + " ");
-		report_string_.append("with ParameterSet = \"" + pset.to_string() + "\".");
+		auto core_error = fragment_receiver_ptr_->GetLastInitError();
+		if (!core_error.empty())
+		{
+			report_string_ = "Error initializing " + app_name + ": " + core_error;
+		}
+		else
+		{
+			report_string_ = "Error initializing ";
+			report_string_.append(app_name + " ");
+			report_string_.append("with ParameterSet = \"" + pset.to_string() + "\".");
+		}
 	}
 
 	TLOG(TLVL_DEBUG + 32) << "do_initialize(fhicl::ParameterSet, uint64_t, uint64_t): "
