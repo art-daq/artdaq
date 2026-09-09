@@ -235,7 +235,16 @@ private:
 
 	std::string buildStatisticsString_();
 
+	/// \brief Record a failed initialization step: store the message for the App layer and log it
+	void recordInitFailure_(const std::string& stage, const std::string& detail, fhicl::ParameterSet const& fr_pset);
+
 	bool verbose_;  ///< Whether to log transition messages
+
+	std::string last_init_error_;  ///< Last error message from a failed initialize transition
+
+public:
+	/// \brief Get the error message from the last failed initialization, if any
+	const std::string& GetLastInitError() const { return last_init_error_; }
 };
 
 #endif  // ARTDAQ_ARTDAQ_APPLICATION_BOARDREADERCORE_HH_
