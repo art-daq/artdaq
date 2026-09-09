@@ -3,6 +3,7 @@
 
 #include "artdaq-core/Core/MonitoredQuantity.hh"
 #include "artdaq-core/Data/Fragment.hh"
+#include "artdaq-core/Plugins/makeFragmentGenerator.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq/Application/BoardReaderCore.hh"
 #include "artdaq/Application/TaskType.hh"
@@ -58,8 +59,20 @@ artdaq::BoardReaderCore::~BoardReaderCore()
 	TLOG(TLVL_DEBUG + 32) << "Stopping Request Receiver END";
 }
 
+void artdaq::BoardReaderCore::recordInitFailure_(const std::string& stage, const std::string& detail, fhicl::ParameterSet const& fr_pset)
+{
+	std::string message = "Exception thrown during initialization of " + stage;
+	if (!detail.empty()) { message += ": " + detail; }
+
+	last_init_error_ = message;
+	TLOG(TLVL_ERROR) << message;
+	TLOG(TLVL_DEBUG + 32) << "FHiCL parameter set used to initialize the " << stage << " which threw an exception: " << fr_pset.to_string();
+}
+
 bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64_t /*unused*/, uint64_t /*unused*/)
 {
+	last_init_error_.clear();
+
 	TLOG(TLVL_DEBUG + 32) << "initialize method called with "
 	                      << "ParameterSet = \"" << pset.to_string() << "\".";
 
@@ -138,54 +151,40 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 		return false;
 	}
 
+	// The remaining initialization steps can all throw. A single handler reports
+	// which step failed, tracked by init_stage.
+	std::string init_stage = "fragment generator of type \"" + frag_gen_name + "\"";
 	try
 	{
-		generator_ptr_ = artdaq::makeCommandableFragmentGenerator(frag_gen_name, fr_pset);
-	}
-	catch (...)
-	{
-		std::stringstream exception_string;
-		exception_string << "Exception thrown during initialization of fragment generator of type \""
-		                 << frag_gen_name << "\"";
+		auto gen = artdaq::makeFragmentGenerator(frag_gen_name, fr_pset);
+		auto* commandable = dynamic_cast<artdaq::CommandableFragmentGenerator*>(gen.get());
+		if (commandable == nullptr)
+		{
+			last_init_error_ = "Generator \"" + frag_gen_name + "\" is not a CommandableFragmentGenerator and cannot be used in a BoardReader";
+			TLOG(TLVL_ERROR) << last_init_error_ << ". Use DEFINE_ARTDAQ_COMMANDABLE_GENERATOR for BoardReader-compatible generators.";
+			return false;
+		}
+		gen.release();
+		generator_ptr_.reset(commandable);
 
-		TLOG(TLVL_DEBUG + 32) << "FHiCL parameter set used to initialize the fragment generator which threw an exception: " << fr_pset.to_string();
-
-		ExceptionHandler(ExceptionHandlerRethrow::no, exception_string.str());
-
-		return false;
-	}
-
-	try
-	{
+		init_stage = "Fragment Buffer";
 		fragment_buffer_ptr_ = std::make_shared<FragmentBuffer>(fr_pset);
-	}
-	catch (...)
-	{
-		std::stringstream exception_string;
-		exception_string << "Exception thrown during initialization of Fragment Buffer";
 
-		ExceptionHandler(ExceptionHandlerRethrow::no, exception_string.str());
-
-		TLOG(TLVL_DEBUG + 32) << "FHiCL parameter set used to initialize the fragment buffer which threw an exception: " << fr_pset.to_string();
-
-		return false;
-	}
-
-	std::shared_ptr<RequestBuffer> request_buffer = std::make_shared<RequestBuffer>();
-
-	try
-	{
+		init_stage = "request receiver";
+		std::shared_ptr<RequestBuffer> request_buffer = std::make_shared<RequestBuffer>();
 		request_receiver_ptr_.reset(new RequestReceiver(fr_pset, request_buffer));
 		generator_ptr_->SetRequestBuffer(request_buffer);
 		generator_ptr_->SetFragmentBuffer(fragment_buffer_ptr_);
 		fragment_buffer_ptr_->SetRequestBuffer(request_buffer);
 	}
+	catch (const std::exception& e)
+	{
+		recordInitFailure_(init_stage, e.what(), fr_pset);
+		return false;
+	}
 	catch (...)
 	{
-		ExceptionHandler(ExceptionHandlerRethrow::no, "Exception thrown during initialization of request receiver");
-
-		TLOG(TLVL_DEBUG + 32) << "FHiCL parameter set used to initialize the request receiver which threw an exception: " << fr_pset.to_string();
-
+		recordInitFailure_(init_stage, "unknown exception type", fr_pset);
 		return false;
 	}
 	metricMan->setPrefix(generator_ptr_->metricsReportingInstanceName());
