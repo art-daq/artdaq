@@ -237,7 +237,7 @@ public:
 		Atom<bool> dropMetaDataForDroppedData{Name("dropMetaDataForDroppedData"),
 		                                      false};
 		Atom<string> dropMetaData{Name("dropMetaData"), "NONE"};
-		Atom<bool> writeParameterSets{Name("writeParameterSets"), false};
+		Atom<bool> writeParameterSets{Name("writeParameterSets"), true};
 		fhicl::Table<ClosingCriteria::Config> fileProperties{
 		    Name("fileProperties"),
 		    Comment("The 'fileProperties' parameter is specified to enable "
