@@ -1076,7 +1076,7 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 	released_incomplete_events_.clear();
 
 	TLOG(TLVL_ENDOFDATA) << "endOfData END";
-	TLOG(TLVL_INFO) << "EndOfData Complete. There were " << GetLastSeenBufferID() << " buffers processed.";
+	TLOG(TLVL_INFO) << "EndOfData Complete. Final Buffer ID is " << GetLastSeenBufferID() << ".";
 	return true;
 }
 
