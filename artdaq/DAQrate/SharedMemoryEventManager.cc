@@ -1513,7 +1513,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 
 		bool currentSubrun = hdr->subrun_id == subrun_id_;
 
-		if (hdr->subrun_id > subrun_id_ && (available_buffers > 0 || TimeUtils::GetElapsedTime(last_event_time_) < subrun_transition_hold_time_s_))
+		if (hdr->subrun_id > subrun_id_ && available_buffers > 0 && TimeUtils::GetElapsedTime(last_event_time_) < subrun_transition_hold_time_s_)
 		{
 			TLOG(TLVL_CHECKPENDINGBUFFERS_4) << "Holding event " << std::to_string(hdr->sequence_id) << " (sr=" << hdr->subrun_id << ") in buffer " << buf << ", "
 			                                 << "event_size=" << thisEventSize << ", buffer_size=" << BufferSize();
