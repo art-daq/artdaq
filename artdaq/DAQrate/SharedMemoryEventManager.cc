@@ -1064,7 +1064,15 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 	}
 	TLOG(TLVL_ENDOFDATA) << "It took " << TimeUtils::GetElapsedTime(endOfDataProcessingStart) << " s for all art processes to close after sending EndOfData Fragment";
 
+	// Reset the manager ID counters on both shared memory segments. Manager IDs are only
+	// valid in the range 0-63 (readers/writers are tracked in 64-bit masks), and IDs are
+	// never recycled on Detach. Without resetting the broadcast segment as well, its
+	// counter grows by one for every art process started during the lifetime of this
+	// process, and after 63 art process launches (e.g. ~13 runs with 5 art processes each)
+	// every new art process logs "Too many processes attached to shared memory" and
+	// reader/writer tracking on the broadcast segment becomes unreliable.
 	ResetAttachedCount();
+	broadcasts_.ResetAttachedCount();
 
 	TLOG(TLVL_ENDOFDATA) << "endOfData: Clearing buffers";
 	for (size_t ii = 0; ii < size(); ++ii)
