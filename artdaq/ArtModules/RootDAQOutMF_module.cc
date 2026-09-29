@@ -658,10 +658,6 @@ void RootDAQOutMF::setSubRunAuxiliaryRangeSetID(RangeSet const& rs)
 	{
 		activeFile_->file->setSubRunAuxiliaryRangeSetID(rs);
 	}
-	for (auto const& bundle : pendingFiles_)
-	{
-		bundle->file->setSubRunAuxiliaryRangeSetID(rs);
-	}
 }
 
 void RootDAQOutMF::writeSubRun(SubRunPrincipal& sr)
@@ -698,10 +694,6 @@ void RootDAQOutMF::setRunAuxiliaryRangeSetID(RangeSet const& rs)
 	if (activeFile_)
 	{
 		activeFile_->file->setRunAuxiliaryRangeSetID(rs);
-	}
-	for (auto const& bundle : pendingFiles_)
-	{
-		bundle->file->setRunAuxiliaryRangeSetID(rs);
 	}
 }
 
