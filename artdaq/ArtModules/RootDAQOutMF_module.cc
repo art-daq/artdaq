@@ -699,10 +699,6 @@ void RootDAQOutMF::setRunAuxiliaryRangeSetID(RangeSet const& rs)
 	{
 		activeFile_->file->setRunAuxiliaryRangeSetID(rs);
 	}
-	for (auto const& bundle : pendingFiles_)
-	{
-		bundle->file->setRunAuxiliaryRangeSetID(rs);
-	}
 }
 
 void RootDAQOutMF::writeRun(RunPrincipal& rp)
