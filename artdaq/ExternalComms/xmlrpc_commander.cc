@@ -308,6 +308,13 @@ c_executeMethod(xmlrpc_env* const envP,
 	auto* const methodP(static_cast<xmlrpc_c::method*>(methodPtr));
 	xmlrpc_c::paramList const paramList(pListFromXmlrpcArray(paramArrayP));
 	auto* const callInfoP(static_cast<xmlrpc_c::callInfo*>(callInfoPtr));
+	if(methodP == nullptr || callInfoP == nullptr)
+	{
+		xmlrpc_env_set_fault(envP, XMLRPC_INTERNAL_ERROR,
+		                     "Null method or callInfo pointer passed to c_executeMethod.");
+		return nullptr;
+	}
+
 	xmlrpc_value* retval;
 	retval = nullptr;  // silence used-before-set warning
 	try

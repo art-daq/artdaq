@@ -213,7 +213,6 @@ protected:
 	size_t buffer_count_;                   ///< The number of Fragment transfers the TransferInterface can handle simultaneously
 	const size_t max_fragment_size_words_;  ///< The maximum size of the transferred Fragment objects, in artdaq::Fragment::RawDataType words
 
-protected:
 	/**
 	 * \brief Get the TransferInterface::Role of this TransferInterface
 	 * \return The Role of this TransferInterface
