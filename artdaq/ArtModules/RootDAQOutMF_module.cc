@@ -286,6 +286,8 @@ private:
 		bool metadataNeedsRefresh{false};
 		std::string closedFileName{};
 		std::map<art::SubRunID, SubrunStats> subrunStats;
+		std::set<art::SubRunID> writtenSubRuns;
+		std::set<art::RunID> writtenRuns;
 
 		OutputFileBundle(std::string const& moduleLabel,
 		                 std::string const& processName)
@@ -600,10 +602,6 @@ void RootDAQOutMF::setSubRunAuxiliaryRangeSetID(RangeSet const& rs)
 	{
 		activeFile_->file->setSubRunAuxiliaryRangeSetID(rs);
 	}
-	for (auto const& bundle : pendingFiles_)
-	{
-		bundle->file->setSubRunAuxiliaryRangeSetID(rs);
-	}
 }
 
 void RootDAQOutMF::writeSubRun(SubRunPrincipal& sr)
@@ -626,6 +624,8 @@ void RootDAQOutMF::writeSubRun(SubRunPrincipal& sr)
 	}
 	for (auto* bundle : bundlesToWrite)
 	{
+		if (!bundle->writtenSubRuns.insert(sr.subRunID()).second)
+			continue;
 		markLateWrite(bundle);
 		bundle->file->writeSubRun(sr);
 		bundle->fstats.recordSubRun(sr.subRunID());
@@ -640,10 +640,6 @@ void RootDAQOutMF::setRunAuxiliaryRangeSetID(RangeSet const& rs)
 	if (activeFile_)
 	{
 		activeFile_->file->setRunAuxiliaryRangeSetID(rs);
-	}
-	for (auto const& bundle : pendingFiles_)
-	{
-		bundle->file->setRunAuxiliaryRangeSetID(rs);
 	}
 }
 
@@ -663,6 +659,8 @@ void RootDAQOutMF::writeRun(RunPrincipal& rp)
 	}
 	for (auto* bundle : bundlesToWrite)
 	{
+		if (!bundle->writtenRuns.insert(rp.runID()).second)
+			continue;
 		markLateWrite(bundle);
 		bundle->file->writeRun(rp);
 		bundle->fstats.recordRun(rp.runID());
