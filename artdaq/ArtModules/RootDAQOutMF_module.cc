@@ -359,6 +359,8 @@ private:
 		bool metadataNeedsRefresh{false};
 		std::string closedFileName{};
 		std::map<art::SubRunID, SubrunStats> subrunStats;
+		std::set<art::SubRunID> writtenSubRuns;
+		std::set<art::RunID> writtenRuns;
 
 		OutputFileBundle(std::string const& moduleLabel,
 		                 std::string const& processName)
@@ -680,6 +682,8 @@ void RootDAQOutMF::writeSubRun(SubRunPrincipal& sr)
 	}
 	for (auto* bundle : bundlesToWrite)
 	{
+		if (!bundle->writtenSubRuns.insert(sr.subRunID()).second)
+			continue;
 		markLateWrite(bundle);
 		bundle->file->writeSubRun(sr);
 		bundle->fstats.recordSubRun(sr.subRunID());
@@ -713,6 +717,8 @@ void RootDAQOutMF::writeRun(RunPrincipal& rp)
 	}
 	for (auto* bundle : bundlesToWrite)
 	{
+		if (!bundle->writtenRuns.insert(rp.runID()).second)
+			continue;
 		markLateWrite(bundle);
 		bundle->file->writeRun(rp);
 		bundle->fstats.recordRun(rp.runID());
