@@ -129,7 +129,7 @@ inline bool operator<(std::shared_ptr<ArtdaqEvent> const& l, std::shared_ptr<Art
 	return *l < *r;
 }
 
-#endif // ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQEVENT_HH_
+#endif  // ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQEVENT_HH_
 
 // Local Variables:
 // mode: c++

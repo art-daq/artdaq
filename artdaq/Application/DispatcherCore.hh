@@ -1,5 +1,5 @@
-#ifndef artdaq_Application_MPI2_DispatcherCore_hh
-#define artdaq_Application_MPI2_DispatcherCore_hh
+#ifndef ARTDAQ_ARTDAQ_APPLICATION_DISPATCHERCORE_HH_
+#define ARTDAQ_ARTDAQ_APPLICATION_DISPATCHERCORE_HH_
 
 #include "artdaq/Application/DataReceiverCore.hh"
 
@@ -90,6 +90,6 @@ private:
 	bool allow_label_overwrites_;
 };
 
-#endif
+#endif  // ARTDAQ_ARTDAQ_APPLICATION_DISPATCHERCORE_HH_
 
 //  LocalWords:  ds

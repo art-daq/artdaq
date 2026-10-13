@@ -1,9 +1,9 @@
 #define TRACE_NAME "RequestSender"
 
+#include "artdaq/DAQrate/detail/RequestSender.hh"
 #include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
 #include "artdaq/DAQrate/detail/RequestReceiver.hh"
-#include "artdaq/DAQrate/detail/RequestSender.hh"
 
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/types/Atom.h"
@@ -134,7 +134,7 @@ try
 	}
 
 	return rc;
-}
+}  // NOLINT(readability/fn_size)
 catch (...)
 {
 	return -1;

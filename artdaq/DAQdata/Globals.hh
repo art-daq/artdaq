@@ -1,5 +1,5 @@
-#ifndef ARTDAQ_DAQDATA_GLOBALS_HH
-#define ARTDAQ_DAQDATA_GLOBALS_HH
+#ifndef ARTDAQ_ARTDAQ_DAQDATA_GLOBALS_HH_
+#define ARTDAQ_ARTDAQ_DAQDATA_GLOBALS_HH_
 
 #ifndef TRACE_DEFINE  // as set in Globals.cc
 #define TRACE_DECLARE
@@ -163,6 +163,6 @@ public:
 };
 }  // namespace artdaq
 
-#include "tracemf.h"
+#include "TRACE/tracemf.h"
 
-#endif  // ARTDAQ_DAQDATA_GLOBALS_HH
+#endif  // ARTDAQ_ARTDAQ_DAQDATA_GLOBALS_HH_

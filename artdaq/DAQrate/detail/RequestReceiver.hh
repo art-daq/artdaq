@@ -1,5 +1,5 @@
-#ifndef ARTDAQ_DAQRATE_REQUEST_RECEVIER_HH
-#define ARTDAQ_DAQRATE_REQUEST_RECEVIER_HH
+#ifndef ARTDAQ_ARTDAQ_DAQRATE_DETAIL_REQUESTRECEIVER_HH_
+#define ARTDAQ_ARTDAQ_DAQRATE_DETAIL_REQUESTRECEIVER_HH_
 
 #include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
@@ -124,4 +124,4 @@ private:
 };
 }  // namespace artdaq
 
-#endif  // ARTDAQ_DAQRATE_REQUEST_RECEVIER_HH
+#endif  // ARTDAQ_ARTDAQ_DAQRATE_DETAIL_REQUESTRECEIVER_HH_

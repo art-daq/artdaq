@@ -1,5 +1,5 @@
-#ifndef artdaq_ExternalComms_MakeCommanderPlugin_hh
-#define artdaq_ExternalComms_MakeCommanderPlugin_hh
+#ifndef ARTDAQ_ARTDAQ_EXTERNALCOMMS_MAKECOMMANDERPLUGIN_HH_
+#define ARTDAQ_ARTDAQ_EXTERNALCOMMS_MAKECOMMANDERPLUGIN_HH_
 
 // JCF, Sep-6-2016
 
@@ -33,4 +33,4 @@ MakeCommanderPlugin(const fhicl::ParameterSet& pset,
                     artdaq::Commandable& commandable);
 }  // namespace artdaq
 
-#endif
+#endif  // ARTDAQ_ARTDAQ_EXTERNALCOMMS_MAKECOMMANDERPLUGIN_HH_

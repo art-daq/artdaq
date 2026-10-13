@@ -1,5 +1,5 @@
-#ifndef artdaq_proto_LoadParameterSet_hh
-#define artdaq_proto_LoadParameterSet_hh 1
+#ifndef ARTDAQ_ARTDAQ_APPLICATION_LOADPARAMETERSET_HH_
+#define ARTDAQ_ARTDAQ_APPLICATION_LOADPARAMETERSET_HH_
 
 // note: in header files (this LoadParameterSet.hh) consider if you want TRACE/LOG to use "name" from .cc or name for this file
 #include "TRACE/tracemf.h"
@@ -133,4 +133,4 @@ inline fhicl::ParameterSet LoadParameterSet(int argc, char* argv[], std::string 
 	}
 	return pset;
 }
-#endif  // artdaq_proto_LoadParameterSet_hh
+#endif  // ARTDAQ_ARTDAQ_APPLICATION_LOADPARAMETERSET_HH_

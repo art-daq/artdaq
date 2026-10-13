@@ -1,5 +1,5 @@
-#ifndef ARTDAQ_DAQDATA_PORTMANAGER_HH
-#define ARTDAQ_DAQDATA_PORTMANAGER_HH
+#ifndef ARTDAQ_ARTDAQ_DAQDATA_PORTMANAGER_HH_
+#define ARTDAQ_ARTDAQ_DAQDATA_PORTMANAGER_HH_
 
 #include <netinet/in.h>
 #include <string>
@@ -190,4 +190,4 @@ private:
 };
 }  // namespace artdaq
 
-#endif  // ARTDAQ_DAQDATA_PORTMANAGER_HH
+#endif  // ARTDAQ_ARTDAQ_DAQDATA_PORTMANAGER_HH_

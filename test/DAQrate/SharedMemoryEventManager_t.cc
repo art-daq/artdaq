@@ -14,7 +14,7 @@ BOOST_AUTO_TEST_SUITE(SharedMemoryEventManager_test)
 
 artdaq::detail::RawFragmentHeader GetHeader(artdaq::FragmentPtr const& frag)
 {
-	return *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+	return *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());  // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
 }
 
 BOOST_AUTO_TEST_CASE(Construct)

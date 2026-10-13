@@ -510,12 +510,12 @@ void artdaq::RoutingManagerCore::listen_()
 			socklen_t arglen = sizeof(un);
 			int fd;
 			TLOG(TLVL_DEBUG + 32) << "listen_: Calling accept";
-			fd = accept(listen_fd, reinterpret_cast<sockaddr*>(&un), &arglen);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+			fd = accept(listen_fd, reinterpret_cast<sockaddr*>(&un), &arglen);  // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
 			TLOG(TLVL_DEBUG + 32) << "listen_: Done with accept";
 
 			TLOG(TLVL_DEBUG + 32) << "listen_: Reading connect message";
 			socklen_t lenlen = sizeof(tv);
-			/*sts=*/
+			//sts=
 			setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, lenlen);  // see man 7 socket.
 			detail::RoutingRequest rch;
 			uint64_t mark_us = TimeUtils::gettimeofday_us();

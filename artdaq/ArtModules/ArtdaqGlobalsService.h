@@ -1,5 +1,5 @@
-#ifndef artdaq_ArtModules_ArtdaqGlobalsService_h
-#define artdaq_ArtModules_ArtdaqGlobalsService_h
+#ifndef ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQGLOBALSSERVICE_H_
+#define ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQGLOBALSSERVICE_H_
 
 #include "art/Framework/Services/Registry/ServiceMacros.h"
 #include "artdaq-core/Data/RawEvent.hh"
@@ -72,7 +72,7 @@ private:
 
 DECLARE_ART_SERVICE_INTERFACE_IMPL(ArtdaqGlobalsService, ArtdaqSharedMemoryServiceInterface, LEGACY)
 
-#endif /* artdaq_ArtModules_ArtdaqGlobalsService_h */
+#endif  // ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQGLOBALSSERVICE_H_
 
 // Local Variables:
 // mode: c++

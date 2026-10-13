@@ -312,7 +312,7 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 		if (fragment->type() == artdaq::Fragment::EndOfDataFragmentType)
 		{
 			TLOG(TLVL_DEBUG + 33) << "runReceiver_: EndOfData Fragment received!";
-			fragment_store_[source_rank].SetEndOfData(*reinterpret_cast<size_t*>(fragment->dataBegin()));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+			fragment_store_[source_rank].SetEndOfData(*reinterpret_cast<size_t*>(fragment->dataBegin()));  // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
 		}
 		else if (fragment->type() == artdaq::Fragment::DataFragmentType || fragment->type() == artdaq::Fragment::ContainerFragmentType || fragment->isUserFragmentType(fragment->type()))
 		{

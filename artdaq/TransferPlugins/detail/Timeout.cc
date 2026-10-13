@@ -17,11 +17,11 @@ OR
 
 #include "artdaq-core/Utilities/TimeUtils.hh"
 
-#include <sys/time.h> /* struct timeval */
-#include <cassert>    /* assert */
+#include <sys/time.h> // struct timeval 
+#include <cassert>    // assert 
 #include <cstdio>     // printf
 #include <cstdlib>    // exit
-#include <cstring>    /* strcmp */
+#include <cstring>    // strcmp 
 #include <list>
 using std::list;
 
@@ -249,7 +249,7 @@ int Timeout::get_clear_next_expired_timeout(timeoutspec& tmo, uint64_t tod_now_u
 			assert(skipped >= 0);
 			tmo.missed_periods += skipped;
 
-			/* now fast forward over skipped */
+			// now fast forward over skipped 
 			period_us += period_us * skipped;
 			tmospecs_[idx].tmo_tod_us += period_us;
 			active_time_.insert(std::pair<uint64_t, size_t>(tmospecs_[idx].tmo_tod_us, idx));

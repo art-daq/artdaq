@@ -1,5 +1,5 @@
-#ifndef TCP_listen_fd_hh
-#define TCP_listen_fd_hh
+#ifndef ARTDAQ_ARTDAQ_DAQDATA_TCP_LISTEN_FD_HH_
+#define ARTDAQ_ARTDAQ_DAQDATA_TCP_LISTEN_FD_HH_
 
 // This file (TCP_listen_fd.hh) was created by Ron Rechenmacher <ron@fnal.gov> on
 // Sep 15, 2016. "TERMS AND CONDITIONS" governing this file are in the README
@@ -21,4 +21,4 @@
  */
 int TCP_listen_fd(int port, int rcvbuf);
 
-#endif  // TCP_listen_fd_hh
+#endif  // ARTDAQ_ARTDAQ_DAQDATA_TCP_LISTEN_FD_HH_

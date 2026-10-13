@@ -1,5 +1,5 @@
-#ifndef artdaq_DAQrate_RequestSender_hh
-#define artdaq_DAQrate_RequestSender_hh
+#ifndef ARTDAQ_ARTDAQ_DAQRATE_DETAIL_REQUESTSENDER_HH_
+#define ARTDAQ_ARTDAQ_DAQRATE_DETAIL_REQUESTSENDER_HH_
 
 #include "artdaq/DAQrate/detail/RequestMessage.hh"
 
@@ -154,4 +154,4 @@ private:
 	void do_send_request_();
 };
 }  // namespace artdaq
-#endif /* artdaq_DAQrate_RequestSender_hh */
+#endif  // ARTDAQ_ARTDAQ_DAQRATE_DETAIL_REQUESTSENDER_HH_

@@ -858,7 +858,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 			// i.e. match this out_iov with the in_iov that was used to
 			// initialize it; see how close the out base+len is to in base+len
 			// check !>per_write_max_bytes
-			auto additional = (reinterpret_cast<uintptr_t>(iov_in[in_iov_idx].iov_base) + iov_in[in_iov_idx].iov_len) - (reinterpret_cast<uintptr_t>(iovv[out_iov_idx].iov_base) + iovv[out_iov_idx].iov_len);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+			auto additional = (reinterpret_cast<uintptr_t>(iov_in[in_iov_idx].iov_base) + iov_in[in_iov_idx].iov_len) - (reinterpret_cast<uintptr_t>(iovv[out_iov_idx].iov_base) + iovv[out_iov_idx].iov_len);  // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
 			if (additional != 0u)
 			{
 				iovv[out_iov_idx].iov_len += additional;
@@ -887,7 +887,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 			in_iov_idx += out_iov_idx;  // at least this many complete (one more if "last iovv" is complete
 			this_write_bytes = 0;
 			// need to check last iovv against appropriate iov_in
-			auto additional = (reinterpret_cast<uintptr_t>(iov_in[in_iov_idx].iov_base) + iov_in[in_iov_idx].iov_len) - (reinterpret_cast<uintptr_t>(iovv[out_iov_idx].iov_base) + iovv[out_iov_idx].iov_len);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+			auto additional = (reinterpret_cast<uintptr_t>(iov_in[in_iov_idx].iov_base) + iov_in[in_iov_idx].iov_len) - (reinterpret_cast<uintptr_t>(iovv[out_iov_idx].iov_base) + iovv[out_iov_idx].iov_len);  // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
 			if (additional != 0u)
 			{
 				iovv[out_iov_idx].iov_len += additional;
@@ -1139,12 +1139,12 @@ void artdaq::TCPSocketTransfer::listen_(int port, size_t rcvbuf)
 			socklen_t arglen = sizeof(un);
 			int fd;
 			TLOG(TLVL_DEBUG + 32) << "listen_: Calling accept";
-			fd = accept(listen_fd, reinterpret_cast<sockaddr*>(&un), &arglen);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+			fd = accept(listen_fd, reinterpret_cast<sockaddr*>(&un), &arglen);  // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
 			TLOG(TLVL_DEBUG + 32) << "listen_: Done with accept";
 
 			TLOG(TLVL_DEBUG + 32) << "listen_: Reading connect message";
 			socklen_t lenlen = sizeof(tv);
-			/*sts=*/
+			//sts=
 			setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, lenlen);  // see man 7 socket.
 			MessHead mh;
 			uint64_t mark_us = TimeUtils::gettimeofday_us();

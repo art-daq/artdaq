@@ -1,5 +1,5 @@
-#ifndef ARTDAQ_DAQRATE_SHAREDMEMORYEVENTMANAGER_HH
-#define ARTDAQ_DAQRATE_SHAREDMEMORYEVENTMANAGER_HH
+#ifndef ARTDAQ_ARTDAQ_DAQRATE_SHAREDMEMORYEVENTMANAGER_HH_
+#define ARTDAQ_ARTDAQ_DAQRATE_SHAREDMEMORYEVENTMANAGER_HH_
 
 #include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
@@ -17,13 +17,20 @@
 #include "fhiclcpp/types/OptionalTable.h"
 #include "fhiclcpp/types/TableFragment.h"
 
-#define ART_SUPPORTS_DUPLICATE_EVENTS 0
+constexpr int ART_SUPPORTS_DUPLICATE_EVENTS = 0;
 
 #include <sys/stat.h>
 #include <deque>
 #include <fstream>
 #include <iomanip>
+#include <list>
+#include <map>
+#include <memory>
 #include <set>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace artdaq {
 
@@ -214,16 +221,6 @@ public:
 	 */
 	virtual ~SharedMemoryEventManager() noexcept;
 
-private:
-	/**
-	 * \brief Add a Fragment to the SharedMemoryEventManager
-	 * \param frag Header of the Fragment (seq ID and size info)
-	 * \param dataPtr Pointer to the fragment's data (i.e. Fragment::headerAddress())
-	 * \return Whether the Fragment was successfully added
-	 */
-	bool AddFragment(detail::RawFragmentHeader frag, void* dataPtr);
-
-public:
 	/**
 	 * \brief Copy a Fragment into the SharedMemoryEventManager
 	 * \param frag FragmentPtr object
@@ -409,7 +406,7 @@ public:
 	{
 		for (auto it = dropped_data_.begin(); it != dropped_data_.end(); ++it)
 		{
-			if (frag.operator==(it->first))  // TODO, ELF 5/26/2023: Workaround until artdaq_core can be fixed for C++20
+			if (frag.operator==(it->first))
 			{
 				return it->second->dataBegin();
 			}
@@ -454,7 +451,7 @@ public:
 	 */
 	subrun_id_t GetCurrentSubrun() { return GetSubrunForSequenceID(Fragment::InvalidSequenceID); }
 
-	std::string BuildStatisticsString() const { return buildStatisticsString_(); };
+	std::string BuildStatisticsString() const { return buildStatisticsString_(); }
 
 private:
 	SharedMemoryEventManager(SharedMemoryEventManager const&) = delete;
@@ -470,14 +467,21 @@ private:
 
 	std::string buildStatisticsString_() const;
 
-private:
+	/**
+	 * \brief Add a Fragment to the SharedMemoryEventManager
+	 * \param frag Header of the Fragment (seq ID and size info)
+	 * \param dataPtr Pointer to the fragment's data (i.e. Fragment::headerAddress())
+	 * \return Whether the Fragment was successfully added
+	 */
+	bool AddFragment(detail::RawFragmentHeader frag, void* dataPtr);
+
 	size_t num_art_processes_;
 	size_t const num_fragments_per_event_;
 	size_t const queue_size_;
-	run_id_t run_id_;
+	run_id_t run_id_{0};
 
 	std::map<sequence_id_t, subrun_id_t> subrun_event_map_;
-	subrun_id_t subrun_id_;
+	subrun_id_t subrun_id_{0};
 	size_t max_subrun_event_map_length_;
 	static std::mutex subrun_event_map_mutex_;
 	double subrun_transition_hold_time_s_;
@@ -494,7 +498,7 @@ private:
 	bool overwrite_mode_;
 	bool shared_memory_ordering_;
 	size_t init_fragment_count_;
-	std::atomic<bool> running_;
+	std::atomic<bool> running_{false};
 
 	std::unordered_map<int, std::atomic<int>> buffer_writes_pending_;
 	std::unordered_map<int, std::mutex> buffer_mutexes_;
@@ -510,16 +514,16 @@ private:
 
 	int broadcast_timeout_ms_;
 
-	std::atomic<int> run_event_count_;
-	std::atomic<int> run_incomplete_event_count_;
-	std::atomic<int> subrun_event_count_;
-	std::atomic<int> subrun_incomplete_event_count_;
-	std::atomic<int> oversize_fragment_count_;
+	std::atomic<int> run_event_count_{0};
+	std::atomic<int> run_incomplete_event_count_{0};
+	std::atomic<int> subrun_event_count_{0};
+	std::atomic<int> subrun_incomplete_event_count_{0};
+	std::atomic<int> oversize_fragment_count_{0};
 	int maximum_oversize_fragment_count_;
 
 	mutable std::mutex art_process_mutex_;
 	std::set<pid_t> art_processes_;
-	std::atomic<bool> restart_art_;
+	std::atomic<bool> restart_art_{false};
 	bool always_restart_art_;
 	std::atomic<bool> manual_art_;
 	fhicl::ParameterSet current_art_pset_;
@@ -531,8 +535,8 @@ private:
 	bool capture_art_stdout_;
 	bool capture_art_stderr_;
 
-	std::unique_ptr<RequestSender> requests_;
-	std::unique_ptr<TokenSender> tokens_;
+	std::unique_ptr<RequestSender> requests_{nullptr};
+	std::unique_ptr<TokenSender> tokens_{nullptr};
 	fhicl::ParameterSet data_pset_;
 
 	std::mutex init_fragments_mutex_;
@@ -569,4 +573,4 @@ private:
 };
 }  // namespace artdaq
 
-#endif  // ARTDAQ_DAQRATE_SHAREDMEMORYEVENTMANAGER_HH
+#endif  // ARTDAQ_ARTDAQ_DAQRATE_SHAREDMEMORYEVENTMANAGER_HH_

@@ -1,10 +1,11 @@
 // Show that the string representation of numbers in fhicl is not what you'd expect.
 
+#include "artdaq/Application/LoadParameterSet.hh"
+
 #include "fhiclcpp/ParameterSet.h"
 
 #include <iomanip>
 #include <iostream>
-#include "artdaq/Application/LoadParameterSet.hh"
 
 int main(int argc, char* argv[])
 try

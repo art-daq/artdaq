@@ -1,5 +1,5 @@
-#ifndef artdaq_Application_MPI2_DataLoggerCore_hh
-#define artdaq_Application_MPI2_DataLoggerCore_hh
+#ifndef ARTDAQ_ARTDAQ_APPLICATION_DATALOGGERCORE_HH_
+#define ARTDAQ_ARTDAQ_APPLICATION_DATALOGGERCORE_HH_
 
 #include "artdaq/Application/DataReceiverCore.hh"
 
@@ -70,6 +70,6 @@ public:
 	bool initialize(fhicl::ParameterSet const& pset) override;
 };
 
-#endif
+#endif  // ARTDAQ_ARTDAQ_APPLICATION_DATALOGGERCORE_HH_
 
 //  LocalWords:  ds

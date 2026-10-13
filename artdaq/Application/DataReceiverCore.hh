@@ -1,5 +1,5 @@
-#ifndef artdaq_Application_MPI2_DataReceiverCore_hh
-#define artdaq_Application_MPI2_DataReceiverCore_hh
+#ifndef ARTDAQ_ARTDAQ_APPLICATION_DATARECEIVERCORE_HH_
+#define ARTDAQ_ARTDAQ_APPLICATION_DATARECEIVERCORE_HH_
 
 #include "canvas/Persistency/Provenance/RunID.h"
 #include "fhiclcpp/ParameterSet.h"
@@ -176,4 +176,4 @@ protected:
 	std::map<std::string, std::string> config_archive_entries_;  ///< Additional strings to archive as part of the art configuration
 };
 
-#endif /* artdaq_Application_MPI2_DataReceiverCore_hh */
+#endif  // ARTDAQ_ARTDAQ_APPLICATION_DATARECEIVERCORE_HH_

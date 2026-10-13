@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE(Tokens)
 	TLOG(TLVL_DEBUG) << "Accepting new connection on token_socket";
 	sockaddr_in addr;
 	socklen_t arglen = sizeof(addr);
-	auto conn_sock = accept(token_socket, reinterpret_cast<struct sockaddr*>(&addr), &arglen);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+	auto conn_sock = accept(token_socket, reinterpret_cast<struct sockaddr*>(&addr), &arglen);  // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
 
 	t.SendRoutingToken(120, 130);
 
