@@ -5,6 +5,7 @@
 #include "artdaq/Application/DataLoggerCore.hh"
 
 #include <memory>
+#include <string>
 
 namespace artdaq {
 class DataLoggerApp;

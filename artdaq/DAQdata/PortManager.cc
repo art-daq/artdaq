@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <sstream>
 #include <string>
+#include <vector>
 
 artdaq::PortManager::PortManager()
     : multicast_interface_address_()

@@ -18,6 +18,7 @@
 #include <sys/un.h>
 #include <algorithm>
 #include <memory>
+#include <vector>
 
 const std::string artdaq::RoutingManagerCore::
     TABLE_UPDATES_STAT_KEY("RoutingManagerCoreTableUpdates");

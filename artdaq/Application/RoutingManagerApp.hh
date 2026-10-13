@@ -7,6 +7,7 @@
 #include <boost/thread.hpp>
 
 #include <memory>
+#include <string>
 
 namespace artdaq {
 class RoutingManagerApp;
@@ -116,7 +117,7 @@ public:
 	 */
 	void BootedEnter() override;
 
-	// Report_ptr 
+	// Report_ptr
 	/**
 	 * \brief If which is "transition_status", report the status of the last transition. Otherwise pass through to RoutingManagerCore
 	 * \param which What to report on

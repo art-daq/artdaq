@@ -24,6 +24,7 @@ typedef std::unique_ptr<artdaq::CommandableFragmentGenerator> makeFunc_t(fhicl::
 #define EXTERN_C_FUNC_DECLARE_START extern "C" {
 #endif
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define DEFINE_ARTDAQ_COMMANDABLE_GENERATOR(klass)                                   \
 	EXTERN_C_FUNC_DECLARE_START                                                      \
 	std::unique_ptr<artdaq::CommandableFragmentGenerator>                            \

@@ -29,6 +29,7 @@
 #include <iomanip>
 #include <iostream>
 #include <iterator>
+#include <vector>
 #include "artdaq/DAQdata/TCPConnect.hh"
 
 artdaq::RequestReceiver::RequestReceiver()

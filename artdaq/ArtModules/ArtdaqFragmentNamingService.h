@@ -4,6 +4,12 @@
 #include "art/Framework/Services/Registry/ServiceDeclarationMacros.h"
 #include "artdaq-core/Plugins/FragmentNameHelper.hh"
 
+#include <memory>
+#include <string>
+#include <set>
+#include <utility>
+#include <vector>
+
 namespace fhicl {
 class ParameterSet;
 }

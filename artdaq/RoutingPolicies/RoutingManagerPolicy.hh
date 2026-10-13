@@ -13,6 +13,8 @@ class ParameterSet;
 #include <deque>
 #include <mutex>
 #include <unordered_set>
+#include <map>
+#include <vector>
 
 namespace artdaq {
 /**

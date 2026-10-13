@@ -4,6 +4,7 @@
 #include "artdaq-core/Data/RawEvent.hh"
 
 #include <unordered_map>
+#include <memory>
 
 /**
  * \brief An Artdaq Event, consisting of a header and a map of contained Fragments

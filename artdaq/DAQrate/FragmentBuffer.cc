@@ -25,6 +25,10 @@
 #include <iomanip>
 #include <iostream>
 #include <iterator>
+#include <set>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 #include "artdaq/DAQdata/TCPConnect.hh"
 
 #define TLVL_ADDFRAGMENT 32

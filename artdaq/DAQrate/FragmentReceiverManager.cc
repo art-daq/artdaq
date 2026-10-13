@@ -3,6 +3,8 @@
 
 #include <chrono>
 #include <memory>
+#include <utility>
+#include <vector>
 
 #include "artdaq/DAQrate/FragmentReceiverManager.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"

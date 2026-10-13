@@ -27,6 +27,7 @@
 #include <mutex>
 #include <string>
 #include <utility>  // std::move()
+#include <set>
 
 #ifndef USE_ACKS
 #define USE_ACKS 0

@@ -7,8 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace artdaq {
-namespace detail {
+namespace artdaq::detail {
 struct RoutingPacketEntry;
 /**
  * \brief A RoutingPacket is simply a vector of RoutingPacketEntry objects.
@@ -70,8 +69,8 @@ public:
 		return "Unknown Mode";
 	}
 };
-}  // namespace detail
-}  // namespace artdaq
+}  // namespace artdaq::detail
+
 /**
  * \brief A row of the Routing Table
  */
@@ -96,7 +95,7 @@ struct artdaq::detail::RoutingPacketEntry
 /**
  * \brief Magic bytes expected in every RoutingPacketHeader
  */
-#define ROUTING_MAGIC 0x1337beef
+constexpr uint32_t ROUTING_MAGIC = 0x1337beef;
 
 /**
  * \brief The header of the Routing Table, containing the magic bytes and the number of entries
@@ -184,7 +183,7 @@ struct artdaq::detail::RoutingRequest
 /**
  * \brief Magic bytes expected in every RoutingToken
  */
-#define TOKEN_MAGIC 0xbeefcafe
+constexpr uint32_t TOKEN_MAGIC = 0xbeefcafe;
 
 /**
  * \brief The RoutingToken contains the magic bytes, the rank of the token sender, and the number of slots free. This is

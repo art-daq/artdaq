@@ -19,6 +19,9 @@
 #include <condition_variable>
 #include <mutex>
 #include <unordered_set>
+#include <string>
+#include <map>
+#include <set>
 
 namespace artdaqtest {
 /// <summary>

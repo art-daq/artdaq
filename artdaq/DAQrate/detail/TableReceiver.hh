@@ -22,6 +22,7 @@ class ParameterSet;
 #include <map>
 #include <memory>
 #include <set>
+#include <string>
 
 namespace artdaq {
 class TableReceiver;

@@ -13,6 +13,9 @@
 #include "fhiclcpp/types/TableFragment.h"
 #include "fhiclcpp/types/Tuple.h"
 
+#include <string>
+#include <set>
+
 namespace art {
 /// <summary>
 /// Configuration for the ArtdaqFragmentNamingServiceInterface

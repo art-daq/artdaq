@@ -6,6 +6,8 @@
 
 #include "fhiclcpp/ParameterSet.h"
 
+#include <string>
+
 artdaq::RoutingManagerPolicy::RoutingManagerPolicy(const fhicl::ParameterSet& ps)
     : tokens_used_since_last_update_(0)
     , next_sequence_id_(1)

@@ -7,6 +7,7 @@
 #include <condition_variable>
 #include <map>
 #include <set>
+#include <utility>
 
 namespace artdaq {
 /**

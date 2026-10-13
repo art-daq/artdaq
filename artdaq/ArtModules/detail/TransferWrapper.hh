@@ -14,6 +14,7 @@ class ParameterSet;
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace artdaq {
 class Fragment;

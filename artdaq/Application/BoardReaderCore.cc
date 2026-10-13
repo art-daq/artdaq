@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <memory>
 #include <thread>
+#include <utility>
 
 const std::string artdaq::BoardReaderCore::
     FRAGMENTS_PROCESSED_STAT_KEY("BoardReaderCoreFragmentsProcessed");

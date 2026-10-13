@@ -28,6 +28,8 @@
 
 // artdaq Includes
 #include <iomanip>
+#include <set>
+#include <vector>
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/TimeUtils.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"

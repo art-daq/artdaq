@@ -53,11 +53,11 @@ public:
 		{
 			int fp = open("/dev/random", O_RDONLY);
 			if (fp == -1) abort();
-			unsigned seed;
-			unsigned pos = 0;
+			ssize_t seed = 0;
+			size_t pos = 0;
 			while (pos < sizeof(seed))
 			{
-				int amt = read(fp, reinterpret_cast<char *>(&seed) + pos, sizeof(seed) - pos);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
+				int amt = read(fp, reinterpret_cast<char *>(&seed) + pos, sizeof(seed) - pos);  // NOLINT
 				if (amt <= 0) abort();
 				pos += amt;
 			}
@@ -98,10 +98,10 @@ public:
 				catch (const std::out_of_range &)
 				{}
 			}
-			partition_number_ = part_u & 0x7F;
+			partition_number_ = static_cast<int>(part_u & 0x7F);
 		}
 
-		return (part_u & 0x7F);
+		return static_cast<int>(part_u & 0x7F);
 	}
 
 	/**

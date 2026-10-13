@@ -6,6 +6,8 @@
 #include "artdaq/ArtModules/ArtdaqSharedMemoryServiceInterface.h"
 #include "fhiclcpp/types/Atom.h"
 
+#include <memory>
+
 // ----------------------------------------------------------------------
 
 /**

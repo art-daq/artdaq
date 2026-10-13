@@ -4,6 +4,9 @@
 #include "artdaq/Application/BoardReaderCore.hh"
 #include "artdaq/Application/Commandable.hh"
 
+#include <memory>
+#include <string>
+
 namespace artdaq {
 class BoardReaderApp;
 }
@@ -121,7 +124,7 @@ public:
 	 */
 	bool do_meta_command(std::string const& command, std::string const& arg) override;
 
-	// Report_ptr 
+	// Report_ptr
 	/**
 	 * \brief If which is "transition_status", report the status of the last transition. Otherwise pass through to BoardReaderCore
 	 * \param which What to report on

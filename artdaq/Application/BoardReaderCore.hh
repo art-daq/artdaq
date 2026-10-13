@@ -12,6 +12,7 @@
 
 #include <atomic>
 #include <string>
+#include <memory>
 
 namespace artdaq {
 class BoardReaderCore;

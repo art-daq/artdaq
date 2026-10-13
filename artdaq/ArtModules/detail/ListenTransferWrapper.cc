@@ -18,6 +18,7 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <utility>
 
 namespace {
 volatile std::sig_atomic_t gListenSignalStatus = 0;  ///< Stores singal from signal handler

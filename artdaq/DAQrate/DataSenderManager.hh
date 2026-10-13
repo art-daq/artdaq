@@ -23,6 +23,8 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <utility>
+#include <vector>
 
 namespace artdaq {
 class DataSenderManager;

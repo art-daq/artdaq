@@ -29,7 +29,12 @@ class ParameterSet;
 #include <condition_variable>
 #include <list>
 #include <mutex>
+#include <memory>
+#include <string>
 #include <queue>
+#include <set>
+#include <unordered_map>
+#include <vector>
 
 namespace artdaq {
 /**
@@ -319,7 +324,7 @@ public:
 
 		for (auto& id : dataBuffers_)
 		{
-			output.push_back(id.first);
+			output.push_back(id.first); // NOLINT(performance-inefficient-vector-operation)
 		}
 
 		return output;

@@ -6,6 +6,8 @@
 #include "artdaq/ArtModules/ArtdaqEvent.hh"
 #include "fhiclcpp/types/Atom.h"
 
+#include <memory>
+
 /**
  * \brief Interface for ArtdaqSharedMemoryService. This interface is declared to art as part of the required registration of an art Service
  */

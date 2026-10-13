@@ -4,6 +4,8 @@
 
 #include "cetlib/BasicPluginFactory.h"
 
+#include <utility>
+
 namespace fhicl {
 class ParameterSet;
 }

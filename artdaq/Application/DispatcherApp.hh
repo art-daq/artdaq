@@ -7,6 +7,7 @@
 #include "canvas/Persistency/Provenance/RunID.h"
 
 #include <memory>
+#include <string>
 
 namespace artdaq {
 class DispatcherApp;

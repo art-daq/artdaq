@@ -1,6 +1,8 @@
 #ifndef ARTDAQ_ARTDAQ_APPLICATION_TASKTYPE_HH_
 #define ARTDAQ_ARTDAQ_APPLICATION_TASKTYPE_HH_
 
+#include <string>
+
 /**
  * \brief The artdaq namespace
  */

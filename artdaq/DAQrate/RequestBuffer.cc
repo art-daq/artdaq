@@ -3,6 +3,8 @@
 
 #include "artdaq/DAQrate/RequestBuffer.hh"
 
+#include <utility>
+
 artdaq::RequestBuffer::RequestBuffer()
 
     : requests_()

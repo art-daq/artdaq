@@ -27,6 +27,7 @@ class ParameterSet;
 #include <list>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <queue>
 
 // Socket Includes
@@ -35,6 +36,8 @@ class ParameterSet;
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <map>
+#include <vector>
 
 namespace artdaq {
 

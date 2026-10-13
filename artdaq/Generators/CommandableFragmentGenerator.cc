@@ -28,6 +28,7 @@
 #include <memory>
 #include <mutex>
 #include <thread>
+#include <vector>
 
 #define TLVL_GETNEXT 35
 #define TLVL_GETNEXT_VERBOSE 36

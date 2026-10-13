@@ -17,6 +17,8 @@ class ParameterSet;
 
 #include <boost/thread.hpp>
 #include <mutex>
+#include <memory>
+#include <string>
 
 namespace artdaq {
 /// <summary>

@@ -1,13 +1,14 @@
 #ifndef ARTDAQ_ARTDAQ_ARTMODULES_DETAIL_LISTENTRANSFERWRAPPER_HH_
 #define ARTDAQ_ARTDAQ_ARTMODULES_DETAIL_LISTENTRANSFERWRAPPER_HH_
 
-#include <iostream>
-#include <memory>
-#include <string>
-
 #include "artdaq-core/Data/RawEvent.hh"
 #include "artdaq/ArtModules/ArtdaqEvent.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
+
+#include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace fhicl {
 class ParameterSet;
