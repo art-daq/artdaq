@@ -485,6 +485,7 @@ private:
 
 	std::set<int> active_buffers_;
 	std::set<int> pending_buffers_;
+	std::vector<Fragment::sequence_id_t> buffer_sequence_ids_;
 	std::unordered_map<Fragment::sequence_id_t, size_t> released_incomplete_events_;
 	std::set<Fragment::sequence_id_t> released_events_;
 	size_t max_event_list_length_;
