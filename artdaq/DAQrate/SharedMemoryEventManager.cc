@@ -1328,7 +1328,7 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 	}
 #endif
 	for(size_t ii = 0; ii < size(); ++ii) {
-		if(buffer_sequence_ids_.at(ii) == seqID) {
+		if(buffer_sequence_ids_[ii] == seqID) {
 			TLOG(TLVL_GETBUFFER) << "getBufferForSequenceID " << seqID << " returning buffer " << ii << " (already assigned)";
 			return ii;
 		}
