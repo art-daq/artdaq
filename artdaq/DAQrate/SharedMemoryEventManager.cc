@@ -1327,8 +1327,10 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 		return -2;
 	}
 #endif
-	for(size_t ii = 0; ii < size(); ++ii) {
-		if(buffer_sequence_ids_[ii] == seqID) {
+	for (size_t ii = 0; ii < size(); ++ii)
+	{
+		if (buffer_sequence_ids_[ii] == seqID)
+		{
 			TLOG(TLVL_GETBUFFER) << "getBufferForSequenceID " << seqID << " returning buffer " << ii << " (already assigned)";
 			return ii;
 		}
@@ -1338,7 +1340,7 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 	for (auto& buf : buffers)
 	{
 		auto hdr = getEventHeader_(buf);
-		buffer_sequence_ids_[buf] = hdr->sequence_id; // Update sequence ID cache
+		buffer_sequence_ids_[buf] = hdr->sequence_id;  // Update sequence ID cache
 		if (hdr->sequence_id == seqID)
 		{
 			TLOG(TLVL_GETBUFFER) << "getBufferForSequenceID " << seqID << " returning " << buf;
