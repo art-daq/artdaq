@@ -308,6 +308,13 @@ c_executeMethod(xmlrpc_env* const envP,
 	auto* const methodP(static_cast<xmlrpc_c::method*>(methodPtr));
 	xmlrpc_c::paramList const paramList(pListFromXmlrpcArray(paramArrayP));
 	auto* const callInfoP(static_cast<xmlrpc_c::callInfo*>(callInfoPtr));
+	if (methodP == nullptr || callInfoP == nullptr)
+	{
+		xmlrpc_env_set_fault(envP, XMLRPC_INTERNAL_ERROR,
+		                     "Null method or callInfo pointer passed to c_executeMethod.");
+		return nullptr;
+	}
+
 	xmlrpc_value* retval;
 	retval = nullptr;  // silence used-before-set warning
 	try
@@ -1437,7 +1444,7 @@ try
 	sockAddr.sin_addr.s_addr = 0;
 
 	retval = bind(socket_file_descriptor,
-	              reinterpret_cast<struct sockaddr*>(&sockAddr),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+	              reinterpret_cast<struct sockaddr*>(&sockAddr),  // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
 	              sizeof(sockAddr));
 
 	if (retval != 0)

@@ -389,7 +389,7 @@ int artdaq::MulticastTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 	auto ret = receiveFragment(fragment_buffer_, receiveTimeout);
 	if (ret == source_rank())
 	{
-		header = *reinterpret_cast<detail::RawFragmentHeader*>(fragment_buffer_.headerAddress());  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+		header = *reinterpret_cast<detail::RawFragmentHeader*>(fragment_buffer_.headerAddress());  // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
 		return source_rank();
 	}
 	return ret;
@@ -464,7 +464,7 @@ void artdaq::MulticastTransfer::fill_staging_memory(const artdaq::Fragment& frag
 
 		subfragment_identifier sfi(fragment.sequenceID(), fragment.fragmentID(), i_s);
 
-		std::copy(reinterpret_cast<byte_t*>(&sfi),                                   // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+		std::copy(reinterpret_cast<byte_t*>(&sfi),                                   // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
 		          reinterpret_cast<byte_t*>(&sfi) + sizeof(subfragment_identifier),  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
 		          staging_memory_copyto);
 

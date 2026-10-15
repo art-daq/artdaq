@@ -35,7 +35,7 @@ std::unique_ptr<artdaq::DataSenderManager> artdaq::BoardReaderCore::sender_ptr_ 
 
 artdaq::BoardReaderCore::BoardReaderCore(Commandable& parent_application)
     : parent_application_(parent_application)
-    /*, local_group_comm_(local_group_comm)*/
+    //, local_group_comm_(local_group_comm)
     , generator_ptr_(nullptr)
     , run_id_(art::RunID::flushRun())
     , fragment_count_(0)

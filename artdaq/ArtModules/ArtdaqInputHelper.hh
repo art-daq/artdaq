@@ -751,7 +751,7 @@ void art::ArtdaqInputHelper<U>::readDataProducts(std::list<std::unique_ptr<TBuff
 				//	    prd.reset(ReadObjectAny<EDProduct>(msg, bd.wrappedName()));
 
 				void* p = msg->ReadObjectAny(TClass::GetClass(bd.wrappedName().c_str()));
-				auto pp = reinterpret_cast<EDProduct*>(p);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+				auto pp = reinterpret_cast<EDProduct*>(p);  // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
 
 				TLOG(TLVL_DEBUG + 40, "ArtdaqInputHelper") << "readDataProducts: After ReadObjectAny(prd): p=" << p << ", EDProduct::isPresent: " << pp->isPresent();
 				prd.reset(pp);

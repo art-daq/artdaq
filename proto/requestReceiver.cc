@@ -1,11 +1,11 @@
 #define TRACE_NAME "requestReceiver"
 
-#include <boost/program_options.hpp>
-
+#include "artdaq/DAQrate/detail/RequestReceiver.hh"
 #include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
 #include "artdaq/DAQrate/RequestBuffer.hh"
-#include "artdaq/DAQrate/detail/RequestReceiver.hh"
+
+#include <boost/program_options.hpp>
 
 int main(int argc, char* argv[])
 {

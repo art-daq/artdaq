@@ -1,5 +1,5 @@
-#ifndef artdaq_Application_MPI2_RoutingManagerApp_hh
-#define artdaq_Application_MPI2_RoutingManagerApp_hh
+#ifndef ARTDAQ_ARTDAQ_APPLICATION_ROUTINGMANAGERAPP_HH_
+#define ARTDAQ_ARTDAQ_APPLICATION_ROUTINGMANAGERAPP_HH_
 
 #include "artdaq/Application/Commandable.hh"
 #include "artdaq/Application/RoutingManagerCore.hh"
@@ -116,7 +116,7 @@ public:
 	 */
 	void BootedEnter() override;
 
-	/* Report_ptr */
+	// Report_ptr 
 	/**
 	 * \brief If which is "transition_status", report the status of the last transition. Otherwise pass through to RoutingManagerCore
 	 * \param which What to report on
@@ -129,4 +129,4 @@ private:
 	boost::thread routing_manager_thread_;
 };
 
-#endif /* artdaq_Application_MPI2_RoutingManagerApp_hh */
+#endif  // ARTDAQ_ARTDAQ_APPLICATION_ROUTINGMANAGERAPP_HH_

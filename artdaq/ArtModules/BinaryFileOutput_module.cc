@@ -199,11 +199,11 @@ void art::BinaryFileOutput::write(EventPrincipal& ep)
 			auto sequence_id = fragment.sequenceID();
 			auto fragid_id = fragment.fragmentID();
 			TLOG(TLVL_DEBUG + 33) << "BinaryFileOutput::write seq=" << sequence_id << " frag=" << fragid_id << " "
-			                      << reinterpret_cast<const void*>(fragment.headerBeginBytes()) << " bytes=0x" << std::hex  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+			                      << reinterpret_cast<const void*>(fragment.headerBeginBytes()) << " bytes=0x" << std::hex  // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
 			                      << fragment.sizeBytes() << " start";
 			if (do_direct_)
 			{
-				ssize_t sts = ::write(fd_, reinterpret_cast<const char*>(fragment.headerBeginBytes()), fragment.sizeBytes());  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+				ssize_t sts = ::write(fd_, reinterpret_cast<const char*>(fragment.headerBeginBytes()), fragment.sizeBytes());  // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
 				TLOG(TLVL_DEBUG + 34) << "BinaryFileOutput::write seq=" << sequence_id << " frag=" << fragid_id << " done sts=" << sts
 				                      << " errno=" << errno;
 			}
@@ -212,7 +212,7 @@ void art::BinaryFileOutput::write(EventPrincipal& ep)
 #if USE_STATIC_BUFFER == 1
 				file_ptr_->write((char*)static_buffer, fragment.sizeBytes());
 #else
-				file_ptr_->write(reinterpret_cast<const char*>(fragment.headerBeginBytes()), fragment.sizeBytes());  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+				file_ptr_->write(reinterpret_cast<const char*>(fragment.headerBeginBytes()), fragment.sizeBytes());  // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
 #endif
 				TLOG(TLVL_DEBUG + 34) << "BinaryFileOutput::write seq=" << sequence_id << " frag=" << fragid_id << " done errno=" << errno;
 			}

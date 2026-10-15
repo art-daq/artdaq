@@ -235,7 +235,6 @@ bool artdaq::TableReceiver::receiveTableUpdate_()
 						if (thisSeqID != entry.sequence_id)
 						{
 							TLOG(TLVL_ERROR) << __func__ << ": Aborting processing of this RoutingPacket because I encountered an inconsistent entry (seqid=" << entry.sequence_id << ", expected=" << thisSeqID << ")!";
-							last = thisSeqID - 1;
 							break;
 						}
 						thisSeqID++;

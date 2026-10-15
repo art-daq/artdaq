@@ -1,5 +1,5 @@
-#ifndef artdaq_DAQrate_detail_RoutingPacket_hh
-#define artdaq_DAQrate_detail_RoutingPacket_hh
+#ifndef ARTDAQ_ARTDAQ_DAQRATE_DETAIL_ROUTINGPACKET_HH_
+#define ARTDAQ_ARTDAQ_DAQRATE_DETAIL_ROUTINGPACKET_HH_
 
 #include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
@@ -198,4 +198,4 @@ struct artdaq::detail::RoutingToken
 	unsigned run_number;      ///< The Run with which this token should be associated
 };
 
-#endif  // artdaq_Application_Routing_RoutingPacket_hh
+#endif  // ARTDAQ_ARTDAQ_DAQRATE_DETAIL_ROUTINGPACKET_HH_

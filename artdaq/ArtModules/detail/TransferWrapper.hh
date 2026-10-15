@@ -1,5 +1,5 @@
-#ifndef artdaq_ArtModules_TransferWrapper_hh
-#define artdaq_ArtModules_TransferWrapper_hh
+#ifndef ARTDAQ_ARTDAQ_ARTMODULES_DETAIL_TRANSFERWRAPPER_HH_
+#define ARTDAQ_ARTDAQ_ARTMODULES_DETAIL_TRANSFERWRAPPER_HH_
 
 #include "artdaq-core/Data/RawEvent.hh"
 #include "artdaq/ArtModules/ArtdaqEvent.hh"
@@ -115,4 +115,4 @@ private:
 };  // namespace artdaq
 }  // namespace artdaq
 
-#endif /* artdaq_ArtModules_TransferWrapper_hh */
+#endif  // ARTDAQ_ARTDAQ_ARTMODULES_DETAIL_TRANSFERWRAPPER_HH_

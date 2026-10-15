@@ -1,5 +1,5 @@
-#ifndef artdaq_Application_MPI2_StatisticsHelper_hh
-#define artdaq_Application_MPI2_StatisticsHelper_hh
+#ifndef ARTDAQ_ARTDAQ_DAQRATE_STATISTICSHELPER_HH_
+#define ARTDAQ_ARTDAQ_DAQRATE_STATISTICSHELPER_HH_
 
 #include "artdaq-core/Core/MonitoredQuantity.hh"
 #include "artdaq-core/Core/StatisticsCollection.hh"
@@ -106,4 +106,4 @@ private:
 	std::atomic<MonitoredQuantityStats::TIME_POINT_T> previous_stats_calc_time_{0.0};
 };
 
-#endif /* artdaq_Application_MPI2_StatisticsHelper_hh */
+#endif  // ARTDAQ_ARTDAQ_DAQRATE_STATISTICSHELPER_HH_

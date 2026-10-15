@@ -1,5 +1,5 @@
-#ifndef artdaq_Application_Routing_RoutingManagerPolicy_hh
-#define artdaq_Application_Routing_RoutingManagerPolicy_hh
+#ifndef ARTDAQ_ARTDAQ_ROUTINGPOLICIES_ROUTINGMANAGERPOLICY_HH_
+#define ARTDAQ_ARTDAQ_ROUTINGPOLICIES_ROUTINGMANAGERPOLICY_HH_
 
 #include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
@@ -174,4 +174,4 @@ private:
 };
 }  // namespace artdaq
 
-#endif  // artdaq_Application_Routing_RoutingManagerPolicy_hh
+#endif  // ARTDAQ_ARTDAQ_ROUTINGPOLICIES_ROUTINGMANAGERPOLICY_HH_

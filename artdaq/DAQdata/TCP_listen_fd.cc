@@ -12,11 +12,11 @@
 
 #define TRACE_NAME (app_name + "_TCP_listen_fd").c_str()
 
-#include <arpa/inet.h>  /* inet_aton */
-#include <netdb.h>      /* gethostbyname */
-#include <netinet/in.h> /* inet_aton, struct sockaddr_in */
+#include <arpa/inet.h>  // inet_aton 
+#include <netdb.h>      // gethostbyname 
+#include <netinet/in.h> // inet_aton, struct sockaddr_in 
 #include <strings.h>    // bzero
-#include <sys/socket.h> /* inet_aton, socket, bind, listen, accept */
+#include <sys/socket.h> // inet_aton, socket, bind, listen, accept 
 #include <cerrno>       // errno
 #include <cstdio>       // printf
 #include <cstdlib>      // exit
@@ -27,7 +27,7 @@ int TCP_listen_fd(int port, int rcvbuf)
 	int listener_fd;
 	struct sockaddr_in sin;
 
-	listener_fd = socket(PF_INET, SOCK_STREAM, 0); /* man TCP(7P) */
+	listener_fd = socket(PF_INET, SOCK_STREAM, 0); // man TCP(7P) 
 	if (listener_fd == -1)
 	{
 		TLOG(TLVL_ERROR) << "Could not open listen socket! Exiting with code 1!";
@@ -50,7 +50,7 @@ int TCP_listen_fd(int port, int rcvbuf)
 	sin.sin_addr.s_addr = INADDR_ANY;
 
 	// printf( "bind..." );fflush(stdout);
-	sts = bind(listener_fd, reinterpret_cast<struct sockaddr *>(&sin), sizeof(sin));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+	sts = bind(listener_fd, reinterpret_cast<struct sockaddr *>(&sin), sizeof(sin));  // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
 	if (sts == -1)
 	{
 		TLOG(TLVL_ERROR) << "Could not bind socket for port " << port << "! Exiting with code 3!";

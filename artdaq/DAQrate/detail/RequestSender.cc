@@ -220,7 +220,7 @@ void RequestSender::do_send_request_()
 		TLOG(TLVL_DEBUG + 33) << "Sending request for " << message.size() << " events to multicast group " << str
 		                      << ", port " << request_port_ << ", interface " << multicast_out_addr_;
 		auto buf = message.GetMessage();
-		auto sts = sendto(request_socket_, &buf[0], buf.size(), 0, reinterpret_cast<struct sockaddr*>(&request_addr_), sizeof(request_addr_));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+		auto sts = sendto(request_socket_, &buf[0], buf.size(), 0, reinterpret_cast<struct sockaddr*>(&request_addr_), sizeof(request_addr_));  // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
 		if (sts < 0 || static_cast<size_t>(sts) != buf.size())
 		{
 			TLOG(TLVL_ERROR) << "Error sending request message err=" << strerror(errno) << "sts=" << sts;

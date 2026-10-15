@@ -1,7 +1,7 @@
 #define BOOST_TEST_MODULE RequestSender_t
 #include "boost/test/unit_test.hpp"
 
-#include "tracemf.h"
+#include "TRACE/tracemf.h"
 #define TRACE_NAME "RequestSender_t"
 
 #include "artdaq-core/Utilities/configureMessageFacility.hh"
@@ -77,7 +77,7 @@ BOOST_AUTO_TEST_CASE(Requests)
 	si_me_request.sin_family = AF_INET;
 	si_me_request.sin_port = htons(REQUEST_PORT);
 	si_me_request.sin_addr.s_addr = htonl(INADDR_ANY);
-	if (bind(request_socket, reinterpret_cast<struct sockaddr*>(&si_me_request), sizeof(si_me_request)) == -1)  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+	if (bind(request_socket, reinterpret_cast<struct sockaddr*>(&si_me_request), sizeof(si_me_request)) == -1)  // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
 	{
 		TLOG(TLVL_ERROR) << "Cannot bind request socket to port " << REQUEST_PORT;
 		BOOST_REQUIRE_EQUAL(true, false);

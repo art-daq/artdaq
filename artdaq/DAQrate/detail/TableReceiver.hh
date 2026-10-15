@@ -1,5 +1,5 @@
-#ifndef ARTDAQ_DAQRATE_DETAIL_TABLERECEIVER_HH
-#define ARTDAQ_DAQRATE_DETAIL_TABLERECEIVER_HH
+#ifndef ARTDAQ_ARTDAQ_DAQRATE_DETAIL_TABLERECEIVER_HH_
+#define ARTDAQ_ARTDAQ_DAQRATE_DETAIL_TABLERECEIVER_HH_
 
 #include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
@@ -140,7 +140,6 @@ private:
 
 	void sendTableUpdateRequest_(Fragment::sequence_id_t seq);
 
-private:
 	bool use_routing_manager_;
 	std::atomic<bool> should_stop_;
 	int table_port_;
@@ -160,4 +159,4 @@ private:
 	mutable std::atomic<uint64_t> highest_sequence_id_routed_;
 };
 
-#endif  // ARTDAQ_DAQRATE_DETAIL_TABLERECEIVER_HH
+#endif  // ARTDAQ_ARTDAQ_DAQRATE_DETAIL_TABLERECEIVER_HH_

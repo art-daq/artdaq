@@ -1,5 +1,5 @@
-#ifndef artdaq_Application_CommandableFragmentGenerator_hh
-#define artdaq_Application_CommandableFragmentGenerator_hh
+#ifndef ARTDAQ_ARTDAQ_GENERATORS_COMMANDABLEFRAGMENTGENERATOR_HH_
+#define ARTDAQ_ARTDAQ_GENERATORS_COMMANDABLEFRAGMENTGENERATOR_HH_
 
 #include "fhiclcpp/types/Sequence.h"  // Must pre-empt fhiclcpp/types/Atom.h
 
@@ -518,4 +518,4 @@ protected:
 };
 }  // namespace artdaq
 
-#endif /* artdaq_Application_CommandableFragmentGenerator_hh */
+#endif  // ARTDAQ_ARTDAQ_GENERATORS_COMMANDABLEFRAGMENTGENERATOR_HH_

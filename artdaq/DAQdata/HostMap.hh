@@ -1,5 +1,5 @@
-#ifndef ARTDAQ_DAQDATA_HOSTMAP_HH
-#define ARTDAQ_DAQDATA_HOSTMAP_HH
+#ifndef ARTDAQ_ARTDAQ_DAQDATA_HOSTMAP_HH_
+#define ARTDAQ_ARTDAQ_DAQDATA_HOSTMAP_HH_
 
 #include <map>
 #include <string>
@@ -86,4 +86,4 @@ inline hostMap_t MakeHostMap(fhicl::ParameterSet const& pset, hostMap_t map = ho
 }
 }  // namespace artdaq
 
-#endif  // ARTDAQ_DAQDATA_HOSTMAP_HH
+#endif  // ARTDAQ_ARTDAQ_DAQDATA_HOSTMAP_HH_

@@ -1,8 +1,13 @@
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_DataSenderManager").c_str()
+
 #include "artdaq/DAQdata/HostMap.hh"
+#include "artdaq/DAQdata/TCPConnect.hh"
 #include "artdaq/DAQrate/DataSenderManager.hh"
+#include "artdaq/DAQrate/detail/MergeParameterSets.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
+
+#include "canvas/Utilities/Exception.h"
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -10,9 +15,9 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <chrono>
-#include "artdaq/DAQdata/TCPConnect.hh"
-#include "artdaq/DAQrate/detail/MergeParameterSets.hh"
-#include "canvas/Utilities/Exception.h"
+#include <limits>
+#include <utility>
+#include <vector>
 
 artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
     : sent_frag_count_()
@@ -205,7 +210,7 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 	auto latency_s = frag.getLatency(true);
 	auto isSystemBroadcast = Fragment::isBroadcastFragmentType(frag.type());
 
-	double latency = latency_s.tv_sec + (latency_s.tv_nsec / 1000000000.0);
+	double latency = static_cast<double>(latency_s.tv_sec) + (latency_s.tv_nsec / 1000000000.0);
 	TLOG(TLVL_DEBUG + 36) << "sendFragment start frag.fragmentHeader()=" << std::hex << static_cast<void*>(frag.headerBeginBytes()) << ", szB=" << std::dec << fragSize
 	                      << ", seqID=" << seqID << ", fragID=" << frag.fragmentID() << ", type=" << frag.typeString();
 	int dest = TableReceiver::ROUTING_FAILED;

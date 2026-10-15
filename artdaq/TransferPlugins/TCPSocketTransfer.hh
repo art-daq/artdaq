@@ -1,5 +1,5 @@
-#ifndef TCPSocketTransfer_hh
-#define TCPSocketTransfer_hh
+#ifndef ARTDAQ_ARTDAQ_TRANSFERPLUGINS_TCPSOCKETTRANSFER_HH_
+#define ARTDAQ_ARTDAQ_TRANSFERPLUGINS_TCPSOCKETTRANSFER_HH_
 // This file (TCPSocketTransfer.hh) was created by Ron Rechenmacher <ron@fnal.gov> on
 // Sep 14, 2016. "TERMS AND CONDITIONS" governing this file are in the README
 // or COPYING file. If you do not have such a file, one can be obtained by
@@ -186,4 +186,4 @@ private:  // methods
 	void setLastActiveFD_(int source_rank, int fd);
 };
 
-#endif  // TCPSocketTransfer_hh
+#endif  // ARTDAQ_ARTDAQ_TRANSFERPLUGINS_TCPSOCKETTRANSFER_HH_

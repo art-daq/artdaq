@@ -1,5 +1,5 @@
-#ifndef artdaq_DAQdata_NetMonHeader_hh
-#define artdaq_DAQdata_NetMonHeader_hh
+#ifndef ARTDAQ_ARTDAQ_DAQDATA_NETMONHEADER_HH_
+#define ARTDAQ_ARTDAQ_DAQDATA_NETMONHEADER_HH_
 
 #include <cstdint>
 
@@ -23,4 +23,4 @@ struct artdaq::NetMonHeader
 	uint64_t data_length{0};  ///< The length of the message
 };
 
-#endif /* artdaq_DAQdata_NetMonHeader_hh */
+#endif  // ARTDAQ_ARTDAQ_DAQDATA_NETMONHEADER_HH_

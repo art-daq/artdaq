@@ -1,5 +1,5 @@
-#ifndef artdaq_test_TransferPlugins_BrokenTransferTest_hh
-#define artdaq_test_TransferPlugins_BrokenTransferTest_hh
+#ifndef ARTDAQ_TEST_TRANSFERPLUGINS_BROKENTRANSFERTEST_HH_
+#define ARTDAQ_TEST_TRANSFERPLUGINS_BROKENTRANSFERTEST_HH_
 
 #include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
@@ -142,4 +142,4 @@ private:
 };
 }  // namespace artdaqtest
 
-#endif  // artdaq_test_TransferPlugins_BrokenTransferTest_hh
+#endif  // ARTDAQ_TEST_TRANSFERPLUGINS_BROKENTRANSFERTEST_HH_

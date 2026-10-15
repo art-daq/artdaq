@@ -8,6 +8,8 @@ static const char *rev = "$Revision: 1.19 $$Date: 2018/06/28 21:14:28 $";
 //    make periodic_cmd_stats
 // OR make periodic_cmd_stats CXX="g++ -std=c++0x -DDO_TRACE"
 
+// NOLINTBEGIN
+
 #define USAGE \
 	"\
    usage: %s --cmd=<cmd>\n\
@@ -59,11 +61,11 @@ enum
 
 #include <fcntl.h>        // O_WRONLY|O_CREAT, open
 #include <getopt.h>       // getopt_long, {no,required,optional}_argument, extern char *optarg; extern int opt{ind,err,opt}
-#include <sys/time.h>     /* gettimeofday, timeval */
+#include <sys/time.h>     // gettimeofday, timeval
 #include <sys/utsname.h>  // uname
 #include <sys/wait.h>     // wait
 #include <unistd.h>       // getpid, sysconf
-#include <csignal>        /* sigaction, siginfo_t, sigset_t */
+#include <csignal>        // sigaction, siginfo_t, sigset_t
 #include <cstdio>         // printf
 #include <fstream>        // std::ifstream
 #include <sstream>        // std::stringstream
@@ -75,8 +77,8 @@ enum
 #define TRACE_NAME "periodic_cmd_stats"
 #include "trace.h"
 #else
-#include <cstdarg> /* va_list */
-#include <cstring> /* memcpy */
+#include <cstdarg> // va_list
+#include <cstring> // memcpy
 #include <string>
 static void trace_ap(const char *msg, va_list ap)
 {
@@ -120,7 +122,7 @@ enum
 #define TRACE_CNTL(xyzz, ...)
 #endif
 
-/* GLOBALS */
+// GLOBALS
 int opt_v = 1;
 char *opt_init = nullptr;
 std::vector<std::string> opt_cmd;
@@ -309,7 +311,7 @@ void parse_args(int argc, char *argv[])
 				exit(1);
 		}
 	}
-} /* parse_args */
+} // parse_args
 
 void perror_exit(const char *msg, ...)
 {
@@ -323,13 +325,15 @@ void perror_exit(const char *msg, ...)
 	exit(1);
 }
 
-// void atfork_trace(void) { TRACE( 3, "process %d forking", getpid() ); }
-/* iofd is in/out
+/*
+ void atfork_trace(void) { TRACE( 3, "process %d forking", getpid() ); }
+ iofd is in/out
    if iofd[x]==-1 then create a pipe for that index, x, and return the appropriate pipe fd in iofd[x]
    else if iofd[x]!=x, dup2(iofd[x],x)
    else inherit
    Could add ==-2, then close???
- */
+*/
+
 pid_t fork_execv(int close_start, int close_cnt, int sleepB4exec_us, int iofd[3], const char *cmd, char *const argv[], char *const env[])
 {
 	int pipes[3][2];
@@ -339,7 +343,7 @@ pid_t fork_execv(int close_start, int close_cnt, int sleepB4exec_us, int iofd[3]
 		lcl_iofd[ii] = iofd[ii];
 		if (iofd[ii] == -1)
 		{
-			pipe(pipes[ii]); /* pipes[ii][0] refers to the read end */
+			pipe(pipes[ii]); // pipes[ii][0] refers to the read end
 			iofd[ii] = ii == 0 ? pipes[ii][1] : pipes[ii][0];
 		}
 	}
@@ -349,7 +353,7 @@ pid_t fork_execv(int close_start, int close_cnt, int sleepB4exec_us, int iofd[3]
 		perror_exit("fork");
 	}
 	else if (pid == 0)
-	{ /* child */
+	{ // child
 		if (lcl_iofd[0] == -1)
 		{                                   // deal with child stdin
 			close(pipes[0][1]);             // child closes write end of pipe which will be it's stdin
@@ -529,7 +533,7 @@ uint64_t gettimeofday_us()  // struct timespec *ts )
 	// 	ts->tv_nsec = tv.tv_usec * 1000;
 	// }
 	return (uint64_t)tv.tv_sec * 1000000 + tv.tv_usec;
-} /* gettimeofday_us */
+} // gettimeofday_us
 
 #define DATA_START " DATA START"
 #define GNUPLOT_PREFIX (const char *) \
@@ -587,7 +591,7 @@ plot \"< awk '/^#" DATA_START "/,/NEVER HAPPENS/' \".thisFile "
 
 void sigchld_sigaction(int signo, siginfo_t *info, void *context __attribute__((__unused__)))
 {
-	/* see man sigaction for description of siginfo_t */
+	// see man sigaction for description of siginfo_t
 	for (int pid : g_pid_vec)
 	{
 		if (pid == info->si_pid)
@@ -668,7 +672,7 @@ void cleanup()
 }
 #if (defined(__cplusplus) && (__cplusplus >= 201103L)) || (defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L))
 #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter" /* b/c of TRACE_XTRA_UNUSED */
+#pragma GCC diagnostic ignored "-Wunused-parameter" // b/c of TRACE_XTRA_UNUSED
 #endif
 void sigint_sigaction(int signo, siginfo_t *info, void *context)
 {
@@ -708,7 +712,8 @@ int main(int argc, char *argv[])
 	}
 	TRACE(TLVL_WARNING, "main - motherboard=" + std::string(motherboard));
 
-	/* Note, when doing "waitpid" the wait would sometimes take a "long"
+	/*
+	   Note, when doing "waitpid" the wait would sometimes take a "long"
 	   time (10's to 100's milliseconds; rcu???) If signal is generated
 	   (i.e SA_NOCLDWAIT w/ sigchld_sigaction (not SIG_IGN)), it would
 	   sometimes effect the read or write calls for the following AWK forks.
@@ -1167,3 +1172,4 @@ eintr1:
 	// TRACE_CNTL( "modeM", 0L );
 	return (0);
 }  // main
+ // NOLINTEND

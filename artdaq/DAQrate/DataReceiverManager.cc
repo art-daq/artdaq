@@ -17,6 +17,7 @@
 #include <iomanip>
 #include <thread>
 #include <utility>
+#include <vector>
 
 artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset, std::shared_ptr<SharedMemoryEventManager> shm)
     : stop_requested_(false)
@@ -106,7 +107,7 @@ artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset
 		{
 			TLOG(TLVL_WARNING) << "std::exception caught while setting up source " << s << ": " << ex.what();
 		}
-		catch (...)
+		catch (...)  // NOLINT
 		{
 			TLOG(TLVL_WARNING) << "Non-cet exception caught while setting up source " << s << ".";
 		}
@@ -156,7 +157,7 @@ void artdaq::DataReceiverManager::start_threads()
 			catch (const boost::exception& e)
 			{
 				TLOG(TLVL_ERROR) << "Caught boost::exception starting Receiver " << rank << " thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
-				std::cerr << "Caught boost::exception starting Receiver " << rank << " thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
+				std::cerr << "Caught boost::exception starting Receiver " << rank << " thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;  // NOLINT(runtime/output_format)
 				exit(5);
 			}
 		}

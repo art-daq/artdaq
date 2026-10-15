@@ -1,5 +1,5 @@
-#ifndef ARTDAQ_DAQRATE_DATATRANSFERMANAGER_HH
-#define ARTDAQ_DAQRATE_DATATRANSFERMANAGER_HH
+#ifndef ARTDAQ_ARTDAQ_DAQRATE_FRAGMENTRECEIVERMANAGER_HH_
+#define ARTDAQ_ARTDAQ_DAQRATE_FRAGMENTRECEIVERMANAGER_HH_
 
 #include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
@@ -240,4 +240,4 @@ artdaq::FragmentReceiverManager::
 {
 	return recv_frag_size_.count();
 }
-#endif  // ARTDAQ_DAQRATE_DATATRANSFERMANAGER_HH
+#endif  // ARTDAQ_ARTDAQ_DAQRATE_FRAGMENTRECEIVERMANAGER_HH_

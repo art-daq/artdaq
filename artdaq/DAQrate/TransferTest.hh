@@ -1,5 +1,5 @@
-#ifndef ARTDAQ_TEST_DAQRATE_TRANSFERTEST_HH
-#define ARTDAQ_TEST_DAQRATE_TRANSFERTEST_HH
+#ifndef ARTDAQ_ARTDAQ_DAQRATE_TRANSFERTEST_HH_
+#define ARTDAQ_ARTDAQ_DAQRATE_TRANSFERTEST_HH_
 
 #include <chrono>
 #include <cmath>
@@ -99,4 +99,4 @@ inline std::string TransferTest::formatHertz(double hertz, size_t suffixIndex)
 }
 
 }  // namespace artdaq
-#endif  // ARTDAQ_TEST_DAQRATE_TRANSFERTEST_HH
+#endif  // ARTDAQ_ARTDAQ_DAQRATE_TRANSFERTEST_HH_

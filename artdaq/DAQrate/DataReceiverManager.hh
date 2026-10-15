@@ -1,17 +1,17 @@
-#ifndef ARTDAQ_DAQRATE_DATATRANSFERMANAGER_HH
-#define ARTDAQ_DAQRATE_DATATRANSFERMANAGER_HH
+#ifndef ARTDAQ_ARTDAQ_DAQRATE_DATARECEIVERMANAGER_HH_
+#define ARTDAQ_ARTDAQ_DAQRATE_DATARECEIVERMANAGER_HH_
 
 #include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
+
 #include "artdaq-core/Data/Fragment.hh"
+#include "artdaq/DAQrate/SharedMemoryEventManager.hh"
+#include "artdaq/DAQrate/detail/FragCounter.hh"
+#include "artdaq/TransferPlugins/TransferInterface.hh"
 
 #include <condition_variable>
 #include <map>
 #include <memory>
 #include <set>
-
-#include "artdaq/DAQrate/SharedMemoryEventManager.hh"
-#include "artdaq/DAQrate/detail/FragCounter.hh"
-#include "artdaq/TransferPlugins/TransferInterface.hh"
 
 namespace fhicl {
 class ParameterSet;
@@ -147,4 +147,4 @@ artdaq::DataReceiverManager::
 {
 	return recv_frag_size_.count();
 }
-#endif  // ARTDAQ_DAQRATE_DATATRANSFERMANAGER_HH
+#endif  // ARTDAQ_ARTDAQ_DAQRATE_DATARECEIVERMANAGER_HH_

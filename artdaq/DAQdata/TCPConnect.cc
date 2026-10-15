@@ -101,11 +101,11 @@ int GetIPOfInterface(const std::string &interface_name, in_addr &addr)
 			continue;
 		}
 
-		/* For an AF_INET* interface address, display the address */
+		// For an AF_INET* interface address, display the address 
 
 		if (ifa->ifa_addr->sa_family == AF_INET)
 		{
-			auto if_addr = reinterpret_cast<struct sockaddr_in *>(ifa->ifa_addr);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+			auto if_addr = reinterpret_cast<struct sockaddr_in *>(ifa->ifa_addr);  // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
 
 			TLOG(TLVL_DEBUG + 35) << "IF: " << ifa->ifa_name << " Desired: " << interface_name << " IP: " << if_addr->sin_addr.s_addr;
 
@@ -172,11 +172,11 @@ int AutodetectPrivateInterface(in_addr &addr)
 			continue;
 		}
 
-		/* For an AF_INET* interface address, display the address */
+		// For an AF_INET* interface address, display the address 
 
 		if (ifa->ifa_addr->sa_family == AF_INET)
 		{
-			auto if_addr = reinterpret_cast<struct sockaddr_in *>(ifa->ifa_addr);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+			auto if_addr = reinterpret_cast<struct sockaddr_in *>(ifa->ifa_addr);  // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
 
 			TLOG(TLVL_DEBUG + 35) << "IF: " << ifa->ifa_name << " IP: " << if_addr->sin_addr.s_addr;
 
@@ -271,12 +271,12 @@ int GetInterfaceForNetwork(char const *host_in, in_addr &addr)
 				continue;
 			}
 
-			/* For an AF_INET* interface address, display the address */
+			// For an AF_INET* interface address, display the address 
 
 			if (ifa->ifa_addr->sa_family == AF_INET)
 			{
-				auto if_addr = reinterpret_cast<struct sockaddr_in *>(ifa->ifa_addr);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-				auto sa = reinterpret_cast<struct sockaddr_in *>(ifa->ifa_netmask);    // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+				auto if_addr = reinterpret_cast<struct sockaddr_in *>(ifa->ifa_addr);  // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
+				auto sa = reinterpret_cast<struct sockaddr_in *>(ifa->ifa_netmask);    // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
 
 				TLOG(TLVL_DEBUG + 35) << "IF: " << ifa->ifa_name << " Desired: " << desired_host.s_addr << " netmask: " << sa->sin_addr.s_addr << " this interface: " << if_addr->sin_addr.s_addr;
 
@@ -394,7 +394,7 @@ int TCPConnect(char const *host_in, int dflt_port, int64_t flags, int sndbufsiz)
 		return -1;
 	}
 
-	sts = connect(s_fd, reinterpret_cast<struct sockaddr *>(&sin), sizeof(sin));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+	sts = connect(s_fd, reinterpret_cast<struct sockaddr *>(&sin), sizeof(sin));  // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
 	if (sts == -1)
 	{
 		// perror( "connect error" );

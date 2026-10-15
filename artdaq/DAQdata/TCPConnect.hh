@@ -1,5 +1,5 @@
-#ifndef TCPConnect_hh
-#define TCPConnect_hh
+#ifndef ARTDAQ_ARTDAQ_DAQDATA_TCPCONNECT_HH_
+#define ARTDAQ_ARTDAQ_DAQDATA_TCPCONNECT_HH_
 #include <netinet/in.h>
 
 #include <string>
@@ -69,4 +69,4 @@ int ResolveHost(char const* host_in, int dflt_port, sockaddr_in& sin);
  */
 int TCPConnect(char const* host_in, int dflt_port, int64_t flags = 0, int sndbufsiz = 0);
 
-#endif  // TCPConnect_hh
+#endif  // ARTDAQ_ARTDAQ_DAQDATA_TCPCONNECT_HH_

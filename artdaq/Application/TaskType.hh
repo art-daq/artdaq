@@ -1,5 +1,5 @@
-#ifndef artdaq_Application_TaskType_hh
-#define artdaq_Application_TaskType_hh
+#ifndef ARTDAQ_ARTDAQ_APPLICATION_TASKTYPE_HH_
+#define ARTDAQ_ARTDAQ_APPLICATION_TASKTYPE_HH_
 
 /**
  * \brief The artdaq namespace
@@ -90,4 +90,4 @@ inline TraceStreamer& operator<<(TraceStreamer& x, TaskType r)
 using detail::TaskType;  // Require C++2011 scoping, hide C++03 scoping.
 }  // namespace artdaq
 
-#endif /* artdaq_Application_TaskType_hh */
+#endif  // ARTDAQ_ARTDAQ_APPLICATION_TASKTYPE_HH_

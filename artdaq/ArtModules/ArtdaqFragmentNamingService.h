@@ -1,5 +1,5 @@
-#ifndef artdaq_ArtModules_ArtdaqFragmentNamingService_h
-#define artdaq_ArtModules_ArtdaqFragmentNamingService_h
+#ifndef ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQFRAGMENTNAMINGSERVICE_H_
+#define ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQFRAGMENTNAMINGSERVICE_H_
 
 #include "art/Framework/Services/Registry/ServiceDeclarationMacros.h"
 #include "artdaq-core/Plugins/FragmentNameHelper.hh"
@@ -116,7 +116,7 @@ private:
 };
 DECLARE_ART_SERVICE_INTERFACE(ArtdaqFragmentNamingServiceInterface, LEGACY)
 
-#endif /* artdaq_ArtModules_ArtdaqFragmentNamingService_h */
+#endif  // ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQFRAGMENTNAMINGSERVICE_H_
 
 // Local Variables:
 // mode: c++

@@ -1,5 +1,5 @@
-#ifndef artdaq_DAQrate_TokenSender_hh
-#define artdaq_DAQrate_TokenSender_hh
+#ifndef ARTDAQ_ARTDAQ_DAQRATE_DETAIL_TOKENSENDER_HH_
+#define ARTDAQ_ARTDAQ_DAQRATE_DETAIL_TOKENSENDER_HH_
 
 namespace fhicl {
 class ParameterSet;
@@ -116,4 +116,4 @@ private:
 	void send_routing_token_(int nSlots, int run_number, int rank);
 };
 }  // namespace artdaq
-#endif /* artdaq_DAQrate_TokenSender_hh */
+#endif  // ARTDAQ_ARTDAQ_DAQRATE_DETAIL_TOKENSENDER_HH_

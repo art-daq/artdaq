@@ -73,11 +73,11 @@ static artdaq::FragmentPtr outputFrag = nullptr;
 static std::mutex outputFragMutex;
 inline char* Fragment_ReAllocChar(char* dataPtr, size_t size, size_t /*oldsize*/)
 {
-	if (outputFrag != nullptr && dataPtr == reinterpret_cast<char*>(outputFrag->dataBegin()))  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+	if (outputFrag != nullptr && dataPtr == reinterpret_cast<char*>(outputFrag->dataBegin()))  // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
 	{
 		outputFrag->resizeBytes(size);
 
-		return reinterpret_cast<char*>(outputFrag->dataBegin());  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+		return reinterpret_cast<char*>(outputFrag->dataBegin());  // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
 	}
 	return nullptr;
 }
