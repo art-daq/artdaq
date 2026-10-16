@@ -151,6 +151,13 @@ protected:
 	/// <param name="rp">RunPrincipal of new run</param>
 	void beginRun(RunPrincipal const& rp) final
 	{
+		if (!initMsgSent_)
+		{
+			art::ProcessHistory ph = rp.processHistory();
+			ph.push_back(moduleDescription().processConfiguration());
+			art::ProcessHistoryRegistry::emplace(ph.id(), ph);
+			send_init_message();
+		}
 		beginRun_(rp);
 	}
 	/// <summary>
