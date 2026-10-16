@@ -13,8 +13,8 @@
 #include "fhiclcpp/types/TableFragment.h"
 #include "fhiclcpp/types/Tuple.h"
 
-#include <string>
 #include <set>
+#include <string>
 
 namespace art {
 /// <summary>

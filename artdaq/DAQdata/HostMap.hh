@@ -1,9 +1,7 @@
 #ifndef ARTDAQ_ARTDAQ_DAQDATA_HOSTMAP_HH_
 #define ARTDAQ_ARTDAQ_DAQDATA_HOSTMAP_HH_
 
-#include <map>
-#include <string>
-#include <vector>
+#include "TRACE/trace.h"
 
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/types/Atom.h"
@@ -11,7 +9,9 @@
 #include "fhiclcpp/types/Sequence.h"  // Must pre-empt fhiclcpp/types/Atom.h
 #include "fhiclcpp/types/Table.h"
 
-#include "TRACE/trace.h"
+#include <map>
+#include <string>
+#include <vector>
 
 namespace artdaq {
 

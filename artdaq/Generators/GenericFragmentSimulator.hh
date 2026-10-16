@@ -8,7 +8,7 @@
 
 namespace fhicl {
 class ParameterSet;
-}
+}  // namespace fhicl
 
 #include "fhiclcpp/types/Atom.h"
 #include "fhiclcpp/types/Comment.h"
@@ -20,7 +20,7 @@ class ParameterSet;
 
 namespace artdaq {
 class GenericFragmentSimulator;
-}
+}  // namespace artdaq
 
 /**
  * \brief GenericFragmentSimulator creates simulated Generic events, with data

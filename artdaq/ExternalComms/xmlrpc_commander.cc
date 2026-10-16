@@ -3,18 +3,6 @@
  * Author: Alessandro Razeto <Alessandro.Razeto@ge.infn.it>
  */
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#define _LIBCPP_ENABLE_CXX17_REMOVED_FEATURES 1
-#include <memory>
-#include <xmlrpc-c/base.hpp>
-#include <xmlrpc-c/client_simple.hpp>
-#include <xmlrpc-c/girerr.hpp>
-#include <xmlrpc-c/registry.hpp>
-#include <xmlrpc-c/server_abyss.hpp>
-#undef _LIBCPP_ENABLE_CXX17_REMOVED_FEATURES
-#pragma GCC diagnostic pop
-
 #include "TRACE/tracemf.h"
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_xmlrpc_commander").c_str()
@@ -22,6 +10,18 @@
 #include "artdaq/ExternalComms/CommanderInterface.hh"
 
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+// NOLINTNEXTLINE
+#define _LIBCPP_ENABLE_CXX17_REMOVED_FEATURES 1
+#include <xmlrpc-c/base.hpp>
+#include <xmlrpc-c/client_simple.hpp>
+#include <xmlrpc-c/girerr.hpp>
+#include <xmlrpc-c/registry.hpp>
+#include <xmlrpc-c/server_abyss.hpp>
+#undef _LIBCPP_ENABLE_CXX17_REMOVED_FEATURES
+#pragma GCC diagnostic pop
 
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -237,6 +237,8 @@ public:
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	std::string send_rollover_subrun(uint64_t when, uint32_t sr) override;
 
+	std::timed_mutex mutex_;                                 ///< XMLRPC mutex
+	std::unique_ptr<xmlrpc_c::serverAbyss> server{nullptr};  ///< XMLRPC server
 private:
 	xmlrpc_commander(const xmlrpc_commander&) = delete;
 
@@ -256,23 +258,18 @@ private:
 	std::string send_command_(const std::string&, uint64_t);
 	std::string send_command_(const std::string&, const std::string&, const std::string&);
 	std::string send_command_(const std::string&, const std::string&, const std::string&, const std::string&);
-
-public:
-	std::timed_mutex mutex_;                        ///< XMLRPC mutex
-	std::unique_ptr<xmlrpc_c::serverAbyss> server;  ///< XMLRPC server
 };
 
 }  // namespace artdaq
 
-namespace {
 /// <summary>
 /// Wrapper for XMLRPC environment construction/destruction
 /// </summary>
 class env_wrap
 {
 public:
-	env_wrap() { xmlrpc_env_init(&this->env_c); };
-	~env_wrap() { xmlrpc_env_clean(&this->env_c); };
+	env_wrap() { xmlrpc_env_init(&this->env_c); }
+	~env_wrap() { xmlrpc_env_clean(&this->env_c); }
 	xmlrpc_env env_c;  ///< XMLRPC Environment
 private:
 	env_wrap(env_wrap const&) = delete;
@@ -280,7 +277,7 @@ private:
 	env_wrap& operator=(env_wrap const&) = delete;
 	env_wrap& operator=(env_wrap&&) = delete;
 };
-}  // namespace
+
 static xmlrpc_c::paramList
 pListFromXmlrpcArray(xmlrpc_value* const arrayP)
 {
@@ -291,7 +288,7 @@ pListFromXmlrpcArray(xmlrpc_value* const arrayP)
 	xmlrpc_c::paramList paramList(arraySize);
 	for (unsigned int i = 0; i < arraySize; ++i)
 	{
-		xmlrpc_value* arrayItemP;
+		xmlrpc_value* arrayItemP = nullptr;
 		xmlrpc_array_read_item(&env.env_c, arrayP, i, &arrayItemP);
 		assert(!env.env_c.fault_occurred);
 		paramList.add(xmlrpc_c::value(arrayItemP));
@@ -315,14 +312,13 @@ c_executeMethod(xmlrpc_env* const envP,
 		return nullptr;
 	}
 
-	xmlrpc_value* retval;
-	retval = nullptr;  // silence used-before-set warning
+	xmlrpc_value* retval = nullptr;
 	try
 	{
 		xmlrpc_c::value result;
 		try
 		{
-			auto* const method2P(dynamic_cast<xmlrpc_c::method2*>(methodP));
+			auto* const method2P(dynamic_cast<xmlrpc_c::method2*>(methodP));  // NOLINT
 			if (method2P != nullptr)
 			{
 				method2P->execute(paramList, callInfoP, &result);
@@ -361,7 +357,7 @@ c_executeMethod(xmlrpc_env* const envP,
 		              "fail; rather, it did not complete at all.  %s",
 		              e.what());
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{
 		xmlrpc_env_set_fault(envP, XMLRPC_INTERNAL_ERROR,
 		                     "Unexpected error executing code for "
@@ -603,7 +599,7 @@ uint64_t cmd_::getParam<uint64_t>(const xmlrpc_c::paramList& paramList, int inde
 		TLOG(TLVL_DEBUG + 33) << "Param value: " << paramList.getI8(index);
 		return static_cast<uint64_t>(paramList.getI8(index));
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{
 		TLOG(TLVL_DEBUG + 33) << "Param value (int): " << paramList.getInt(index);
 		return static_cast<uint64_t>(paramList.getInt(index));
@@ -654,19 +650,19 @@ template<>
 art::RunID cmd_::getParam<art::RunID>(const xmlrpc_c::paramList& paramList, int index)
 {
 	TLOG(TLVL_DEBUG + 33) << "Getting parameter " << index << " from list as Run Number.";
-	art::RunNumber_t run_number;
+	art::RunNumber_t run_number{0};
 	try
 	{
 		TLOG(TLVL_DEBUG + 33) << "Param value: " << paramList.getInt(index);
-		run_number = art::RunNumber_t(paramList.getInt(index));
+		run_number = static_cast<art::RunNumber_t>(paramList.getInt(index));
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{
 		TLOG(TLVL_DEBUG + 33) << "Parameter is not an int. Trying string...";
 
 		auto runNumber = paramList.getString(index);
 		TLOG(TLVL_DEBUG + 33) << "Got run number string " << runNumber;
-		run_number = art::RunNumber_t(std::stoi(runNumber));
+		run_number = static_cast<art::RunNumber_t>(std::stoi(runNumber));
 	}
 
 	art::RunID run_id(run_number);
@@ -686,7 +682,7 @@ fhicl::ParameterSet cmd_::getParam<fhicl::ParameterSet>(const xmlrpc_c::paramLis
 {
 	TLOG(TLVL_DEBUG + 33) << "Getting parameter " << index << " from list as ParameterSet.";
 	TLOG(TLVL_DEBUG + 33) << "Param value: " << paramList.getString(index);
-	std::string configString = std::string(paramList.getString(index));
+	std::string configString = paramList.getString(index);
 	TLOG(TLVL_DEBUG + 32) << "Loading Parameter Set from string: " << configString << std::endl;
 	fhicl::ParameterSet pset;
 
@@ -699,7 +695,7 @@ fhicl::ParameterSet cmd_::getParam<fhicl::ParameterSet>(const xmlrpc_c::paramLis
 		if (getenv("FHICL_FILE_PATH") == nullptr)
 		{
 			TLOG(TLVL_ERROR) << "INFO: environment variable FHICL_FILE_PATH was not set. Using \".\"";
-			std::cerr << "INFO: environment variable FHICL_FILE_PATH was not set. Using \".\"" << std::endl;
+			std::cerr << "INFO: environment variable FHICL_FILE_PATH was not set. Using \".\"" << std::endl;  // NOLINT
 			setenv("FHICL_FILE_PATH", ".", 0);
 		}
 		cet::filepath_lookup_after1 lookup_policy("FHICL_FILE_PATH");
@@ -786,7 +782,7 @@ void cmd_::execute(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const 
 			*retvalP = xmlrpc_c::value_string(msg);
 			TLOG(TLVL_ERROR) << msg;
 		}
-		catch (...)
+		catch (...)  // NOLINT
 		{
 			std::string msg = exception_msg("Unknown exception (not from std, boost, cet, or art)", _help);
 			*retvalP = xmlrpc_c::value_string(msg);
@@ -809,7 +805,7 @@ void cmd_::execute(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const 
 // The three "init" transitions all take a FHiCL parameter list, and
 // optionally a timeout and a timestamp; thus we can kill three birds
 // with one stone in the GENERATE_INIT_TRANSITION macro
-
+// NOLINTBEGIN
 #define GENERATE_INIT_TRANSITION(NAME, CALL, DESCRIPTION)                                                                                                                 \
 	/** Command class representing an init transition */                                                                                                                  \
 	class NAME##_ : public cmd_                                                                                                                                           \
@@ -845,6 +841,7 @@ void cmd_::execute(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const 
 			                            getParam<uint64_t>(paramList, 2, defaultTimestamp));                                                                              \
 		}                                                                                                                                                                 \
 	};
+// NOLINTEND
 
 GENERATE_INIT_TRANSITION(init, initialize, "initialize the program")
 
@@ -882,7 +879,7 @@ private:
 		{
 			getParam<art::RunID>(paramList, 0);
 		}
-		catch (...)
+		catch (...)  // NOLINT
 		{
 			*retvalP = xmlrpc_c::value_string("Error: The start message requires the run number as an argument.");
 			return true;
@@ -901,7 +898,7 @@ private:
 // "pause", "resume" and "stop" all take an optional timeout and
 // timestamp parameter, so we can generate them all with the
 // GENERATE_TIMEOUT_TIMESTAMP_TRANSITION macro
-
+// NOLINTBEGIN
 #define GENERATE_TIMEOUT_TIMESTAMP_TRANSITION(NAME, CALL, DESCRIPTION, TIMEOUT)              \
 	/** NAME ## _ Command class */                                                           \
 	class NAME##_ : public cmd_                                                              \
@@ -924,6 +921,7 @@ private:
 			                            getParam<uint64_t>(paramList, 1, defaultTimestamp)); \
 		}                                                                                    \
 	};
+// NOLINTEND
 
 GENERATE_TIMEOUT_TIMESTAMP_TRANSITION(pause, pause, "pause the program", 45)
 
@@ -943,7 +941,7 @@ public:
 	 * \brief shutdown_ Constructor
 	 * \param c xmlrpc_commander to send transition commands to
 	 */
-	shutdown_(xmlrpc_commander& c)
+	explicit shutdown_(xmlrpc_commander& c)
 	    : cmd_(c, "s:i", "shutdown the program")
 	{}
 
@@ -976,7 +974,7 @@ public:
 	 * \brief status_ Constructor
 	 * \param c xmlrpc_commander to send transition commands to
 	 */
-	status_(xmlrpc_commander& c)
+	explicit status_(xmlrpc_commander& c)
 	    : cmd_(c, "s:n", "report the current state")
 	{}
 
@@ -998,7 +996,7 @@ public:
 	 * \brief report_ Constructor
 	 * \param c xmlrpc_commander to send transition commands to
 	 */
-	report_(xmlrpc_commander& c)
+	explicit report_(xmlrpc_commander& c)
 	    : cmd_(c, "s:s", "report statistics")
 	{}
 
@@ -1009,7 +1007,7 @@ private:
 		{
 			getParam<std::string>(paramList, 0);
 		}
-		catch (...)
+		catch (...)  // NOLINT
 		{
 			*retvalP = xmlrpc_c::value_string("Error: The report message requires a single argument that selects the type of statistics to be reported.");
 			return true;
@@ -1030,7 +1028,7 @@ public:
 	 * \brief legal_commands_ Constructor
 	 * \param c xmlrpc_commander to send transition commands to
 	 */
-	legal_commands_(xmlrpc_commander& c)
+	explicit legal_commands_(xmlrpc_commander& c)
 	    : cmd_(c, "s:n", "return the currently legal commands")
 	{}
 
@@ -1064,7 +1062,7 @@ public:
 	 * \brief register_monitor_ Constructor
 	 * \param c xmlrpc_commander to send transition commands to
 	 */
-	register_monitor_(xmlrpc_commander& c)
+	explicit register_monitor_(xmlrpc_commander& c)
 	    : cmd_(c, "s:s", "Get notified of a new monitor")
 	{}
 
@@ -1075,7 +1073,7 @@ private:
 		{
 			getParam<fhicl::ParameterSet>(paramList, 0);
 		}
-		catch (...)
+		catch (...)  // NOLINT
 		{
 			*retvalP = xmlrpc_c::value_string("Error: The register_monitor command expects a string representing the FHiCL definition of a Transfer plugin");
 			return true;
@@ -1096,7 +1094,7 @@ public:
 	 * \brief unregister_monitor_ Constructor
 	 * \param c xmlrpc_commander to send transition commands to
 	 */
-	unregister_monitor_(xmlrpc_commander& c)
+	explicit unregister_monitor_(xmlrpc_commander& c)
 	    : cmd_(c, "s:s", "Remove a monitor")
 	{}
 
@@ -1107,7 +1105,7 @@ private:
 		{
 			getParam<std::string>(paramList, 0);
 		}
-		catch (...)
+		catch (...)  // NOLINT
 		{
 			*retvalP = xmlrpc_c::value_string("Error: The unregister_monitor command expects a string representing the label of the monitor to be removed");
 			return true;
@@ -1125,10 +1123,10 @@ class trace_set_ : public cmd_
 {
 public:
 	/**
-	 * \brief unregister_monitor_ Constructor
+	 * \brief trace_set_ Constructor
 	 * \param c xmlrpc_commander to send transition commands to
 	 */
-	trace_set_(xmlrpc_commander& c)
+	explicit trace_set_(xmlrpc_commander& c)
 	    : cmd_(c, "s:ssI", "Set TRACE mask")
 	{}
 
@@ -1141,7 +1139,7 @@ private:
 			getParam<std::string>(paramList, 1);
 			getParam<std::string>(paramList, 2);
 		}
-		catch (...)
+		catch (...)  // NOLINT
 		{
 			*retvalP = xmlrpc_c::value_string("Error: The trace_set command expects a name (ALL for all), a mask type (M, S , or T), and a mask");
 			return true;
@@ -1161,7 +1159,7 @@ public:
 	 * \brief trace_msgfacility_set_ Constructor
 	 * \param c xmlrpc_commander to send transition commands to
 	 */
-	trace_get_(xmlrpc_commander& c)
+	explicit trace_get_(xmlrpc_commander& c)
 	    : cmd_(c, "s:s", "Get TRACE mask")
 	{}
 
@@ -1172,7 +1170,7 @@ private:
 		{
 			getParam<std::string>(paramList, 0);
 		}
-		catch (...)
+		catch (...)  // NOLINT
 		{
 			*retvalP = xmlrpc_c::value_string("Error: The trace_get command expects a name (ALL for all)");
 			return true;
@@ -1193,7 +1191,7 @@ public:
 	 * \brief meta_command_ Constructor
 	 * \param c xmlrpc_commander to send transition commands to
 	 */
-	meta_command_(xmlrpc_commander& c)
+	explicit meta_command_(xmlrpc_commander& c)
 	    : cmd_(c, "s:ss", "Run custom command")
 	{}
 
@@ -1205,7 +1203,7 @@ private:
 			getParam<std::string>(paramList, 0);
 			getParam<std::string>(paramList, 1);
 		}
-		catch (...)
+		catch (...)  // NOLINT
 		{
 			*retvalP = xmlrpc_c::value_string("Error: The meta_command command expects a string command and a string argument");
 			return true;
@@ -1225,7 +1223,7 @@ public:
 	 * \brief shutdown_ Constructor
 	 * \param c xmlrpc_commander to send transition commands to
 	 */
-	rollover_subrun_(xmlrpc_commander& c)
+	explicit rollover_subrun_(xmlrpc_commander& c)
 	    : cmd_(c, "s:Ii", "create a new subrun")
 	{}
 
@@ -1250,7 +1248,7 @@ public:
 	 * \brief add_config_archive_entry_ Constructor
 	 * \param c xmlrpc_commander to send transition commands to
 	 */
-	add_config_archive_entry_(xmlrpc_commander& c)
+	explicit add_config_archive_entry_(xmlrpc_commander& c)
 	    : cmd_(c, "s:ss", "Add an entry to the configuration archive list")
 	{}
 
@@ -1262,7 +1260,7 @@ private:
 			getParam<std::string>(paramList, 0);
 			getParam<std::string>(paramList, 1);
 		}
-		catch (...)
+		catch (...)  // NOLINT
 		{
 			*retvalP = xmlrpc_c::value_string("Error: The add_config_archive_entry command expects a string key and a string value");
 			return true;
@@ -1282,7 +1280,7 @@ public:
 	 * \brief clear_config_archive_ Constructor
 	 * \param c xmlrpc_commander to send transition commands to
 	 */
-	clear_config_archive_(xmlrpc_commander& c)
+	explicit clear_config_archive_(xmlrpc_commander& c)
 	    : cmd_(c, "s:n", "Clear the configuration archive list")
 	{}
 
@@ -1302,7 +1300,7 @@ private:
 	class shutdown_ : public xmlrpc_c::registry::shutdown
 	{
 	public:
-		shutdown_(xmlrpc_c::serverAbyss *server) : _server(server) {}
+		explicit shutdown_(xmlrpc_c::serverAbyss *server) : _server(server) {}
 
 		virtual void doit(const std::string& paramString, void*) const
 		{
@@ -1320,11 +1318,10 @@ xmlrpc_commander::xmlrpc_commander(const fhicl::ParameterSet& ps, artdaq::Comman
     : CommanderInterface(ps, commandable)
     , port_(ps.get<int>("id", 0))
     , serverUrl_(ps.get<std::string>("server_url", ""))
-    , server(nullptr)
 {
 	if (serverUrl_.empty())
 	{
-		char hostname[HOST_NAME_MAX];
+		char hostname[HOST_NAME_MAX];  // NOLINT
 		gethostname(hostname, HOST_NAME_MAX);
 		serverUrl_ = std::string(hostname);
 	}
@@ -1344,22 +1341,20 @@ xmlrpc_commander::xmlrpc_commander(const fhicl::ParameterSet& ps, artdaq::Comman
 }
 
 void xmlrpc_commander::run_server()
-try
 {
 	// std::cout << "XMLRPC_COMMANDER RUN_SERVER CALLED!" << std::endl;
 	xmlrpc_c::registry registry;
 	struct xmlrpc_method_info3 methodInfo;
 	memset(&methodInfo, 0, sizeof(methodInfo));
 
-	/*#define register_method(m) \
-	    //  xmlrpc_c::methodPtr const ptr_ ## m(new m ## _(*this));\
-	       registry.addMethod ("daq." #m, ptr_ ## m) */
+	// NOLINTNEXTLINE
 #define register_method(m) register_method2(m, 0x400000)
 
 	xmlrpc_env env;  // xmlrpc_env_init(&env);
-	xmlrpc_registry*** c_registryPPP;
-	c_registryPPP = reinterpret_cast<xmlrpc_registry***>(reinterpret_cast<char*>(&registry) + sizeof(girmem::autoObject));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
+	xmlrpc_registry*** c_registryPPP{nullptr};
+	c_registryPPP = reinterpret_cast<xmlrpc_registry***>(reinterpret_cast<char*>(&registry) + sizeof(girmem::autoObject));  // NOLINT
 
+	// NOLINTBEGIN
 #define register_method2(m, ss)                                                  \
 	xmlrpc_c::method* ptr_##m(dynamic_cast<xmlrpc_c::method*>(new m##_(*this))); \
 	std::string m##signature = ptr_##m->signature(), m##help = ptr_##m->help();  \
@@ -1373,7 +1368,9 @@ try
 	xmlrpc_registry_add_method3(&env, **c_registryPPP, &methodInfo);             \
 	if (env.fault_occurred) throw(girerr::error(env.fault_string));              \
 	xmlrpc_env_clean(&env)
+// NOLINTEND
 
+// NOLINTNEXTLINE
 #define unregister_method(m) delete ptr_##m;
 
 	register_method2(init, 0x200000);
@@ -1475,7 +1472,7 @@ try
 		server->run();
 		running_ = false;
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{
 		TLOG(TLVL_WARNING) << "server threw an exception; closing the socket and rethrowing";
 		running_ = false;
@@ -1507,11 +1504,7 @@ try
 	unregister_method(shutdown);
 
 	TLOG(TLVL_DEBUG + 32) << "server terminated";
-}
-catch (...)
-{
-	throw;
-}
+}  // NOLINT(readability/fn_size)
 
 std::string xmlrpc_commander::send_command_(const std::string& command)
 {
@@ -1528,7 +1521,7 @@ std::string xmlrpc_commander::send_command_(const std::string& command)
 	{
 		myClient.call(serverUrl_, "daq." + command, "", &result);
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{
 		std::stringstream errmsg;
 		errmsg << "Problem attempting " << command << " XML-RPC call on host " << serverUrl_
@@ -1554,7 +1547,7 @@ std::string xmlrpc_commander::send_command_(const std::string& command, const st
 	{
 		myClient.call(serverUrl_, "daq." + command, "s", &result, arg.c_str());
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{
 		std::stringstream errmsg;
 		errmsg << "Problem attempting " << command << " XML-RPC call on host " << serverUrl_
@@ -1580,7 +1573,7 @@ std::string xmlrpc_commander::send_command_(const std::string& command, const fh
 	{
 		myClient.call(serverUrl_, "daq." + command, "sII", &result, pset.to_string().c_str(), timestamp, timeout);
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{
 		std::stringstream errmsg;
 		errmsg << "Problem attempting " << command << " XML-RPC call on host " << serverUrl_
@@ -1606,7 +1599,7 @@ std::string artdaq::xmlrpc_commander::send_command_(const std::string& command, 
 	{
 		myClient.call(serverUrl_, "daq." + command, "II", &result, a, b);
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{
 		std::stringstream errmsg;
 		errmsg << "Problem attempting " << command << " XML-RPC call on host " << serverUrl_
@@ -1632,7 +1625,7 @@ std::string artdaq::xmlrpc_commander::send_command_(const std::string& command, 
 	{
 		myClient.call(serverUrl_, "daq." + command, "Ii", &result, a, b);
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{
 		std::stringstream errmsg;
 		errmsg << "Problem attempting " << command << " XML-RPC call on host " << serverUrl_
@@ -1658,7 +1651,7 @@ std::string artdaq::xmlrpc_commander::send_command_(const std::string& command, 
 	{
 		myClient.call(serverUrl_, "daq." + command, "iII", &result, r.run(), a, b);
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{
 		std::stringstream errmsg;
 		errmsg << "Problem attempting " << command << " XML-RPC call on host " << serverUrl_
@@ -1684,7 +1677,7 @@ std::string artdaq::xmlrpc_commander::send_command_(const std::string& command, 
 	{
 		myClient.call(serverUrl_, "daq." + command, "I", &result, arg1);
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{
 		std::stringstream errmsg;
 		errmsg << "Problem attempting " << command << " XML-RPC call on host " << serverUrl_
@@ -1710,7 +1703,7 @@ std::string artdaq::xmlrpc_commander::send_command_(const std::string& command, 
 	{
 		myClient.call(serverUrl_, "daq." + command, "ss", &result, arg1.c_str(), arg2.c_str());
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{
 		std::stringstream errmsg;
 		errmsg << "Problem attempting " << command << " XML-RPC call on host " << serverUrl_
@@ -1736,7 +1729,7 @@ std::string artdaq::xmlrpc_commander::send_command_(const std::string& command, 
 	{
 		myClient.call(serverUrl_, "daq." + command, "sss", &result, arg1.c_str(), arg2.c_str(), arg3.c_str());
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{
 		std::stringstream errmsg;
 		errmsg << "Problem attempting " << command << " XML-RPC call on host " << serverUrl_

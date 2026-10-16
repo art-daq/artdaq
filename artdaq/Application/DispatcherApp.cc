@@ -157,7 +157,7 @@ std::string artdaq::DispatcherApp::register_monitor(fhicl::ParameterSet const& i
 		{
 			return Dispatcher_ptr_->register_monitor(info);
 		}
-		catch (...)
+		catch (cet::exception const&)
 		{
 			ExceptionHandler(ExceptionHandlerRethrow::no,
 			                 "Error in call to DispatcherCore's register_monitor function");
@@ -181,7 +181,7 @@ std::string artdaq::DispatcherApp::unregister_monitor(std::string const& label)
 		{
 			return Dispatcher_ptr_->unregister_monitor(label);
 		}
-		catch (...)
+		catch (cet::exception const&)
 		{
 			ExceptionHandler(ExceptionHandlerRethrow::no,
 			                 "Error in call to DispatcherCore's unregister_monitor function");

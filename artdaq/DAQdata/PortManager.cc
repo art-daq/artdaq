@@ -246,7 +246,7 @@ void artdaq::PortManager::UpdateConfiguration(fhicl::ParameterSet const& ps)
 		multicast_transfer_pattern_configured_ = true;
 		multicast_transfer_group_pattern_ = newVal;
 	}
-}
+}  // NOLINT(readability/fn_size)
 
 int artdaq::PortManager::GetRoutingTokenPort(int subsystemID)
 {

@@ -1,6 +1,7 @@
 #ifndef ARTDAQ_ARTDAQ_DAQDATA_GLOBALS_HH_
 #define ARTDAQ_ARTDAQ_DAQDATA_GLOBALS_HH_
 
+// NOLINTBEGIN(build/define_used)
 #ifndef TRACE_DEFINE  // as set in Globals.cc
 #define TRACE_DECLARE
 #endif
@@ -20,6 +21,7 @@
 #include <mutex>
 #include <sstream>
 #include <string>
+// NOLINTEND(build/define_used)
 
 /**
  * \brief The artdaq namespace
@@ -107,7 +109,7 @@ public:
 	/**
 	 * \brief Get the Shared Memory Key for a given partition number
 	 */
-	static uint32_t SharedMemoryKey(uint32_t seed, bool useParentPID = false)
+	static key_t SharedMemoryKey(key_t seed, bool useParentPID = false)
 	{
 		return seed + ((GetPartitionNumber() + 1) << 16) + ((useParentPID ? getppid() : getpid()) & 0xFFFF);
 	}
@@ -163,6 +165,6 @@ public:
 };
 }  // namespace artdaq
 
-#include "TRACE/tracemf.h"
+#include "TRACE/tracemf.h"  // NOLINT(build/include_order)
 
 #endif  // ARTDAQ_ARTDAQ_DAQDATA_GLOBALS_HH_

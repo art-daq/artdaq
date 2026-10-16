@@ -5,11 +5,11 @@
 
 namespace fhicl {
 class ParameterSet;
-}
+}  // namespace fhicl
 
 namespace artdaq {
 class EventBuilderCore;
-}
+}  // namespace artdaq
 
 /**
  * \brief EventBuilderCore implements the state machine for the EventBuilder artdaq application.

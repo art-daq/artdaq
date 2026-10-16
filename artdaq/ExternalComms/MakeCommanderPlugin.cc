@@ -25,7 +25,7 @@ MakeCommanderPlugin(const fhicl::ParameterSet& commander_pset,
 
 		return commander;
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{
 		std::stringstream errmsg;
 		errmsg

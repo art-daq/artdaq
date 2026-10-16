@@ -28,7 +28,7 @@
 
 namespace artdaq {
 class DataSenderManager;
-}
+}  // namespace artdaq
 
 /**
  * \brief Sends Fragment objects using TransferInterface plugins. Uses Routing Tables if configured,

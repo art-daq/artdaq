@@ -15,7 +15,7 @@
 
 namespace fhicl {
 class ParameterSet;
-}
+}  // namespace fhicl
 
 #include "cetlib/compiler_macros.h"  // EXTERN_C_FUNC_*
 
@@ -224,6 +224,7 @@ protected:
 /** \cond */
 
 #ifndef EXTERN_C_FUNC_DECLARE_START
+// NOLINTNEXTLINE
 #define EXTERN_C_FUNC_DECLARE_START extern "C" {
 #endif
 

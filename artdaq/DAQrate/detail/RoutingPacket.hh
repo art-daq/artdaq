@@ -166,7 +166,7 @@ struct artdaq::detail::RoutingRequest
 	 *
 	 * This constructor is primarily used to sed RequestMode::Connect and RequestMode::Disconnect control messages
 	 */
-	RoutingRequest(int r, RequestMode m = RequestMode::Connect)
+	explicit RoutingRequest(int r, RequestMode m = RequestMode::Connect)
 	    : header(ROUTING_MAGIC), rank(r), mode(m) {}
 
 	/**
@@ -194,7 +194,7 @@ struct artdaq::detail::RoutingToken
 	uint32_t header;          ///< The magic bytes that help validate the RoutingToken
 	int rank;                 ///< The rank from which the RoutingToken came
 	unsigned new_slots_free;  ///< The number of slots free in the token sender (usually 1)
-	unsigned run_number;      ///< The Run with which this token should be associated
+	uint32_t run_number;      ///< The Run with which this token should be associated
 };
 
 #endif  // ARTDAQ_ARTDAQ_DAQRATE_DETAIL_ROUTINGPACKET_HH_

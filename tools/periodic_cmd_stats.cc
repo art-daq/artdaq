@@ -77,8 +77,8 @@ enum
 #define TRACE_NAME "periodic_cmd_stats"
 #include "trace.h"
 #else
-#include <cstdarg> // va_list
-#include <cstring> // memcpy
+#include <cstdarg>  // va_list
+#include <cstring>  // memcpy
 #include <string>
 static void trace_ap(const char *msg, va_list ap)
 {
@@ -311,7 +311,7 @@ void parse_args(int argc, char *argv[])
 				exit(1);
 		}
 	}
-} // parse_args
+}  // parse_args
 
 void perror_exit(const char *msg, ...)
 {
@@ -343,7 +343,7 @@ pid_t fork_execv(int close_start, int close_cnt, int sleepB4exec_us, int iofd[3]
 		lcl_iofd[ii] = iofd[ii];
 		if (iofd[ii] == -1)
 		{
-			pipe(pipes[ii]); // pipes[ii][0] refers to the read end
+			pipe(pipes[ii]);  // pipes[ii][0] refers to the read end
 			iofd[ii] = ii == 0 ? pipes[ii][1] : pipes[ii][0];
 		}
 	}
@@ -353,7 +353,7 @@ pid_t fork_execv(int close_start, int close_cnt, int sleepB4exec_us, int iofd[3]
 		perror_exit("fork");
 	}
 	else if (pid == 0)
-	{ // child
+	{  // child
 		if (lcl_iofd[0] == -1)
 		{                                   // deal with child stdin
 			close(pipes[0][1]);             // child closes write end of pipe which will be it's stdin
@@ -533,7 +533,7 @@ uint64_t gettimeofday_us()  // struct timespec *ts )
 	// 	ts->tv_nsec = tv.tv_usec * 1000;
 	// }
 	return (uint64_t)tv.tv_sec * 1000000 + tv.tv_usec;
-} // gettimeofday_us
+}  // gettimeofday_us
 
 #define DATA_START " DATA START"
 #define GNUPLOT_PREFIX (const char *) \
@@ -672,7 +672,7 @@ void cleanup()
 }
 #if (defined(__cplusplus) && (__cplusplus >= 201103L)) || (defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L))
 #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter" // b/c of TRACE_XTRA_UNUSED
+#pragma GCC diagnostic ignored "-Wunused-parameter"  // b/c of TRACE_XTRA_UNUSED
 #endif
 void sigint_sigaction(int signo, siginfo_t *info, void *context)
 {
@@ -1172,4 +1172,4 @@ eintr1:
 	// TRACE_CNTL( "modeM", 0L );
 	return (0);
 }  // main
- // NOLINTEND
+   // NOLINTEND

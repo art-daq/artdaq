@@ -16,11 +16,11 @@
 
 namespace fhicl {
 class ParameterSet;
-}
+}  // namespace fhicl
 
 namespace artdaq {
 class DataReceiverManager;
-}
+}  // namespace artdaq
 
 /**
  * \brief Receives Fragment objects from one or more DataSenderManager instances using TransferInterface plugins

@@ -11,7 +11,7 @@
 
 namespace artdaq {
 class DispatcherCore;
-}
+}  // namespace artdaq
 
 /**
  * \brief DispatcherCore implements the state machine for the Dispatcher artdaq application.

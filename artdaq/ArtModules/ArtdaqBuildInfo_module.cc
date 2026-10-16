@@ -6,7 +6,7 @@
 #include <string>
 
 namespace artdaq {
-static std::string instanceName = "ArtdaqBuildInfo";  ///< Name of this BuildInfo instance
+static std::string instanceName = "ArtdaqBuildInfo";  // NOLINT
 
 /**
  * \brief Specialized artdaq::BuildInfo object for the Artdaq build info

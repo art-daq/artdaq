@@ -90,7 +90,6 @@ private:
 
 	std::shared_ptr<ArtdaqEvent> ReadEventFromSharedMemory(bool broadcast);
 
-private:
 	std::unique_ptr<artdaq::SharedMemoryEventReceiver> incoming_events_;
 	std::list<std::shared_ptr<ArtdaqEvent>> event_ordering_;
 	std::set<artdaq::Fragment::sequence_id_t> released_broadcast_sequence_ids_;
@@ -131,8 +130,8 @@ ArtdaqSharedMemoryService::ArtdaqSharedMemoryService(fhicl::ParameterSet const& 
 	TLOG(TLVL_CONSTRUCTOR) << "ArtdaqSharedMemoryService CONSTRUCTOR";
 
 	incoming_events_ = std::make_unique<artdaq::SharedMemoryEventReceiver>(
-	    pset.get<int>("shared_memory_key", artdaq::Globals::SharedMemoryKey(0xEE000000, true)),
-	    pset.get<int>("broadcast_shared_memory_key", artdaq::Globals::SharedMemoryKey(0xBB000000, true)));
+	    pset.get<key_t>("shared_memory_key", artdaq::Globals::SharedMemoryKey(static_cast<key_t>(0xEE000000), true)),
+	    pset.get<key_t>("broadcast_shared_memory_key", artdaq::Globals::SharedMemoryKey(static_cast<key_t>(0xBB000000), true)));
 
 	char const* artapp_env = getenv("ARTDAQ_APPLICATION_NAME");
 	std::string artapp_str;
@@ -150,7 +149,7 @@ ArtdaqSharedMemoryService::ArtdaqSharedMemoryService(fhicl::ParameterSet const& 
 	if (artapp_env != nullptr && my_rank < 0)
 	{
 		TLOG(TLVL_CONSTRUCTOR) << "Setting rank from envrionment";
-		my_rank = strtol(artapp_env, nullptr, 10);
+		my_rank = static_cast<int>(strtol(artapp_env, nullptr, 10));
 	}
 	else
 	{
@@ -166,7 +165,7 @@ ArtdaqSharedMemoryService::ArtdaqSharedMemoryService(fhicl::ParameterSet const& 
 			metricMan->do_start();
 		}
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{
 		artdaq::ExceptionHandler(artdaq::ExceptionHandlerRethrow::no, "Error loading metrics in ArtdaqSharedMemoryService()");
 	}

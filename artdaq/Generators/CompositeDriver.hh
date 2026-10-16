@@ -7,8 +7,8 @@
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
 #include "fhiclcpp/fwd.h"
 
-#include <vector>
 #include <memory>
+#include <vector>
 
 namespace artdaq {
 /**

@@ -1,17 +1,8 @@
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_FragmentBuffer").c_str()  // include these 2 first -
 
+#include "artdaq/DAQdata/TCPConnect.hh"
 #include "artdaq/DAQrate/FragmentBuffer.hh"
-
-#include <boost/exception/all.hpp>
-#include <boost/throw_exception.hpp>
-
-#include <iterator>
-#include <limits>
-
-#include "canvas/Utilities/Exception.h"
-#include "cetlib_except/exception.h"
-#include "fhiclcpp/ParameterSet.h"
 
 #include "artdaq-core/Data/ContainerFragmentLoader.hh"
 #include "artdaq-core/Data/Fragment.hh"
@@ -19,17 +10,24 @@
 #include "artdaq-core/Utilities/SimpleLookupPolicy.hh"
 #include "artdaq-core/Utilities/TimeUtils.hh"
 
+#include "canvas/Utilities/Exception.h"
+#include "cetlib_except/exception.h"
+#include "fhiclcpp/ParameterSet.h"
+
+#include <boost/exception/all.hpp>
+#include <boost/throw_exception.hpp>
+
 #include <sys/poll.h>
 #include <algorithm>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <iterator>
+#include <limits>
 #include <set>
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include "artdaq/DAQdata/TCPConnect.hh"
 
 #define TLVL_ADDFRAGMENT 32
 #define TLVL_CHECKSTOP 33
@@ -48,7 +46,7 @@ artdaq::FragmentBuffer::FragmentBuffer(const fhicl::ParameterSet& ps)
     , windowOffset_(ps.get<Fragment::timestamp_t>("request_window_offset", 0))
     , windowWidth_(ps.get<Fragment::timestamp_t>("request_window_width", 0))
     , staleFragmentTimeout_(ps.get<Fragment::timestamp_t>("stale_fragment_timeout", 0))
-    , expectedType_(ps.get<Fragment::type_t>("expected_fragment_type", Fragment::type_t(Fragment::EmptyFragmentType)))
+    , expectedType_(ps.get<Fragment::type_t>("expected_fragment_type", Fragment::EmptyFragmentType))
     , uniqueWindows_(ps.get<bool>("request_windows_are_unique", true))
     , sendMissingFragments_(ps.get<bool>("send_missing_request_fragments", true))
     , missing_request_window_timeout_us_(ps.get<size_t>("missing_request_window_timeout_us", 5000000))
@@ -87,7 +85,7 @@ artdaq::FragmentBuffer::FragmentBuffer(const fhicl::ParameterSet& ps)
 		dataBuffers_[id]->BufferFragmentKept = false;
 	}
 
-	std::string modeString = ps.get<std::string>("request_mode", "ignored");
+	auto modeString = ps.get<std::string>("request_mode", "ignored");
 	if (modeString == "single" || modeString == "Single")
 	{
 		mode_ = RequestMode::Single;
@@ -368,7 +366,7 @@ void artdaq::FragmentBuffer::getDataBufferStats(Fragment::fragment_id_t id)
 		metricMan->sendMetric("Buffer Depth Bytes", dataBuffer->DataBufferDepthBytes.load(), "bytes", 1, MetricMode::LastPoint);
 
 		auto bufferDepthFragmentsPercent = dataBuffer->DataBufferDepthFragments.load() * 100 / static_cast<double>(maxDataBufferDepthFragments_);
-		auto bufferDepthBytesPercent = dataBuffer->DataBufferDepthBytes.load() * 100 / static_cast<double>(maxDataBufferDepthBytes_);
+		auto bufferDepthBytesPercent = static_cast<double>(dataBuffer->DataBufferDepthBytes.load()) * 100 / static_cast<double>(maxDataBufferDepthBytes_);
 		metricMan->sendMetric("Fragment Buffer Full %Fragments", bufferDepthFragmentsPercent, "%", 3, MetricMode::LastPoint);
 		metricMan->sendMetric("Fragment Buffer Full %Bytes", bufferDepthBytesPercent, "%", 3, MetricMode::LastPoint);
 		metricMan->sendMetric("Fragment Buffer Full %", bufferDepthFragmentsPercent > bufferDepthBytesPercent ? bufferDepthFragmentsPercent : bufferDepthBytesPercent, "%", 1, MetricMode::LastPoint);
@@ -398,7 +396,7 @@ std::string artdaq::FragmentBuffer::getStatReport()
 		TLOG(TLVL_GETBUFFERSTATS) << "getDataBufferStats: Sending Metrics";
 
 		int nf = dataBuffer->DataBufferDepthFragments.load();
-		int nb = dataBuffer->DataBufferDepthBytes.load();
+		int nb = static_cast<int>(dataBuffer->DataBufferDepthBytes.load());
 		oss << std::endl
 		    << "fragment_id:" << id << " nfragments:" << nf << " nbytes:" << nb
 		    << " max_nf:" << maxDataBufferDepthFragments_ << " max_nb:" << maxDataBufferDepthBytes_;
@@ -552,8 +550,8 @@ void artdaq::FragmentBuffer::applyRequestsBufferMode(artdaq::FragmentPtrs& frags
 
 		// Buffer mode TFGs should simply copy out the whole dataBuffer_ into a ContainerFragment
 		FragmentPtrs fragsToAdd;
-		std::move(id.second->DataBuffer.begin(), --id.second->DataBuffer.end(), std::back_inserter(fragsToAdd));
-		id.second->DataBuffer.erase(id.second->DataBuffer.begin(), --id.second->DataBuffer.end());
+		std::move(id.second->DataBuffer.begin(), --id.second->DataBuffer.end(), std::back_inserter(fragsToAdd));  // NOLINT(runtime/increment_decrement)
+		id.second->DataBuffer.erase(id.second->DataBuffer.begin(), --id.second->DataBuffer.end());                // NOLINT(runtime/increment_decrement)
 
 		if (fragsToAdd.size() > 0)
 		{
@@ -693,7 +691,7 @@ void artdaq::FragmentBuffer::applyRequestsWindowMode_CheckAndFillDataBuffer(artd
 			{
 				for (auto& frag : fragsToAdd)
 				{
-					frag.release();
+					frag.release();  // NOLINT(bugprone-unused-return-value)
 				}
 			}
 			fragsToAdd.clear();

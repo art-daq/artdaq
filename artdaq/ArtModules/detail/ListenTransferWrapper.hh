@@ -12,7 +12,7 @@
 
 namespace fhicl {
 class ParameterSet;
-}
+}  // namespace fhicl
 
 namespace artdaq {
 class Fragment;

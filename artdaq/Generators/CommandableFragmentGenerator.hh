@@ -16,7 +16,7 @@
 #include "fhiclcpp/types/Name.h"
 namespace fhicl {
 class ParameterSet;
-}
+}  // namespace fhicl
 
 #include <boost/thread.hpp>
 
@@ -27,8 +27,8 @@ class ParameterSet;
 #include <list>
 #include <memory>
 #include <mutex>
-#include <string>
 #include <queue>
+#include <string>
 
 // Socket Includes
 #include <arpa/inet.h>
@@ -94,7 +94,7 @@ public:
 		/// "generator" (REQUIRED) Name of the CommandableFragmentGenerator plugin to load
 		fhicl::Atom<std::string> generator_type{fhicl::Name{"generator"}, fhicl::Comment{"Name of the CommandableFragmentGenerator plugin to load"}};
 		/// "expected_fragment_type" (Default: 231, EmptyFragmentType) : The type of Fragments this CFG will be generating. "Empty" will auto - detect type based on Fragments generated.
-		fhicl::Atom<Fragment::type_t> expected_fragment_type{fhicl::Name{"expected_fragment_type"}, fhicl::Comment{"The type of Fragments this CFG will be generating. \"Empty\" will auto-detect type based on Fragments generated."}, Fragment::type_t(Fragment::EmptyFragmentType)};
+		fhicl::Atom<Fragment::type_t> expected_fragment_type{fhicl::Name{"expected_fragment_type"}, fhicl::Comment{"The type of Fragments this CFG will be generating. \"Empty\" will auto-detect type based on Fragments generated."}, Fragment::EmptyFragmentType};
 		/// "sleep_on_no_data_us" (Default: 0 (no sleep)) : How long to sleep after calling getNext_ if no data is returned
 		fhicl::Atom<size_t> sleep_on_no_data_us{fhicl::Name{"sleep_on_no_data_us"}, fhicl::Comment{"How long to sleep after calling getNext_ if no data is returned"}, 0};
 		/// "separate_monitoring_thread" (Default: false) : Whether a thread that calls the checkHWStatus_ method should be created
@@ -139,7 +139,7 @@ public:
 	 * \param output FragmentPtrs object containing Fragments ready for transmission
 	 * \return Whether getNext completed without exceptions
 	 */
-	bool getNext(FragmentPtrs& output) override final;
+	bool getNext(FragmentPtrs& output) final;
 
 	/**
 	 * \brief Function that launches the monitoring thread (getMonitoringDataLoop())
@@ -161,7 +161,7 @@ public:
 
 		for (auto& id : expectedTypes_)
 		{
-			output.push_back(id.first);
+			output.push_back(id.first);  // NOLINT(performance-inefficient-vector-operation)
 		}
 
 		return output;
@@ -285,6 +285,95 @@ public:
 	void SetFragmentBuffer(std::shared_ptr<FragmentBuffer> buffer) { fragmentBuffer_ = buffer; }
 
 protected:
+	/// <summary>
+	/// Obtain the next group of Fragments, if any are available. Return false if readout cannot continue,
+	/// if we are 'stopped', or if we are not running in state-machine mode.
+	/// Note that getNext_() must return n of each fragmentID declared by fragmentIDs_().
+	/// </summary>
+	/// <param name="output">Reference to list of Fragment pointers to which additional Fragments should be added</param>
+	/// <returns>True if readout should continue, false otherwise</returns>
+	virtual bool getNext_(FragmentPtrs& output) = 0;
+
+	/// <summary>
+	/// Check any relavent hardware status registers. Return false if
+	/// an error condition exists that should halt data-taking.
+	/// This function should probably make MetricManager calls.
+	/// </summary>
+	/// <returns>False if a condition exists that should halt all data-taking, true otherwise</returns>
+	virtual bool checkHWStatus_();
+
+	//
+	// State-machine related implementor interface below.
+	//
+
+	/// <summary>
+	/// If a CommandableFragmentGenerator subclass is reading from a
+	/// file, and start() is called, any run-, subrun-, and
+	/// event-numbers in the data read from the file must be
+	/// over-written by the specified run number, etc. After a call to
+	/// StartCmd(), and until a call to StopCmd(), getNext_() is
+	/// expected to return true as long as datataking is intended.
+	///
+	/// This is a pure virtual function, and must be overriden by Fragment Generator implementations
+	/// </summary>
+	virtual void start() = 0;
+
+	/// <summary>
+	/// On call to StopCmd, stopNoMutex() is called prior to StopCmd
+	/// acquiring the mutex
+	///
+	/// This is a pure virtual function, and must be overriden by Fragment Generator implementations
+	/// </summary>
+	virtual void stopNoMutex() = 0;
+
+	/// <summary>
+	/// If a CommandableFragmentGenerator subclass is reading from a file, calling
+	/// stop() should arrange that the next call to getNext_() returns
+	/// false, rather than allowing getNext_() to read to the end of the
+	/// file.
+	///
+	/// This is a pure virtual function, and must be overriden by Fragment Generator implementations
+	/// </summary>
+	virtual void stop() = 0;
+
+	/// <summary>
+	/// On call to PauseCmd, pauseNoMutex() is called prior to PauseCmd
+	/// acquiring the mutex
+	/// </summary>
+	virtual void pauseNoMutex();
+
+	/// <summary>
+	/// If a CommandableFragmentGenerator subclass is reading from hardware, the
+	/// implementation of pause() should tell the hardware to stop
+	/// sending data.
+	/// </summary>
+	virtual void pause();
+
+	/// <summary>
+	/// The subrun number will be incremented *before* a call to resume.
+	/// </summary>
+	virtual void resume();
+
+	/// <summary>
+	/// Let's say that the contract with the report() functions is that they
+	/// return a non-empty string if they have something useful to report,
+	/// but if they don't know how to handle a given request, they simply
+	/// return an empty string and the ReportCmd() takes care of saying
+	/// "the xyz command is not currently supported".
+	/// For backward compatibility, we keep the report function that takes
+	/// no arguments and add one that takes a "which" argument. In the
+	/// ReportCmd function, we'll call the more specific one first.
+	/// </summary>
+	/// <returns>Default report from the FragmentGenerator</returns>
+	virtual std::string report();
+
+	/// <summary>
+	/// Report the status of a specific quantity
+	/// </summary>
+	/// <param name="what">Name of the quantity to report</param>
+	/// <returns>Value of requested quantity. Null string if what is unsupported.</returns>
+	virtual std::string reportSpecific(std::string const& what);
+
 	// John F., 12/6/13 -- need to figure out which of these getter
 	// functions should be promoted to "public"
 
@@ -428,96 +517,6 @@ private:
 	// So that derived classes can access information about requests
 	std::shared_ptr<RequestBuffer> requestBuffer_;
 	std::shared_ptr<FragmentBuffer> fragmentBuffer_;
-
-protected:
-	/// <summary>
-	/// Obtain the next group of Fragments, if any are available. Return false if readout cannot continue,
-	/// if we are 'stopped', or if we are not running in state-machine mode.
-	/// Note that getNext_() must return n of each fragmentID declared by fragmentIDs_().
-	/// </summary>
-	/// <param name="output">Reference to list of Fragment pointers to which additional Fragments should be added</param>
-	/// <returns>True if readout should continue, false otherwise</returns>
-	virtual bool getNext_(FragmentPtrs& output) = 0;
-
-	/// <summary>
-	/// Check any relavent hardware status registers. Return false if
-	/// an error condition exists that should halt data-taking.
-	/// This function should probably make MetricManager calls.
-	/// </summary>
-	/// <returns>False if a condition exists that should halt all data-taking, true otherwise</returns>
-	virtual bool checkHWStatus_();
-
-	//
-	// State-machine related implementor interface below.
-	//
-
-	/// <summary>
-	/// If a CommandableFragmentGenerator subclass is reading from a
-	/// file, and start() is called, any run-, subrun-, and
-	/// event-numbers in the data read from the file must be
-	/// over-written by the specified run number, etc. After a call to
-	/// StartCmd(), and until a call to StopCmd(), getNext_() is
-	/// expected to return true as long as datataking is intended.
-	///
-	/// This is a pure virtual function, and must be overriden by Fragment Generator implementations
-	/// </summary>
-	virtual void start() = 0;
-
-	/// <summary>
-	/// On call to StopCmd, stopNoMutex() is called prior to StopCmd
-	/// acquiring the mutex
-	///
-	/// This is a pure virtual function, and must be overriden by Fragment Generator implementations
-	/// </summary>
-	virtual void stopNoMutex() = 0;
-
-	/// <summary>
-	/// If a CommandableFragmentGenerator subclass is reading from a file, calling
-	/// stop() should arrange that the next call to getNext_() returns
-	/// false, rather than allowing getNext_() to read to the end of the
-	/// file.
-	///
-	/// This is a pure virtual function, and must be overriden by Fragment Generator implementations
-	/// </summary>
-	virtual void stop() = 0;
-
-	/// <summary>
-	/// On call to PauseCmd, pauseNoMutex() is called prior to PauseCmd
-	/// acquiring the mutex
-	/// </summary>
-	virtual void pauseNoMutex();
-
-	/// <summary>
-	/// If a CommandableFragmentGenerator subclass is reading from hardware, the
-	/// implementation of pause() should tell the hardware to stop
-	/// sending data.
-	/// </summary>
-	virtual void pause();
-
-	/// <summary>
-	/// The subrun number will be incremented *before* a call to resume.
-	/// </summary>
-	virtual void resume();
-
-	/// <summary>
-	/// Let's say that the contract with the report() functions is that they
-	/// return a non-empty string if they have something useful to report,
-	/// but if they don't know how to handle a given request, they simply
-	/// return an empty string and the ReportCmd() takes care of saying
-	/// "the xyz command is not currently supported".
-	/// For backward compatibility, we keep the report function that takes
-	/// no arguments and add one that takes a "which" argument. In the
-	/// ReportCmd function, we'll call the more specific one first.
-	/// </summary>
-	/// <returns>Default report from the FragmentGenerator</returns>
-	virtual std::string report();
-
-	/// <summary>
-	/// Report the status of a specific quantity
-	/// </summary>
-	/// <param name="what">Name of the quantity to report</param>
-	/// <returns>Value of requested quantity. Null string if what is unsupported.</returns>
-	virtual std::string reportSpecific(std::string const& what);
 };
 }  // namespace artdaq
 

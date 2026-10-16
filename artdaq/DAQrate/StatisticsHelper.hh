@@ -6,7 +6,7 @@
 
 namespace fhicl {
 class ParameterSet;
-}
+}  // namespace fhicl
 
 #include <atomic>
 #include <string>
@@ -14,7 +14,7 @@ class ParameterSet;
 
 namespace artdaq {
 class StatisticsHelper;
-}
+}  // namespace artdaq
 
 /**
  * \brief This class manages MonitoredQuantity instances for the *Core classes.

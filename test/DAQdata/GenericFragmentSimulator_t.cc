@@ -1,5 +1,4 @@
 #define BOOST_TEST_MODULE GenericFragmentSimulator_t
-#include <boost/test/unit_test.hpp>
 
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Data/detail/RawFragmentHeader.hh"
@@ -7,6 +6,7 @@
 #include "artdaq-core/Plugins/makeFragmentGenerator.hh"
 #include "fhiclcpp/ParameterSet.h"
 
+#include <boost/test/unit_test.hpp>
 #include <cstddef>
 
 std::size_t const NUM_EVENTS = 2;

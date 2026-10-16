@@ -11,12 +11,12 @@
 #include "fhiclcpp/ParameterSet.h"
 
 #include <atomic>
-#include <string>
 #include <memory>
+#include <string>
 
 namespace artdaq {
 class BoardReaderCore;
-}
+}  // namespace artdaq
 
 /**
  * \brief BoardReaderCore implements the state machine for the BoardReader artdaq application.
@@ -37,7 +37,7 @@ public:
 	 * \brief BoardReaderCore Constructor
 	 * \param parent_application Reference to parent Commandable object, for in_run_failure notification
 	 */
-	BoardReaderCore(Commandable& parent_application);
+	explicit BoardReaderCore(Commandable& parent_application);
 
 	/**
 	 * \brief Copy Constructor is Deleted
@@ -207,6 +207,9 @@ public:
 	 */
 	void SetStartTransitionTimeout(double timeout) { start_transition_timeout_ = timeout; }
 
+	/// \brief Get the error message from the last failed initialization, if any
+	const std::string& GetLastInitError() const { return last_init_error_; }
+
 private:
 	Commandable& parent_application_;
 	std::unique_ptr<CommandableFragmentGenerator> generator_ptr_;
@@ -234,7 +237,7 @@ private:
 	// attributes and methods for statistics gathering & reporting
 	artdaq::StatisticsHelper statsHelper_;
 
-	std::string buildStatisticsString_();
+	std::string buildStatisticsString_() const;
 
 	/// \brief Record a failed initialization step: store the message for the App layer and log it
 	void recordInitFailure_(const std::string& stage, const std::string& detail, fhicl::ParameterSet const& fr_pset);
@@ -242,10 +245,6 @@ private:
 	bool verbose_;  ///< Whether to log transition messages
 
 	std::string last_init_error_;  ///< Last error message from a failed initialize transition
-
-public:
-	/// \brief Get the error message from the last failed initialization, if any
-	const std::string& GetLastInitError() const { return last_init_error_; }
 };
 
 #endif  // ARTDAQ_ARTDAQ_APPLICATION_BOARDREADERCORE_HH_

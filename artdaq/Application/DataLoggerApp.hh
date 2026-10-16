@@ -9,7 +9,7 @@
 
 namespace artdaq {
 class DataLoggerApp;
-}
+}  // namespace artdaq
 
 /**
  * \brief DataLoggerApp is an artdaq::Commandable derived class which controls the DataLoggerCore

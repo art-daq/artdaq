@@ -5,7 +5,7 @@
 
 namespace artdaq {
 class DataLoggerCore;
-}
+}  // namespace artdaq
 
 /**
  * \brief DataLoggerCore implements the state machine for the DataLogger artdaq application.

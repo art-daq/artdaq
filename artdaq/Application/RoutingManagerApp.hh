@@ -11,7 +11,7 @@
 
 namespace artdaq {
 class RoutingManagerApp;
-}
+}  // namespace artdaq
 
 /**
  * \brief RoutingManagerApp is an artdaq::Commandable derived class which controls the RoutingManagerCore state machine

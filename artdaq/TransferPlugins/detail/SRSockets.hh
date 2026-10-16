@@ -45,6 +45,6 @@ struct MessHead
 /**
  * \brief Magic Bytes to put in header
  */
-#define CONN_MAGIC 0xcafefeca
-#define ACK_MAGIC 0xbeeffeed
+constexpr uint32_t CONN_MAGIC = 0xcafefeca;
+constexpr uint32_t ACK_MAGIC = 0xbeeffeed;
 #endif  // ARTDAQ_ARTDAQ_TRANSFERPLUGINS_DETAIL_SRSOCKETS_HH_

@@ -60,8 +60,7 @@ public:
 
 		if (config_ps.get<bool>("replace_image_name", config_ps.get<bool>("rin", false)))
 		{
-			int s;
-			s = prctl(PR_SET_NAME, app_name.c_str(), NULL, NULL, NULL);  // NOLINT(build/null_usage)
+			int s = prctl(PR_SET_NAME, app_name.c_str(), NULL, NULL, NULL);  // NOLINT(build/null_usage)
 			if (s != 0)
 			{
 				std::cerr << "Could not replace process image name with " << app_name << "!" << std::endl;  // NOLINT(runtime/output_format)

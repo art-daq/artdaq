@@ -16,8 +16,8 @@
 #include <chrono>
 #include <cstdint>
 #include <map>
-#include <string>
 #include <memory>
+#include <string>
 
 namespace artdaq {
 
@@ -117,7 +117,6 @@ public:
 	size_t GetSentMessageCount() { return requests_sent_.load(); }
 
 private:
-private:
 	// State variables
 	std::atomic<bool> initialized_{false};
 	std::atomic<bool> sender_thread_running_{false};
@@ -145,7 +144,6 @@ private:
 	std::chrono::milliseconds request_interval_;
 	std::chrono::milliseconds request_delay_;
 
-private:
 	void setup_requests_();
 
 	void start_send_request_thread_();

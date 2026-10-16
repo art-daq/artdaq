@@ -205,9 +205,9 @@ artdaq::MulticastTransfer::MulticastTransfer(fhicl::ParameterSet const& pset, Ro
 
 			boost::system::error_code ec;
 
-			socket_->set_option(boost::asio::ip::udp::socket::reuse_address(true), ec);
+			auto ret = socket_->set_option(boost::asio::ip::udp::socket::reuse_address(true), ec);
 
-			if (ec.value() != 0)
+			if (!ret || ec.value() != 0)
 			{
 				TLOG(TLVL_ERROR) << "boost::system::error_code with value " << ec << " was found in setting reuse_address option";
 			}
@@ -218,15 +218,15 @@ artdaq::MulticastTransfer::MulticastTransfer(fhicl::ParameterSet const& pset, Ro
 
 			// Join the multicast group.
 
-			socket_->set_option(boost::asio::ip::multicast::join_group(multicast_address), ec);
+			ret = socket_->set_option(boost::asio::ip::multicast::join_group(multicast_address), ec);
 
-			if (ec.value() != 0)
+			if (!ret || ec.value() != 0)
 			{
 				TLOG(TLVL_ERROR) << "boost::system::error_code with value " << ec << " was found in attempt to join multicast group";
 			}
 		}
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{
 		ExceptionHandler(ExceptionHandlerRethrow::yes, "Problem setting up the socket in MulticastTransfer");
 	}
@@ -464,8 +464,8 @@ void artdaq::MulticastTransfer::fill_staging_memory(const artdaq::Fragment& frag
 
 		subfragment_identifier sfi(fragment.sequenceID(), fragment.fragmentID(), i_s);
 
-		std::copy(reinterpret_cast<byte_t*>(&sfi),                                   // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
-		          reinterpret_cast<byte_t*>(&sfi) + sizeof(subfragment_identifier),  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
+		std::copy(reinterpret_cast<byte_t*>(&sfi),                                   // NOLINT
+		          reinterpret_cast<byte_t*>(&sfi) + sizeof(subfragment_identifier),  // NOLINT
 		          staging_memory_copyto);
 
 		auto low_ptr_into_fragment = fragment.headerBeginBytes() + subfragment_size_ * i_s;  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
@@ -514,12 +514,11 @@ void artdaq::MulticastTransfer::get_fragment_quantities(const boost::asio::mutab
 {
 	auto* buffer_ptr = boost::asio::buffer_cast<byte_t*>(buf);
 
-	auto subfragment_num = *(reinterpret_cast<size_t*>(buffer_ptr) + 2);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
+	auto subfragment_num = *(reinterpret_cast<size_t*>(buffer_ptr) + 2);  // NOLINT
 
 	assert(subfragment_num == 0);
 
-	auto* header =
-	    reinterpret_cast<artdaq::detail::RawFragmentHeader*>(buffer_ptr + sizeof(subfragment_identifier));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
+	auto* header = reinterpret_cast<artdaq::detail::RawFragmentHeader*>(buffer_ptr + sizeof(subfragment_identifier));  // NOLINT
 
 	fragment_size = header->word_count * sizeof(artdaq::RawDataType);
 
@@ -549,12 +548,12 @@ void artdaq::MulticastTransfer::set_receive_buffer_size(size_t recv_buff_size)
 	boost::asio::socket_base::receive_buffer_size recv_buff_option(recv_buff_size);
 
 	boost::system::error_code ec;
-	socket_->set_option(recv_buff_option, ec);
+	auto ret = socket_->set_option(recv_buff_option, ec);
 
-	if (ec.value() != 0)
+	if (!ret || ec.value() != 0)
 	{
 		TLOG(TLVL_ERROR) << "boost::system::error_code with value " << ec << " was found in attempt to change receive buffer";
-		std::cerr << "boost::system::error_code with value " << ec << " was found in attempt to change receive buffer" << std::endl;
+		std::cerr << "boost::system::error_code with value " << ec << " was found in attempt to change receive buffer" << std::endl;  // NOLINT
 	}
 
 	socket_->get_option(actual_recv_buff_size);

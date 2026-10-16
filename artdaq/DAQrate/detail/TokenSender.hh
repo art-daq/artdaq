@@ -3,7 +3,10 @@
 
 namespace fhicl {
 class ParameterSet;
-}
+}  // namespace fhicl
+
+#include "artdaq/DAQdata/Globals.hh"
+
 #include "fhiclcpp/types/Atom.h"
 #include "fhiclcpp/types/Comment.h"
 #include "fhiclcpp/types/ConfigurationTable.h"
@@ -80,7 +83,7 @@ public:
 	 * \param run_number Run number for token
 	 * \param rank Rank of token
 	 */
-	void SendRoutingToken(int nSlots, int run_number, int rank = my_rank);
+	void SendRoutingToken(int nSlots, uint32_t run_number, int rank = my_rank);
 
 	/**
 	 * \brief Get the count of number of tokens sent
@@ -101,19 +104,18 @@ public:
 	bool RoutingTokenSendsEnabled() { return send_routing_tokens_; }
 
 private:
-	std::atomic<bool> initialized_;
+	std::atomic<bool> initialized_{false};
 
 	bool send_routing_tokens_;
 	int token_port_;
-	int token_socket_;
+	int token_socket_{-1};
 	std::string token_address_;
-	std::atomic<size_t> tokens_sent_;
-	uint32_t run_number_;
+	std::atomic<size_t> tokens_sent_{0};
+	uint32_t run_number_{0};
 
-private:
 	void setup_tokens_();
 
-	void send_routing_token_(int nSlots, int run_number, int rank);
+	void send_routing_token_(int nSlots, uint32_t run_number, int rank);
 };
 }  // namespace artdaq
 #endif  // ARTDAQ_ARTDAQ_DAQRATE_DETAIL_TOKENSENDER_HH_

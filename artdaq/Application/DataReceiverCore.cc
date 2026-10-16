@@ -39,7 +39,7 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 	{
 		metricMan->initialize(metric_pset, app_name);
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{
 		ExceptionHandler(ExceptionHandlerRethrow::no,
 		                 "Error loading metrics in DataReceiverCore::initialize()");
@@ -139,7 +139,7 @@ bool artdaq::DataReceiverCore::stop()
 {
 	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG + 32)) << "Stopping run " << event_store_ptr_->runID();
 	bool endSucceeded = false;
-	int attemptsToEnd;
+	int attemptsToEnd = 0;
 	receiver_ptr_->stop_threads();
 
 	// 21-Jun-2013, KAB - the stop_requested_ variable must be set

@@ -32,7 +32,7 @@
 
 namespace art {
 class BinaryFileOutput;
-}
+}  // namespace art
 
 using art::BinaryFileOutput;
 using fhicl::ParameterSet;
@@ -77,7 +77,6 @@ private:
 
 	bool readParameterSet_(fhicl::ParameterSet const& pset);
 
-private:
 	BinaryFileOutput(BinaryFileOutput const&) = delete;
 	BinaryFileOutput(BinaryFileOutput&&) = delete;
 	BinaryFileOutput& operator=(BinaryFileOutput const&) = delete;
@@ -155,7 +154,7 @@ bool art::BinaryFileOutput::readParameterSet_(fhicl::ParameterSet const& pset)
 	{
 		file_name_ = pset.get<std::string>("fileName");
 	}
-	catch (...)
+	catch (cet::exception const&)
 	{
 		TLOG(TLVL_ERROR) << name_ << "The fileName parameter was not specified "
 		                 << "in the BinaryFileOutput initialization PSet: \"" << pset.to_string() << "\".";
@@ -165,11 +164,6 @@ bool art::BinaryFileOutput::readParameterSet_(fhicl::ParameterSet const& pset)
 	// determine the data sending parameters
 	return true;
 }
-
-#define USE_STATIC_BUFFER 0
-#if USE_STATIC_BUFFER == 1
-static unsigned char static_buffer[0xa00000];
-#endif
 
 void art::BinaryFileOutput::write(EventPrincipal& ep)
 {
@@ -209,11 +203,7 @@ void art::BinaryFileOutput::write(EventPrincipal& ep)
 			}
 			else
 			{
-#if USE_STATIC_BUFFER == 1
-				file_ptr_->write((char*)static_buffer, fragment.sizeBytes());
-#else
 				file_ptr_->write(reinterpret_cast<const char*>(fragment.headerBeginBytes()), fragment.sizeBytes());  // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
-#endif
 				TLOG(TLVL_DEBUG + 34) << "BinaryFileOutput::write seq=" << sequence_id << " frag=" << fragid_id << " done errno=" << errno;
 			}
 		}

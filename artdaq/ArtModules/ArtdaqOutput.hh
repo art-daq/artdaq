@@ -69,8 +69,8 @@ namespace art {
 class ArtdaqOutput;
 }  // namespace art
 
-static artdaq::FragmentPtr outputFrag = nullptr;
-static std::mutex outputFragMutex;
+static artdaq::FragmentPtr outputFrag = nullptr;  // NOLINT
+static std::mutex outputFragMutex;                // NOLINT
 inline char* Fragment_ReAllocChar(char* dataPtr, size_t size, size_t /*oldsize*/)
 {
 	if (outputFrag != nullptr && dataPtr == reinterpret_cast<char*>(outputFrag->dataBegin()))  // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
@@ -338,7 +338,7 @@ inline void art::ArtdaqOutput::send_init_message()
 	msg->WriteULong(ps_cnt);
 	TLOG(TLVL_SENDINIT, "ArtdaqOutput") << "ArtdaqOutput::send_init_message(): Streaming parameter sets ...";
 	for (auto I = std::begin(fhicl::ParameterSetRegistry::get()), E = std::end(fhicl::ParameterSetRegistry::get());
-	     I != E; ++I)
+	     I != E; ++I)  // NOLINT(runtime/increment_decrement)
 	{
 		TLOG(TLVL_SENDINIT, "ArtdaqOutput") << "Pset ID " << I->first << ": " << I->second.to_string();
 		std::string pset_str = I->second.to_string();
@@ -433,7 +433,7 @@ inline void art::ArtdaqOutput::writeDataProducts(std::unique_ptr<TBufferFile>& m
 	for (auto I = principal.begin(), E = principal.end(); I != E; ++I)
 	{
 		auto const& productDescription = I->second->productDescription();
-		auto const& refs = keptProducts()[productDescription.branchType()];
+		auto const& refs = keptProducts()[productDescription.branchType()];  // NOLINT
 		bool found = false;
 		for (auto const& ref : refs)
 		{
@@ -472,7 +472,7 @@ inline void art::ArtdaqOutput::writeDataProducts(std::unique_ptr<TBufferFile>& m
 	for (auto I = principal.begin(), E = principal.end(); I != E; ++I)
 	{
 		auto const& productDescription = I->second->productDescription();
-		auto const& refs = keptProducts()[productDescription.branchType()];
+		auto const& refs = keptProducts()[productDescription.branchType()];  // NOLINT
 		bool found = false;
 		for (auto const& ref : refs)
 		{
@@ -620,7 +620,7 @@ inline void art::ArtdaqOutput::write(EventPrincipal& ep)
 	//
 	for (auto I = bkv.begin(), E = bkv.end(); I != E; ++I)
 	{
-		delete *I;
+		delete *I;  // NOLINT
 		*I = 0;
 	}
 	TLOG(TLVL_ENTER_EXIT, "ArtdaqOutput") << "End: ArtdaqOutput::write(EventPrincipal& ep)";
@@ -682,7 +682,7 @@ inline void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 		// typedef std::map<const ProcessHistoryID,ProcessHistory>
 		//    ProcessHistoryMap;
 		for (auto I = std::begin(art::ProcessHistoryRegistry::get()), E = std::end(art::ProcessHistoryRegistry::get());
-		     I != E; ++I)
+		     I != E; ++I)  // NOLINT(runtime/increment_decrement)
 		{
 			std::ostringstream OS;
 			I->first.print(OS);
@@ -735,7 +735,7 @@ inline void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 	//
 	for (auto I = bkv.begin(), E = bkv.end(); I != E; ++I)
 	{
-		delete *I;
+		delete *I;  // NOLINT
 		*I = 0;
 	}
 	TLOG(TLVL_ENTER_EXIT, "ArtdaqOutput") << "End: ArtdaqOutput::writeSubRun(const SubRunPrincipal& srp)";
@@ -792,7 +792,7 @@ inline void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 
 	for (auto I = bkv.begin(), E = bkv.end(); I != E; ++I)
 	{
-		delete *I;
+		delete *I;  // NOLINT
 		*I = 0;
 	}
 	TLOG(TLVL_ENTER_EXIT, "ArtdaqOutput") << "End: ArtdaqOutput::writeRun(RunPrincipal& rp)";

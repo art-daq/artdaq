@@ -5,7 +5,7 @@
 
 namespace artdaq {
 struct NetMonHeader;
-}
+}  // namespace artdaq
 
 /**
  * \brief Header with length information for NetMonTransport messages

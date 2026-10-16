@@ -9,7 +9,7 @@
 
 namespace fhicl {
 class ParameterSet;
-}
+}  // namespace fhicl
 
 #include <condition_variable>
 #include <map>
@@ -151,7 +151,7 @@ public:
 	    : frags_()
 	    , empty_(true)
 	{
-		std::cout << "FragmentStoreElement CONSTRUCTOR" << std::endl;
+		TLOG(TLVL_DEBUG + 32) << "FragmentStoreElement CONSTRUCTOR";
 	}
 
 	/**

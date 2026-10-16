@@ -9,7 +9,7 @@
 
 namespace artdaq {
 class EventBuilderApp;
-}
+}  // namespace artdaq
 
 /**
  * \brief EventBuilderApp is an artdaq::Commandable derived class which controls the EventBuilderCore

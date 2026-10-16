@@ -108,7 +108,7 @@ void RequestSender::setup_requests_()
 				TLOG(TLVL_ERROR) << "Unable to determine the  multicast interface address for " << multicast_out_addr_ << ", err=" << strerror(errno);
 				exit(1);
 			}
-			char addr_str[INET_ADDRSTRLEN];
+			char addr_str[INET_ADDRSTRLEN];  // NOLINT
 			inet_ntop(AF_INET, &(addr), addr_str, INET_ADDRSTRLEN);
 			TLOG(TLVL_INFO) << "Successfully determined the multicast network interface for " << multicast_out_addr_ << ": " << addr_str;
 
@@ -149,7 +149,7 @@ void RequestSender::start_send_request_thread_()
 	try
 	{
 		sender_thread_.reset(new boost::thread(&RequestSender::do_send_request_, this));
-		char tname[16];
+		char tname[16];                            // NOLINT
 		snprintf(tname, 16, "%s", "RequestSend");  // NOLINT
 		auto handle = sender_thread_->native_handle();
 		pthread_setname_np(handle, tname);
@@ -157,7 +157,7 @@ void RequestSender::start_send_request_thread_()
 	catch (const boost::exception& e)
 	{
 		TLOG(TLVL_ERROR) << "Caught boost::exception starting Request Send thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
-		std::cerr << "Caught boost::exception starting Request Send thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
+		std::cerr << "Caught boost::exception starting Request Send thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;  // NOLINT
 		exit(5);
 	}
 }
@@ -201,7 +201,7 @@ void RequestSender::do_send_request_()
 		TLOG(TLVL_DEBUG + 33) << "Creating RequestMessage";
 		detail::RequestMessage message;
 		message.setRank(my_rank);
-		message.setRunNumber(run_number_);
+		message.setRunNumber(static_cast<int>(run_number_));
 
 		for (auto& req : active_requests_)
 		{
@@ -215,7 +215,7 @@ void RequestSender::do_send_request_()
 
 		if (message.size() == 0) continue;
 
-		char str[INET_ADDRSTRLEN];
+		char str[INET_ADDRSTRLEN];  // NOLINT
 		inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
 		TLOG(TLVL_DEBUG + 33) << "Sending request for " << message.size() << " events to multicast group " << str
 		                      << ", port " << request_port_ << ", interface " << multicast_out_addr_;

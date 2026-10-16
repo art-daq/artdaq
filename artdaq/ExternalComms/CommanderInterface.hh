@@ -303,11 +303,6 @@ public:
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	virtual std::string clear_config_archive();
 
-private:
-	CommanderInterface(CommanderInterface&&) = delete;
-	CommanderInterface& operator=(CommanderInterface&&) = delete;
-
-public:
 	/// <summary>
 	/// Reference to the Commandable that this Commander Commands.
 	/// </summary>
@@ -316,13 +311,19 @@ public:
 protected:
 	int _id;                     ///< ID Number of this Commander
 	std::atomic<bool> running_;  ///< Whether the server is running and able to respond to requests
+
+private:
+	CommanderInterface(CommanderInterface&&) = delete;
+	CommanderInterface& operator=(CommanderInterface&&) = delete;
 };
 }  // namespace artdaq
 
 #ifndef EXTERN_C_FUNC_DECLARE_START
+// NOLINTNEXTLINE
 #define EXTERN_C_FUNC_DECLARE_START extern "C" {
 #endif
 
+// NOLINTNEXTLINE
 #define DEFINE_ARTDAQ_COMMANDER(klass)                                                  \
 	EXTERN_C_FUNC_DECLARE_START                                                         \
 	std::unique_ptr<artdaq::CommanderInterface> make(fhicl::ParameterSet const& ps,     \

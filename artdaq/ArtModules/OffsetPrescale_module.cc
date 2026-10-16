@@ -23,7 +23,7 @@
 
 namespace artdaq {
 class OffsetPrescale;
-}
+}  // namespace artdaq
 
 class artdaq::OffsetPrescale : public art::EDFilter
 {

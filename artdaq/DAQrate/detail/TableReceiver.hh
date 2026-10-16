@@ -6,7 +6,7 @@
 
 namespace fhicl {
 class ParameterSet;
-}
+}  // namespace fhicl
 
 #include "fhiclcpp/types/Atom.h"
 #include "fhiclcpp/types/Comment.h"
@@ -26,7 +26,7 @@ class ParameterSet;
 
 namespace artdaq {
 class TableReceiver;
-}
+}  // namespace artdaq
 
 /**
  * \brief Sends Fragment objects using TransferInterface plugins. Uses Routing Tables if configured,

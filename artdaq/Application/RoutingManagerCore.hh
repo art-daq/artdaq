@@ -24,7 +24,7 @@
 
 namespace artdaq {
 class RoutingManagerCore;
-}
+}  // namespace artdaq
 
 /**
  * \brief RoutingManagerCore implements the state machine for the RoutingManager artdaq application.

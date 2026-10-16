@@ -40,8 +40,7 @@ artdaq::FragmentReceiverManager::FragmentReceiverManager(const fhicl::ParameterS
 	{
 		try
 		{
-			auto transfer = std::unique_ptr<TransferInterface>(MakeTransferPlugin(srcs, s,
-			                                                                      TransferInterface::Role::kReceive));
+			std::unique_ptr<TransferInterface> transfer{MakeTransferPlugin(srcs, s, TransferInterface::Role::kReceive)};
 			auto source_rank = transfer->source_rank();
 			if (enabled_srcs_empty)
 			{
@@ -65,7 +64,7 @@ artdaq::FragmentReceiverManager::FragmentReceiverManager(const fhicl::ParameterS
 		{
 			TLOG(TLVL_WARNING) << "std::exception caught while setting up source " << s << ": " << ex.what();
 		}
-		catch (...)
+		catch (...)  // NOLINT
 		{
 			TLOG(TLVL_WARNING) << "Non-cet exception caught while setting up source " << s << ".";
 		}
@@ -96,7 +95,7 @@ artdaq::FragmentReceiverManager::~FragmentReceiverManager()
 				thread.join();
 			}
 		}
-		catch (...)
+		catch (...)  // NOLINT
 		{
 			// IGNORED
 		}
@@ -136,7 +135,7 @@ int artdaq::FragmentReceiverManager::get_next_source_() const
 	if (!ready_sources.empty())
 	{
 		auto iter = ready_sources.find(last_source_);
-		if (iter == ready_sources.end() || ++iter == ready_sources.end())
+		if (iter == ready_sources.end() || ++iter == ready_sources.end())  // NOLINT(runtime/increment_decrement)
 		{
 			TLOG(TLVL_DEBUG + 35) << "get_next_source returning " << *ready_sources.begin();
 			last_source_ = *ready_sources.begin();
@@ -163,7 +162,7 @@ void artdaq::FragmentReceiverManager::start_threads()
 			try
 			{
 				source_threads_[rank] = boost::thread(&FragmentReceiverManager::runReceiver_, this, rank);
-				char tname[16];                                                    // Size 16 - see man page pthread_setname_np(3) and/or prctl(2)
+				char tname[16];                                                    // NOLINT Size 16 - see man page pthread_setname_np(3) and/or prctl(2)
 				snprintf(tname, sizeof(tname) - 1, "%d-%d FRecv", rank, my_rank);  // NOLINT
 				tname[sizeof(tname) - 1] = '\0';                                   // assure term. snprintf is not too evil :)
 				auto handle = source_threads_[rank].native_handle();
@@ -172,7 +171,7 @@ void artdaq::FragmentReceiverManager::start_threads()
 			catch (const boost::exception& e)
 			{
 				TLOG(TLVL_ERROR) << "Caught boost::exception starting Receiver " << rank << " thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
-				std::cerr << "Caught boost::exception starting Receiver " << rank << " thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
+				std::cerr << "Caught boost::exception starting Receiver " << rank << " thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;  // NOLINT
 				exit(5);
 			}
 		}
@@ -337,7 +336,7 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 			TLOG(TLVL_DEBUG + 37) << "runReceiver_: Sending receive stats";
 			metricMan->sendMetric("Data Receive Time From Rank " + std::to_string(source_rank), source_metric_data_[source_rank].second, "s", 1, MetricMode::Accumulate);
 			metricMan->sendMetric("Data Receive Size From Rank " + std::to_string(source_rank), source_metric_data_[source_rank].first, "B", 1, MetricMode::Accumulate);
-			metricMan->sendMetric("Data Receive Rate From Rank " + std::to_string(source_rank), source_metric_data_[source_rank].first / source_metric_data_[source_rank].second, "B/s", 1, MetricMode::Average);
+			metricMan->sendMetric("Data Receive Rate From Rank " + std::to_string(source_rank), source_metric_data_[source_rank].first / source_metric_data_[source_rank].second, "B/s", 1, MetricMode::Average);  // NOLINT
 
 			source_metric_send_time_[source_rank] = std::chrono::steady_clock::now();
 			source_metric_data_[source_rank].first = 0;

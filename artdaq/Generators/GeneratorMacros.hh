@@ -5,7 +5,7 @@
 
 namespace fhicl {
 class ParameterSet;
-}
+}  // namespace fhicl
 
 #include "cetlib/compiler_macros.h"
 
@@ -21,10 +21,11 @@ typedef std::unique_ptr<artdaq::CommandableFragmentGenerator> makeFunc_t(fhicl::
 }  // namespace artdaq
 
 #ifndef EXTERN_C_FUNC_DECLARE_START
+// NOLINTNEXTLINE
 #define EXTERN_C_FUNC_DECLARE_START extern "C" {
 #endif
 
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+// NOLINTNEXTLINE
 #define DEFINE_ARTDAQ_COMMANDABLE_GENERATOR(klass)                                   \
 	EXTERN_C_FUNC_DECLARE_START                                                      \
 	std::unique_ptr<artdaq::CommandableFragmentGenerator>                            \

@@ -20,9 +20,7 @@
 #include <string>
 #include <utility>
 
-namespace {
 volatile std::sig_atomic_t gListenSignalStatus = 0;  ///< Stores singal from signal handler
-}
 
 /**
  * \brief Handle a Unix signal
@@ -56,7 +54,7 @@ artdaq::ListenTransferWrapper::ListenTransferWrapper(const fhicl::ParameterSet& 
 			metricMan->do_start();
 		}
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{
 		artdaq::ExceptionHandler(
 		    artdaq::ExceptionHandlerRethrow::no,
@@ -67,7 +65,7 @@ artdaq::ListenTransferWrapper::ListenTransferWrapper(const fhicl::ParameterSet& 
 	{
 		transfer_ = artdaq::MakeTransferPlugin(pset_, "transfer_plugin", artdaq::TransferInterface::Role::kReceive);
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{
 		artdaq::ExceptionHandler(artdaq::ExceptionHandlerRethrow::no, "ListenTransferWrapper: failure in call to MakeTransferPlugin");
 	}
@@ -115,7 +113,7 @@ artdaq::FragmentPtrs artdaq::ListenTransferWrapper::receiveMessage()
 					fragments_received++;
 
 					static size_t cntr = 0;
-					auto mod = ++cntr % 10;
+					auto mod = ++cntr % 10;  // NOLINT(runtime/increment_decrement)
 					auto suffix = "-th";
 					if (mod == 1)
 					{
@@ -162,7 +160,7 @@ artdaq::FragmentPtrs artdaq::ListenTransferWrapper::receiveMessage()
 					           << ", status = " << result << ", last received data " << last_received_milliseconds << " ms ago.";
 				}
 			}
-			catch (...)
+			catch (...)  // NOLINT
 			{
 				artdaq::ExceptionHandler(
 				    artdaq::ExceptionHandlerRethrow::yes,
@@ -213,7 +211,7 @@ artdaq::FragmentPtrs artdaq::ListenTransferWrapper::receiveMessage()
 	}
 
 	return fragmentPtrs;
-}
+}  // NOLINT(readability/fn_size)
 
 std::shared_ptr<ArtdaqEvent>
 artdaq::ListenTransferWrapper::receiveMessages()

@@ -61,12 +61,12 @@ try
 	TLOG() << "Going to read shared memory " << std::showbase << std::hex << pset.get<uint32_t>("shared_memory_key") << " Event Mode: " << std::boolalpha << pset.get<bool>("read_event_info");
 	if (pset.get<bool>("read_event_info", false))
 	{
-		artdaq::SharedMemoryEventReceiver t(pset.get<uint32_t>("shared_memory_key"), pset.get<uint32_t>("broadcast_shared_memory_key", pset.get<uint32_t>("shared_memory_key")));
+		artdaq::SharedMemoryEventReceiver t(pset.get<key_t>("shared_memory_key"), pset.get<key_t>("broadcast_shared_memory_key", pset.get<key_t>("shared_memory_key")));
 		std::cout << t.toString() << std::endl;
 	}
 	else
 	{
-		artdaq::SharedMemoryManager t(pset.get<uint32_t>("shared_memory_key"), 0, 0, 0);
+		artdaq::SharedMemoryManager t(pset.get<key_t>("shared_memory_key"), 0, 0, 0);
 		std::cout << t.toString() << std::endl;
 	}
 

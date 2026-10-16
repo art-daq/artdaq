@@ -30,7 +30,7 @@ public:
 	 * \brief ShmemWrapper Constructor
 	 * \param ps ParameterSet for ShmemWrapper
 	 */
-	ShmemWrapper(fhicl::ParameterSet const& ps);
+	explicit ShmemWrapper(fhicl::ParameterSet const& ps);
 
 	/**
 	 * \brief ShmemWrapper Destructor

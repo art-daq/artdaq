@@ -10,7 +10,7 @@
 
 namespace fhicl {
 class ParameterSet;
-}
+}  // namespace fhicl
 #include "fhiclcpp/types/Atom.h"
 #include "fhiclcpp/types/Comment.h"
 #include "fhiclcpp/types/ConfigurationTable.h"
@@ -28,11 +28,11 @@ class ParameterSet;
 #include <chrono>
 #include <condition_variable>
 #include <list>
-#include <mutex>
 #include <memory>
-#include <string>
+#include <mutex>
 #include <queue>
 #include <set>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -110,7 +110,7 @@ public:
 		/// "buffer_mode_keep_latest" (Default: false): Keep the latest Fragment when running in Buffer mode, so that each response has at least one Fragment (Fragment will be discarded if new data arrives before next request)
 		fhicl::Atom<bool> buffer_mode_keep_latest{fhicl::Name{"buffer_mode_keep_latest"}, fhicl::Comment{"Keep the latest Fragment when running in Buffer mode, so that each response has at least one Fragment (Fragment will be discarded if new data arrives before next request)"}, false};
 		/// "expected_fragment_type" (Default: 231, EmptyFragmentType) : The type of Fragments this CFG will be generating. "Empty" will auto - detect type based on Fragments generated.
-		fhicl::Atom<Fragment::type_t> expected_fragment_type{fhicl::Name{"expected_fragment_type"}, fhicl::Comment{"The type of Fragments this CFG will be generating. \"Empty\" will auto-detect type based on Fragments generated."}, Fragment::type_t(Fragment::EmptyFragmentType)};
+		fhicl::Atom<Fragment::type_t> expected_fragment_type{fhicl::Name{"expected_fragment_type"}, fhicl::Comment{"The type of Fragments this CFG will be generating. \"Empty\" will auto-detect type based on Fragments generated."}, Fragment::EmptyFragmentType};
 		/// "request_windows_are_unique" (Default: true) : Whether Fragments should be removed from the buffer when matched to a request window
 		fhicl::Atom<bool> request_windows_are_unique{fhicl::Name{"request_windows_are_unique"}, fhicl::Comment{"Whether Fragments should be removed from the buffer when matched to a request window"}, true};
 		/// "missing_request_window_timeout_us" (Default: 5000000) : How long to track missing requests in the "out-of-order Windows" list
@@ -324,7 +324,7 @@ public:
 
 		for (auto& id : dataBuffers_)
 		{
-			output.push_back(id.first); // NOLINT(performance-inefficient-vector-operation)
+			output.push_back(id.first);  // NOLINT(performance-inefficient-vector-operation)
 		}
 
 		return output;

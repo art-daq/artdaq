@@ -17,7 +17,7 @@ bool artdaq::DataLoggerCore::initialize(fhicl::ParameterSet const& pset)
 	{
 		daq_pset = pset.get<fhicl::ParameterSet>("daq");
 	}
-	catch (...)
+	catch (cet::exception const&)
 	{
 		TLOG(TLVL_ERROR)
 		    << "Unable to find the DAQ parameters in the initialization "
@@ -29,7 +29,7 @@ bool artdaq::DataLoggerCore::initialize(fhicl::ParameterSet const& pset)
 	{
 		agg_pset = daq_pset.get<fhicl::ParameterSet>("datalogger", daq_pset.get<fhicl::ParameterSet>("aggregator"));
 	}
-	catch (...)
+	catch (cet::exception const&)
 	{
 		TLOG(TLVL_ERROR)
 		    << "Unable to find the DataLogger parameters in the DAQ "
@@ -60,7 +60,7 @@ bool artdaq::DataLoggerCore::initialize(fhicl::ParameterSet const& pset)
 	}
 
 	// initialize the MetricManager and the names of our metrics
-	fhicl::ParameterSet metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet());
+	auto metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet());
 
 	return initializeDataReceiver(pset, agg_pset, metric_pset);
 }

@@ -17,11 +17,11 @@ OR
 
 #include "artdaq-core/Utilities/TimeUtils.hh"
 
-#include <sys/time.h> // struct timeval 
-#include <cassert>    // assert 
-#include <cstdio>     // printf
-#include <cstdlib>    // exit
-#include <cstring>    // strcmp 
+#include <sys/time.h>  // struct timeval
+#include <cassert>     // assert
+#include <cstdio>      // printf
+#include <cstdlib>     // exit
+#include <cstring>     // strcmp
 #include <list>
 #include <utility>
 using std::list;
@@ -159,9 +159,9 @@ void Timeout::get_next_timeout_delay(int64_t* delay_us)
 	else
 	{
 		TLOG(TLVL_DEBUG + 37) << "get_next_timeout_delay active_.size() != 0: " << active_time_size;
-		uint64_t tod_us = artdaq::TimeUtils::gettimeofday_us();
+		auto tod_us = static_cast<int64_t>(artdaq::TimeUtils::gettimeofday_us());
 		timeoutspec* tmo = &tmospecs_[(*(active_time_.begin())).second];
-		*delay_us = tmo->tmo_tod_us - tod_us;
+		*delay_us = static_cast<int64_t>(tmo->tmo_tod_us) - tod_us;
 		if (*delay_us < 0)
 		{
 			*delay_us = 0;
@@ -171,8 +171,8 @@ void Timeout::get_next_timeout_delay(int64_t* delay_us)
 
 int Timeout::get_next_timeout_msdly()
 {
-	int64_t delay_us;
-	int tmo;
+	int64_t delay_us{0};
+	int tmo{0};
 	get_next_timeout_delay(&delay_us);
 	if (delay_us == -1)
 	{
@@ -180,7 +180,7 @@ int Timeout::get_next_timeout_msdly()
 	}
 	else
 	{  // NOTE THE + 1 b/c of integer division and/or system HZ resolution
-		tmo = delay_us / 1000;
+		tmo = delay_us == 0 ? 0 : static_cast<int>(delay_us / 1000) + 1;
 	}
 	return (tmo);
 }  // get_next_timeout_msdly
@@ -195,11 +195,11 @@ bool Timeout::is_consistent()
 	}
 	for (itactive = active_time_.begin(); itactive != active_time_.end(); ++itactive)
 	{
-		tmospecs_[(*itactive).second].check--;
+		tmospecs_[(*itactive).second].check--;  // NOLINT(runtime/increment_decrement)
 	}
 	for (itfree = free_.begin(); itfree != free_.end(); ++itfree)
 	{
-		tmospecs_[*itfree].check--;
+		tmospecs_[*itfree].check--;  // NOLINT(runtime/increment_decrement)
 	}
 	for (auto& tmospec : tmospecs_)
 	{
@@ -243,14 +243,14 @@ int Timeout::get_clear_next_expired_timeout(timeoutspec& tmo, uint64_t tod_now_u
 		if (tmo.period_us != 0u)
 		{
 			// PERIODIC
-			int64_t delta_us;
+			int64_t delta_us{0};
 			uint64_t period_us = tmo.period_us;
-			delta_us = tod_now_us - tmo.tmo_tod_us;
-			skipped = delta_us / period_us;
+			delta_us = static_cast<int64_t>(tod_now_us) - static_cast<int64_t>(tmo.tmo_tod_us);
+			skipped = static_cast<int>(delta_us / period_us);
 			assert(skipped >= 0);
 			tmo.missed_periods += skipped;
 
-			// now fast forward over skipped 
+			// now fast forward over skipped
 			period_us += period_us * skipped;
 			tmospecs_[idx].tmo_tod_us += period_us;
 			active_time_.insert(std::pair<uint64_t, size_t>(tmospecs_[idx].tmo_tod_us, idx));
@@ -316,7 +316,7 @@ void Timeout::copy_in_timeout(timeoutspec& tmo)
 bool Timeout::cancel_timeout(void* tag, const std::string& desc)
 {
 	bool retsts = false;
-	std::unordered_multimap<std::string, size_t>::iterator ii, ee;
+	std::unordered_multimap<std::string, size_t>::iterator ii, ee;  // NOLINT
 	std::unique_lock<std::mutex> ulock(lock_mutex_);
 	auto pairOfIters = active_desc_.equal_range(desc);
 	ii = pairOfIters.first;
@@ -354,8 +354,7 @@ bool Timeout::cancel_timeout(void* tag, const std::string& desc)
 
 void Timeout::list_active_time()
 {
-	auto ii = active_time_.begin(), ee = active_time_.end();
-	for (; ii != ee; ++ii)
+	for (auto ii = active_time_.begin(); ii != active_time_.end(); ++ii)
 	{
 		TLOG(TLVL_DEBUG + 32) << "list_active_time " << (*ii).first << " desc=" << tmospecs_[(*ii).second].desc;
 	}

@@ -5,7 +5,7 @@
 
 namespace fhicl {
 class ParameterSet;
-}
+}  // namespace fhicl
 
 #include <memory>
 #include <string>

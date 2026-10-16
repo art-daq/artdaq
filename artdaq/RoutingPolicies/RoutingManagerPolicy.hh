@@ -8,12 +8,12 @@
 
 namespace fhicl {
 class ParameterSet;
-}
+}  // namespace fhicl
 
 #include <deque>
+#include <map>
 #include <mutex>
 #include <unordered_set>
-#include <map>
 #include <vector>
 
 namespace artdaq {

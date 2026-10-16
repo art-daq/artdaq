@@ -20,12 +20,14 @@
 #include <memory>
 #include <vector>
 
+// NOLINTBEGIN
 const std::string artdaq::RoutingManagerCore::
     TABLE_UPDATES_STAT_KEY("RoutingManagerCoreTableUpdates");
 const std::string artdaq::RoutingManagerCore::
     TOKENS_RECEIVED_STAT_KEY("RoutingManagerCoreTokensReceived");
 const std::string artdaq::RoutingManagerCore::
     CURRENT_TABLE_INTERVAL_STAT_KEY("RoutingManagerCoreCurrentTableInterval");
+// NOLINTEND
 
 artdaq::RoutingManagerCore::RoutingManagerCore()
     : shutdown_requested_(false)
@@ -58,7 +60,7 @@ bool artdaq::RoutingManagerCore::initialize(fhicl::ParameterSet const& pset, uin
 	{
 		daq_pset = pset.get<fhicl::ParameterSet>("daq");
 	}
-	catch (...)
+	catch (cet::exception const&)
 	{
 		TLOG(TLVL_ERROR)
 		    << "Unable to find the DAQ parameters in the initialization "
@@ -84,7 +86,7 @@ bool artdaq::RoutingManagerCore::initialize(fhicl::ParameterSet const& pset, uin
 	{
 		policy_pset_ = daq_pset.get<fhicl::ParameterSet>("policy");
 	}
-	catch (...)
+	catch (cet::exception const&)
 	{
 		TLOG(TLVL_ERROR)
 		    << "Unable to find the policy parameters in the DAQ initialization ParameterSet: \"" + daq_pset.to_string() + "\".";
@@ -95,7 +97,7 @@ bool artdaq::RoutingManagerCore::initialize(fhicl::ParameterSet const& pset, uin
 	{
 		token_receiver_pset_ = daq_pset.get<fhicl::ParameterSet>("token_receiver");
 	}
-	catch (...)
+	catch (cet::exception const&)
 	{
 		TLOG(TLVL_ERROR)
 		    << "Unable to find the token_receiver parameters in the DAQ initialization ParameterSet: \"" + daq_pset.to_string() + "\".";
@@ -108,7 +110,7 @@ bool artdaq::RoutingManagerCore::initialize(fhicl::ParameterSet const& pset, uin
 	{
 		metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics");
 	}
-	catch (...)
+	catch (cet::exception const&)
 	{}  // OK if there's no metrics table defined in the FHiCL
 
 	if (metric_pset.is_empty())
@@ -119,7 +121,7 @@ bool artdaq::RoutingManagerCore::initialize(fhicl::ParameterSet const& pset, uin
 	{
 		metricMan->initialize(metric_pset, app_name);
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{
 		ExceptionHandler(ExceptionHandlerRethrow::no,
 		                 "Error loading metrics in RoutingManagerCore::initialize()");
@@ -139,7 +141,7 @@ bool artdaq::RoutingManagerCore::initialize(fhicl::ParameterSet const& pset, uin
 	{
 		policy_ = artdaq::makeRoutingManagerPolicy(policy_plugin_spec, policy_pset_);
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{
 		std::stringstream exception_string;
 		exception_string << "Exception thrown during initialization of policy of type \""
@@ -184,11 +186,11 @@ bool artdaq::RoutingManagerCore::initialize(fhicl::ParameterSet const& pset, uin
 	catch (const boost::exception& e)
 	{
 		TLOG(TLVL_ERROR) << "Caught boost::exception starting TCP Socket Listen thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
-		std::cerr << "Caught boost::exception starting TCP Socket Listen thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
+		std::cerr << "Caught boost::exception starting TCP Socket Listen thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;  // NOLINT
 		exit(5);
 	}
 	return true;
-}
+}  // NOLINT(readability/fn_size)
 
 bool artdaq::RoutingManagerCore::start(art::RunID id, uint64_t /*unused*/, uint64_t /*unused*/)
 {
@@ -303,7 +305,7 @@ void artdaq::RoutingManagerCore::process_event_table()
 	TLOG(TLVL_DEBUG + 32) << "Sending initial table.";
 	auto startTime = artdaq::MonitoredQuantity::getCurrentTime();
 	auto nextSendTime = startTime;
-	double delta_time;
+	double delta_time{0};
 	while (!stop_requested_ && !pause_requested_)
 	{
 		receive_();
@@ -347,9 +349,9 @@ void artdaq::RoutingManagerCore::process_event_table()
 					if (current_table_interval_ms_ > max_table_update_interval_ms_) current_table_interval_ms_ = max_table_update_interval_ms_;
 					if (current_table_interval_ms_ < 1) current_table_interval_ms_ = 1;
 				}
-				nextSendTime = startTime + current_table_interval_ms_ / 1000.0;
+				nextSendTime = startTime + static_cast<double>(current_table_interval_ms_) / 1000.0;
 				TLOG(TLVL_DEBUG + 32) << "current_table_interval_ms is now " << current_table_interval_ms_;
-				statsHelperPtr_->addSample(CURRENT_TABLE_INTERVAL_STAT_KEY, current_table_interval_ms_ / 1000.0);
+				statsHelperPtr_->addSample(CURRENT_TABLE_INTERVAL_STAT_KEY, static_cast<double>(current_table_interval_ms_) / 1000.0);
 			}
 			else
 			{
@@ -497,7 +499,7 @@ void artdaq::RoutingManagerCore::listen_()
 			break;
 		}
 
-		int res;
+		int res{0};
 		timeval tv = {2, 0};  // maybe increase of some global "debugging" flag set???
 		fd_set rfds;
 		FD_ZERO(&rfds);
@@ -506,21 +508,21 @@ void artdaq::RoutingManagerCore::listen_()
 		res = select(listen_fd + 1, &rfds, static_cast<fd_set*>(nullptr), static_cast<fd_set*>(nullptr), &tv);
 		if (res > 0)
 		{
-			int sts;
+			int sts{0};
 			sockaddr_un un;
 			socklen_t arglen = sizeof(un);
-			int fd;
+			int fd{0};
 			TLOG(TLVL_DEBUG + 32) << "listen_: Calling accept";
 			fd = accept(listen_fd, reinterpret_cast<sockaddr*>(&un), &arglen);  // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
 			TLOG(TLVL_DEBUG + 32) << "listen_: Done with accept";
 
 			TLOG(TLVL_DEBUG + 32) << "listen_: Reading connect message";
 			socklen_t lenlen = sizeof(tv);
-			//sts=
+			// sts=
 			setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, lenlen);  // see man 7 socket.
 			detail::RoutingRequest rch;
 			uint64_t mark_us = TimeUtils::gettimeofday_us();
-			sts = read(fd, &rch, sizeof(rch));
+			sts = read(fd, &rch, sizeof(rch));  // NOLINT(cppcoreguidelines-narrowing-conversions)
 			uint64_t delta_us = TimeUtils::gettimeofday_us() - mark_us;
 			TLOG(TLVL_DEBUG + 32) << "listen_: Read of connect message took " << delta_us << " microseconds.";
 			if (sts != sizeof(rch))
@@ -598,7 +600,7 @@ void artdaq::RoutingManagerCore::receive_()
 		for (auto n = 0; n < nfds; ++n)
 		{
 			bool reading = true;
-			int sts = 0;
+			ssize_t sts = 0;
 			while (reading)
 			{
 				if ((received_events[n].events & EPOLLIN) != 0)

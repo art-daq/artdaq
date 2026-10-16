@@ -6,7 +6,7 @@
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
 namespace fhicl {
 class ParameterSet;
-}
+}  // namespace fhicl
 
 #include <memory>
 #include <string>

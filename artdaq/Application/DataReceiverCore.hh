@@ -14,7 +14,7 @@
 
 namespace artdaq {
 class DataReceiverCore;
-}
+}  // namespace artdaq
 
 /**
  * \brief DataReceiverCore implements the state machine for the DataReceiver artdaq application.

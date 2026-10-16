@@ -156,7 +156,7 @@ void artdaq::RoutingManagerPolicy::CreateRoutingTableFromCache(detail::RoutingPa
 		{
 			if (!cache_entry.second[0].included_in_table)
 			{
-				table.push_back(artdaq::detail::RoutingPacketEntry(cache_entry.second[0].sequence_id, cache_entry.second[0].destination_rank));
+				table.emplace_back(cache_entry.second[0].sequence_id, cache_entry.second[0].destination_rank);
 				cache_entry.second[0].included_in_table = true;
 			}
 		}

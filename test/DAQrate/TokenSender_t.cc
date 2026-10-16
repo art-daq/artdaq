@@ -1,17 +1,22 @@
 #define TRACE_NAME "TokenSender_t"
 
 #include "artdaq/DAQrate/detail/TokenSender.hh"
+#include "artdaq/DAQdata/Globals.hh"
 
 #define BOOST_TEST_MODULE TokenSender_t
-#include <sys/poll.h>
 #include "artdaq/DAQdata/TCPConnect.hh"
 #include "artdaq/DAQdata/TCP_listen_fd.hh"
 #include "artdaq/DAQrate/detail/RoutingPacket.hh"
+#include "artdaq-core/Utilities/configureMessageFacility.hh"
+
 #include "cetlib/quiet_unit_test.hpp"
 #include "cetlib_except/exception.h"
 
+#include <sys/poll.h>
+
 BOOST_AUTO_TEST_SUITE(TokenSender_test)
 
+// NOLINTNEXTLINE
 #define TRACE_REQUIRE_EQUAL(l, r)                                                                                                    \
 	do                                                                                                                               \
 	{                                                                                                                                \
@@ -43,7 +48,7 @@ BOOST_AUTO_TEST_CASE(Tokens)
 	metricMan->initialize(fhicl::ParameterSet());
 	metricMan->do_start();
 	TLOG(TLVL_INFO) << "Tokens Test Case BEGIN";
-	const int TOKEN_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
+	const int TOKEN_PORT = static_cast<int>((artdaq::Globals::SeedAndRandom() % (32768 - 1024)) + 1024);
 	TLOG(TLVL_DEBUG) << "Opening token listener socket";
 	auto token_socket = TCP_listen_fd(TOKEN_PORT, 3 * sizeof(artdaq::detail::RoutingToken));
 

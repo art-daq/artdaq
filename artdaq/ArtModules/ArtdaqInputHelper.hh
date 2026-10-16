@@ -65,7 +65,7 @@
 #include <utility>
 #include <vector>
 
-#define CAN_REINIT 0
+#define CAN_REINIT 0  // NOLINT
 
 namespace art {
 template<typename U>
@@ -275,7 +275,7 @@ void art::ArtdaqInputHelper<U>::readInitMessage()
 			for (auto& initFrag : initFrags)
 			{
 				auto header = initFrag->metadata<artdaq::NetMonHeader>();
-				msgs.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, initFrag->dataBegin(), kFALSE, nullptr));
+				msgs.emplace_back(new TBufferFile(TBuffer::kRead, static_cast<int>(header->data_length), initFrag->dataBegin(), kFALSE, nullptr));
 			}
 
 			std::set<art::ProcessHistoryID> history_ids;
@@ -287,15 +287,15 @@ void art::ArtdaqInputHelper<U>::readInitMessage()
 				msg->ReadULong(dummy);
 
 				// ELF: 6/11/2019: This code is taken from TSocket::RecvStreamerInfos
-				auto list = dynamic_cast<TList*>(msg->ReadObject(TList::Class()));
+				auto list = dynamic_cast<TList*>(msg->ReadObject(TList::Class()));  // NOLINT
 
 				TIter next(list);
-				TStreamerInfo* info;
+				TStreamerInfo* info{nullptr};
 				TObjLink* lnk = list->FirstLink();
 				// First call BuildCheck for regular class
 				while (lnk)
 				{
-					info = dynamic_cast<TStreamerInfo*>(lnk->GetObject());
+					info = dynamic_cast<TStreamerInfo*>(lnk->GetObject());  // NOLINT
 					TObject* element = info->GetElements()->UncheckedAt(0);
 					Bool_t isstl = element && strcmp("This", element->GetName()) == 0;
 					if (!isstl)
@@ -309,7 +309,7 @@ void art::ArtdaqInputHelper<U>::readInitMessage()
 				lnk = list->FirstLink();
 				while (lnk)
 				{
-					info = dynamic_cast<TStreamerInfo*>(lnk->GetObject());
+					info = dynamic_cast<TStreamerInfo*>(lnk->GetObject());  // NOLINT
 					TObject* element = info->GetElements()->UncheckedAt(0);
 					Bool_t isstl = element && strcmp("This", element->GetName()) == 0;
 					if (isstl)
@@ -429,7 +429,7 @@ void art::ArtdaqInputHelper<U>::readInitMessage()
 #endif
 			// helper now owns productList_!
 
-			helper_.productList(std::unique_ptr<art::ProductList>(productList_));
+			helper_.productList(std::unique_ptr<art::ProductList>(productList_));  // NOLINT(google-readability-casting)
 
 			TLOG(TLVL_DEBUG + 33, "ArtdaqInputHelper") << "ArtdaqInputHelper: got product list";
 		}
@@ -437,7 +437,7 @@ void art::ArtdaqInputHelper<U>::readInitMessage()
 }
 
 template<typename U>
-art::ArtdaqInputHelper<U>::~ArtdaqInputHelper()
+art::ArtdaqInputHelper<U>::~ArtdaqInputHelper()  // NOLINT
 {}
 
 template<typename U>
@@ -861,7 +861,7 @@ std::pair<bool, bool> art::ArtdaqInputHelper<U>::readFragments(std::unordered_ma
 			TLOG(TLVL_DEBUG + 44, "ArtdaqInputHelper") << "Processing Fragment with ID " << frag.fragmentID();
 			bytesRead += frag.sizeBytes();
 			auto latency_s = frag.getLatency(true);
-			double latency = latency_s.tv_sec + (latency_s.tv_nsec / 1000000000.0);
+			double latency = static_cast<double>(latency_s.tv_sec) + (static_cast<double>(latency_s.tv_nsec) / 1000000000.0);
 
 			fragmentLatency += latency;
 			fragmentCount++;
@@ -972,21 +972,21 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 			{
 				if (!dataFrag.hasMetadata()) continue;
 				auto header = dataFrag.metadata<artdaq::NetMonHeader>();
-				msgs.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, dataFrag.dataBegin(), kFALSE, nullptr));
+				msgs.emplace_back(new TBufferFile(TBuffer::kRead, static_cast<int>(header->data_length), dataFrag.dataBegin(), kFALSE, nullptr));
 			}
 		if (eventMap->fragments.count(artdaq::Fragment::SubrunDataFragmentType))
 			for (auto& dataFrag : *(eventMap->fragments[artdaq::Fragment::SubrunDataFragmentType]))
 			{
 				if (!dataFrag.hasMetadata()) continue;
 				auto header = dataFrag.metadata<artdaq::NetMonHeader>();
-				msgs.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, dataFrag.dataBegin(), kFALSE, nullptr));
+				msgs.emplace_back(new TBufferFile(TBuffer::kRead, static_cast<int>(header->data_length), dataFrag.dataBegin(), kFALSE, nullptr));
 			}
 		if (eventMap->fragments.count(artdaq::Fragment::DataFragmentType))
 			for (auto& dataFrag : *(eventMap->fragments[artdaq::Fragment::DataFragmentType]))
 			{
 				if (!dataFrag.hasMetadata()) continue;
 				auto header = dataFrag.metadata<artdaq::NetMonHeader>();
-				msgs.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, dataFrag.dataBegin(), kFALSE, nullptr));
+				msgs.emplace_back(new TBufferFile(TBuffer::kRead, static_cast<int>(header->data_length), dataFrag.dataBegin(), kFALSE, nullptr));
 			}
 
 		//

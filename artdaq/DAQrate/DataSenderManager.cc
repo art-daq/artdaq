@@ -83,7 +83,7 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 		{
 			TLOG(TLVL_WARNING) << "Caught cet::exception: " << ex.what();
 		}
-		catch (...)
+		catch (...)  // NOLINT
 		{
 			TLOG(TLVL_WARNING) << "Non-cet exception while setting up TransferPlugin: " << d << ".";
 		}
@@ -94,7 +94,7 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 	}
 	else
 	{
-		auto enabled_dests = pset.get<std::vector<size_t>>("enabled_destinations", std::vector<size_t>());
+		auto enabled_dests = pset.get<std::vector<int>>("enabled_destinations", std::vector<int>());
 		if (enabled_dests.empty())
 		{
 			TLOG(TLVL_INFO) << "enabled_destinations not specified, assuming all destinations enabled.";
@@ -210,7 +210,7 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 	auto latency_s = frag.getLatency(true);
 	auto isSystemBroadcast = Fragment::isBroadcastFragmentType(frag.type());
 
-	double latency = static_cast<double>(latency_s.tv_sec) + (latency_s.tv_nsec / 1000000000.0);
+	double latency = static_cast<double>(latency_s.tv_sec) + (static_cast<double>(latency_s.tv_nsec) / 1000000000.0);
 	TLOG(TLVL_DEBUG + 36) << "sendFragment start frag.fragmentHeader()=" << std::hex << static_cast<void*>(frag.headerBeginBytes()) << ", szB=" << std::dec << fragSize
 	                      << ", seqID=" << seqID << ", fragID=" << frag.fragmentID() << ", type=" << frag.typeString();
 	int dest = TableReceiver::ROUTING_FAILED;

@@ -9,7 +9,7 @@
 
 namespace artdaq {
 class BoardReaderApp;
-}
+}  // namespace artdaq
 
 /**
  * \brief BoardReaderApp is an artdaq::Commandable derived class which controls the BoardReaderCore state machine

@@ -63,7 +63,7 @@ void PrintConfigurationToConsole(std::string const& name)
  * \return The parsed fhicl::ParameterSet for the named table
  */
 template<typename C>
-inline fhicl::ParameterSet LoadParameterSet(int argc, char* argv[], std::string const& name, std::string const& description)
+inline fhicl::ParameterSet LoadParameterSet(int argc, char* argv[], std::string const& name, std::string const& description)  // NOLINT
 {
 	std::ostringstream descstr;
 	descstr << argv[0]  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
@@ -84,9 +84,9 @@ inline fhicl::ParameterSet LoadParameterSet(int argc, char* argv[], std::string 
 	}
 	if (vm.count("help"))
 	{
-		std::cout << desc << std::endl;
-		std::cout << description << std::endl;
-		std::cout << "Sample FHiCL configuration for this application: " << std::endl;
+		std::cout << desc << std::endl;                                                 // NOLINT(runtime/output_format)
+		std::cout << description << std::endl;                                          // NOLINT(runtime/output_format)
+		std::cout << "Sample FHiCL configuration for this application: " << std::endl;  // NOLINT(runtime/output_format)
 		fhicl::Table<C> config_description(fhicl::Name{name});
 		config_description.print_allowed_configuration(std::cout);
 		exit(1);

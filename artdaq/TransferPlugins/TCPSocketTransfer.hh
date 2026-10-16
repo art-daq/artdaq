@@ -25,17 +25,18 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <string>
 #include <utility>  // std::move()
-#include <set>
 
 #ifndef USE_ACKS
+// NOLINTNEXTLINE
 #define USE_ACKS 0
 #endif
 
 namespace artdaq {
 class TCPSocketTransfer;
-}
+}  // namespace artdaq
 
 /**
  * \brief TransferInterface implementation plugin that sends data using TCP sockets
@@ -123,7 +124,7 @@ private:
 	union
 	{
 		MessHead mh;
-		uint8_t mha[sizeof(MessHead)];
+		uint8_t mha[sizeof(MessHead)];  // NOLINT
 	};
 
 	enum class SocketState
@@ -152,7 +153,7 @@ private:
 	std::atomic<int> send_ack_diff_;                        // Number of sends - number of acks received. Not allowed to exceed buffer_count.
 	std::unique_ptr<boost::thread> ack_listen_thread_;      // Thread to listen for ack messages on the sender
 
-private:  // methods
+	// methods
 	TCPSocketTransfer(TCPSocketTransfer const&) = delete;
 	TCPSocketTransfer(TCPSocketTransfer&&) = delete;
 	TCPSocketTransfer& operator=(TCPSocketTransfer const&) = delete;

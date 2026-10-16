@@ -14,8 +14,8 @@
 
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 
-#include <string>
 #include <memory>
+#include <string>
 
 namespace artdaq {
 /**

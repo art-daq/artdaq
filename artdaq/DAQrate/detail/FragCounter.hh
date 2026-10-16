@@ -19,7 +19,7 @@ public:
 	/**
 	 * \brief Default Constructor
 	 */
-	explicit FragCounter();
+	FragCounter();
 
 	/**
 	 * \brief Increment the given slot by one

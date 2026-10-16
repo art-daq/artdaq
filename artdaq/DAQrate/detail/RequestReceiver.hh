@@ -8,7 +8,7 @@
 
 namespace fhicl {
 class ParameterSet;
-}
+}  // namespace fhicl
 
 #include "fhiclcpp/types/Atom.h"
 #include "fhiclcpp/types/Comment.h"
@@ -16,8 +16,8 @@ class ParameterSet;
 #include "fhiclcpp/types/Name.h"
 
 #include <boost/thread.hpp>
-#include <mutex>
 #include <memory>
+#include <mutex>
 #include <string>
 
 namespace artdaq {

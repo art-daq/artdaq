@@ -14,6 +14,7 @@
 
 BOOST_AUTO_TEST_SUITE(RequestSender_test)
 
+// NOLINTNEXTLINE
 #define TRACE_REQUIRE_EQUAL(l, r)                                                                                                    \
 	do                                                                                                                               \
 	{                                                                                                                                \
@@ -47,7 +48,7 @@ BOOST_AUTO_TEST_CASE(Requests)
 	metricMan->initialize(fhicl::ParameterSet());
 	metricMan->do_start();
 	TLOG(TLVL_INFO) << "Requests Test Case BEGIN";
-	const int REQUEST_PORT = (artdaq::Globals::SeedAndRandom() % (32768 - 1024)) + 1024;
+	const int REQUEST_PORT = static_cast<int>((artdaq::Globals::SeedAndRandom() % (32768 - 1024)) + 1024);
 	const int DELAY_TIME = 100;
 #if 0
 	const std::string MULTICAST_IP = "227.28.12.28";
@@ -106,7 +107,7 @@ BOOST_AUTO_TEST_CASE(Requests)
 	TLOG(TLVL_DEBUG) << "Sending request";
 	auto start_time = std::chrono::steady_clock::now();
 	t.AddRequest(0, 0x10);
-	struct pollfd ufds[1];
+	struct pollfd ufds[1]; // NOLINT
 
 	TLOG(TLVL_DEBUG) << "Receiving Request";
 	ufds[0].fd = request_socket;
@@ -119,7 +120,7 @@ BOOST_AUTO_TEST_CASE(Requests)
 			auto delay_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count();
 			BOOST_REQUIRE_GE(delay_time, DELAY_TIME);
 			TLOG(TLVL_TRACE) << "Recieved packet on Request channel";
-			std::vector<uint8_t> buffer(MAX_REQUEST_MESSAGE_SIZE);
+			std::vector<uint8_t> buffer(artdaq::detail::MAX_REQUEST_MESSAGE_SIZE);
 			artdaq::detail::RequestHeader hdr_buffer;
 			recv(request_socket, &buffer[0], buffer.size(), 0);
 			memcpy(&hdr_buffer, &buffer[0], sizeof(artdaq::detail::RequestHeader));
@@ -173,7 +174,7 @@ BOOST_AUTO_TEST_CASE(Requests)
 			if (ufds[0].revents == POLLIN || ufds[0].revents == POLLPRI)
 			{
 				TLOG(TLVL_TRACE) << "Recieved packet on Request channel";
-				std::vector<uint8_t> buffer(MAX_REQUEST_MESSAGE_SIZE);
+				std::vector<uint8_t> buffer(artdaq::detail::MAX_REQUEST_MESSAGE_SIZE);
 				artdaq::detail::RequestHeader hdr_buffer;
 				recv(request_socket, &buffer[0], buffer.size(), 0);
 				memcpy(&hdr_buffer, &buffer[0], sizeof(artdaq::detail::RequestHeader));
@@ -235,7 +236,7 @@ BOOST_AUTO_TEST_CASE(Requests)
 			auto delay_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count();
 			BOOST_REQUIRE_GE(delay_time, DELAY_TIME);
 			TLOG(TLVL_TRACE) << "Recieved packet on Request channel";
-			std::vector<uint8_t> buffer(MAX_REQUEST_MESSAGE_SIZE);
+			std::vector<uint8_t> buffer(artdaq::detail::MAX_REQUEST_MESSAGE_SIZE);
 			artdaq::detail::RequestHeader hdr_buffer;
 			recv(request_socket, &buffer[0], buffer.size(), 0);
 			memcpy(&hdr_buffer, &buffer[0], sizeof(artdaq::detail::RequestHeader));

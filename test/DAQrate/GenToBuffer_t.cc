@@ -16,8 +16,6 @@
 #include "fhiclcpp/types/Table.h"
 #include "fhiclcpp/types/TableFragment.h"
 
-#include <boost/program_options.hpp>
-namespace bpo = boost::program_options;
 #include <boost/thread.hpp>
 
 #include <thread>
@@ -148,7 +146,7 @@ private:
 
 			for (auto& fragPtr : frags)
 			{
-				if (!fragPtr.get())
+				if (!fragPtr)
 				{
 					TLOG(TLVL_WARNING) << "Encountered a bad fragment pointer in fragment " << fragment_count_ << ". "
 					                   << "This is most likely caused by a problem with the Fragment Generator!";
@@ -190,7 +188,6 @@ private:
 		TLOG(TLVL_DEBUG) << "send_fragments loop end";
 	}
 
-private:
 	std::unique_ptr<CommandableFragmentGenerator> generator_ptr_;
 	std::unique_ptr<FragmentBuffer> fragment_buffer_ptr_;
 	std::shared_ptr<RequestBuffer> request_buffer_ptr_;
@@ -255,7 +252,7 @@ int main(int argc, char* argv[])
 
 	while (artdaq::TimeUtils::GetElapsedTime(start_time) < duration)
 	{
-		buf->push(++seq, timestamp);
+		buf->push(++seq, timestamp);  // NOLINT(runtime/increment_decrement)
 		timestamp += timestamp_scale;
 
 		auto us_since_start = artdaq::TimeUtils::GetElapsedTimeMicroseconds(start_time);

@@ -12,22 +12,22 @@
 
 #define TRACE_NAME (app_name + "_TCP_listen_fd").c_str()
 
-#include <arpa/inet.h>  // inet_aton 
-#include <netdb.h>      // gethostbyname 
-#include <netinet/in.h> // inet_aton, struct sockaddr_in 
-#include <strings.h>    // bzero
-#include <sys/socket.h> // inet_aton, socket, bind, listen, accept 
-#include <cerrno>       // errno
-#include <cstdio>       // printf
-#include <cstdlib>      // exit
+#include <arpa/inet.h>   // inet_aton
+#include <netdb.h>       // gethostbyname
+#include <netinet/in.h>  // inet_aton, struct sockaddr_in
+#include <strings.h>     // bzero
+#include <sys/socket.h>  // inet_aton, socket, bind, listen, accept
+#include <cerrno>        // errno
+#include <cstdio>        // printf
+#include <cstdlib>       // exit
 
 int TCP_listen_fd(int port, int rcvbuf)
 {
-	int sts;
-	int listener_fd;
+	int sts{0};
+	int listener_fd{0};
 	struct sockaddr_in sin;
 
-	listener_fd = socket(PF_INET, SOCK_STREAM, 0); // man TCP(7P) 
+	listener_fd = socket(PF_INET, SOCK_STREAM, 0);  // man TCP(7P)
 	if (listener_fd == -1)
 	{
 		TLOG(TLVL_ERROR) << "Could not open listen socket! Exiting with code 1!";

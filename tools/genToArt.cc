@@ -34,7 +34,6 @@
 
 namespace bpo = boost::program_options;
 
-namespace {
 /**
  * \brief Process the command line
  * \param argc Number of arguments
@@ -114,7 +113,7 @@ public:
 	 */
 	void start(int run, uint64_t timeout, uint64_t timestamp) const
 	{
-		auto gen_ptr = dynamic_cast<artdaq::CommandableFragmentGenerator*>(generator_.get()); // NOLINT
+		auto gen_ptr = dynamic_cast<artdaq::CommandableFragmentGenerator*>(generator_.get());  // NOLINT
 		if (gen_ptr != nullptr)
 		{
 			gen_ptr->StartCmd(run, timeout, timestamp);
@@ -127,7 +126,7 @@ public:
 	 */
 	void stop(uint64_t timeout, uint64_t timestamp) const
 	{
-		auto gen_ptr = dynamic_cast<artdaq::CommandableFragmentGenerator*>(generator_.get()); // NOLINT
+		auto gen_ptr = dynamic_cast<artdaq::CommandableFragmentGenerator*>(generator_.get());  // NOLINT
 		if (gen_ptr != nullptr)
 		{
 			gen_ptr->StopCmd(timeout, timestamp);
@@ -322,7 +321,6 @@ int process_data(fhicl::ParameterSet const& pset)
 
 	return 15;
 }
-}  // namespace ""
 
 int main(int argc, char* argv[])
 try

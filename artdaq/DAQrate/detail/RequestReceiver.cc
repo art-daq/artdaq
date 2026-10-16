@@ -1,25 +1,22 @@
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_RequestReceiver").c_str()
 
-#include "artdaq/DAQdata/Globals.hh"
+#include "artdaq/DAQdata/TCPConnect.hh"
 #include "artdaq/DAQrate/detail/RequestMessage.hh"
 #include "artdaq/DAQrate/detail/RequestReceiver.hh"
-
-#include <boost/exception/all.hpp>
-#include <boost/throw_exception.hpp>
-
-#include <iterator>
-#include <limits>
-
-#include "canvas/Utilities/Exception.h"
-#include "cetlib_except/exception.h"
-#include "fhiclcpp/ParameterSet.h"
 
 #include "artdaq-core/Data/ContainerFragmentLoader.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq-core/Utilities/SimpleLookupPolicy.hh"
 #include "artdaq-core/Utilities/TimeUtils.hh"
+
+#include "canvas/Utilities/Exception.h"
+#include "cetlib_except/exception.h"
+#include "fhiclcpp/ParameterSet.h"
+
+#include <boost/exception/all.hpp>
+#include <boost/throw_exception.hpp>
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -29,8 +26,8 @@
 #include <iomanip>
 #include <iostream>
 #include <iterator>
+#include <limits>
 #include <vector>
-#include "artdaq/DAQdata/TCPConnect.hh"
 
 artdaq::RequestReceiver::RequestReceiver()
     : request_stop_requested_(false)
@@ -102,7 +99,7 @@ void artdaq::RequestReceiver::setupRequestListener()
 			TLOG(TLVL_ERROR) << "Unable to determine the multicast network interface for " << multicast_in_addr_;
 			exit(1);
 		}
-		char addr_str[INET_ADDRSTRLEN];
+		char addr_str[INET_ADDRSTRLEN];  // NOLINT
 		inet_ntop(AF_INET, &(mreq.imr_interface), addr_str, INET_ADDRSTRLEN);
 		TLOG(TLVL_INFO) << "Successfully determined the multicast network interface for " << multicast_in_addr_ << ": " << addr_str << " (RequestReceiver)";
 		if (setsockopt(request_socket_, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
@@ -139,7 +136,7 @@ void artdaq::RequestReceiver::stopRequestReception(bool force)
 				requestThread_.join();
 			}
 		}
-		catch (...)
+		catch (...)  // NOLINT
 		{
 			// IGNORED
 		}
@@ -185,7 +182,7 @@ void artdaq::RequestReceiver::startRequestReception()
 	try
 	{
 		requestThread_ = boost::thread(&RequestReceiver::receiveRequestsLoop, this);
-		char tname[16];                                             // Size 16 - see man page pthread_setname_np(3) and/or prctl(2)
+		char tname[16];                                             // NOLINT Size 16 - see man page pthread_setname_np(3) and/or prctl(2)
 		snprintf(tname, sizeof(tname) - 1, "%d-ReqRecv", my_rank);  // NOLINT
 		tname[sizeof(tname) - 1] = '\0';                            // assure term. snprintf is not too evil :)
 		auto handle = requestThread_.native_handle();
@@ -194,7 +191,7 @@ void artdaq::RequestReceiver::startRequestReception()
 	catch (const boost::exception& e)
 	{
 		TLOG(TLVL_ERROR) << "Caught boost::exception starting Request Receiver thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
-		std::cerr << "Caught boost::exception starting Request Receiver thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
+		std::cerr << "Caught boost::exception starting Request Receiver thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;  // NOLINT
 		exit(5);
 	}
 }
@@ -214,7 +211,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 		}
 
 		int ms_to_wait = 10;
-		struct pollfd ufds[1];
+		struct pollfd ufds[1];  // NOLINT
 		ufds[0].fd = request_socket_;
 		ufds[0].events = POLLIN | POLLPRI | POLLERR;
 		int rv = poll(ufds, 1, ms_to_wait);
@@ -235,10 +232,10 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 		}
 
 		TLOG(TLVL_DEBUG + 34) << "Received packet on Request channel";
-		std::vector<uint8_t> buffer(MAX_REQUEST_MESSAGE_SIZE);
+		std::vector<uint8_t> buffer(detail::MAX_REQUEST_MESSAGE_SIZE);
 		struct sockaddr_in from;
 		socklen_t len = sizeof(from);
-		auto sts = recvfrom(request_socket_, &buffer[0], MAX_REQUEST_MESSAGE_SIZE, 0, reinterpret_cast<struct sockaddr*>(&from), &len);  // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
+		auto sts = recvfrom(request_socket_, &buffer[0], detail::MAX_REQUEST_MESSAGE_SIZE, 0, reinterpret_cast<struct sockaddr*>(&from), &len);  // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
 		if (sts < 0)
 		{
 			TLOG(TLVL_ERROR) << "Error receiving request message header err=" << strerror(errno);

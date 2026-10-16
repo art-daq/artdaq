@@ -11,7 +11,7 @@
 
 namespace artdaq {
 class DispatcherApp;
-}
+}  // namespace artdaq
 
 /**
  * \brief DispatcherApp is an artdaq::Commandable derived class which controls the DispatcherCore

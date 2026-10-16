@@ -8,7 +8,7 @@
 
 namespace fhicl {
 class ParameterSet;
-}
+}  // namespace fhicl
 
 #include <iostream>
 #include <memory>

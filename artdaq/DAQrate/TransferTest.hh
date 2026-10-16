@@ -1,13 +1,13 @@
 #ifndef ARTDAQ_ARTDAQ_DAQRATE_TRANSFERTEST_HH_
 #define ARTDAQ_ARTDAQ_DAQRATE_TRANSFERTEST_HH_
 
+#include "fhiclcpp/ParameterSet.h"
+
 #include <chrono>
 #include <cmath>
 #include <string>
 #include <utility>  // std::pair<>
 #include <vector>
-
-#include "fhiclcpp/ParameterSet.h"
 
 namespace artdaq {
 /**

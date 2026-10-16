@@ -282,9 +282,9 @@ public:
 	 * \param type Type of fragments to count. Use InvalidFragmentType to count all fragments (default)
 	 * \return Number of Fragments in buffer of given type
 	 */
-	size_t GetFragmentCountInBuffer(int buffer, Fragment::type_t type = Fragment::InvalidFragmentType);
+	size_t GetFragmentCountInBuffer(size_t buffer, Fragment::type_t type = Fragment::InvalidFragmentType);
 
-	void UpdateFragmentHeader(int buffer, detail::RawFragmentHeader hdr);
+	void UpdateFragmentHeader(size_t buffer, detail::RawFragmentHeader hdr);
 
 	/**
 	 * \brief Run an art instance, recording the return codes and restarting it until the end flag is raised
@@ -395,7 +395,7 @@ public:
 	 * \brief Gets the shared memory key of the broadcast SharedMemoryManager
 	 * \return The shared memory key of the broadcast SharedMemoryManager
 	 */
-	uint32_t GetBroadcastKey() { return broadcasts_.GetKey(); }
+	key_t GetBroadcastKey() { return broadcasts_.GetKey(); }
 
 	/**
 	 * \brief Gets the address of the "dropped data" fragment. Used for testing.
@@ -487,8 +487,8 @@ private:
 	double subrun_transition_hold_time_s_;
 	std::chrono::steady_clock::time_point last_event_time_;
 
-	std::set<int> active_buffers_;
-	std::set<int> pending_buffers_;
+	std::set<size_t> active_buffers_;
+	std::set<size_t> pending_buffers_;
 	std::unordered_map<Fragment::sequence_id_t, size_t> released_incomplete_events_;
 	std::set<Fragment::sequence_id_t> released_events_;
 	size_t max_event_list_length_;
@@ -500,8 +500,8 @@ private:
 	size_t init_fragment_count_;
 	std::atomic<bool> running_{false};
 
-	std::unordered_map<int, std::atomic<int>> buffer_writes_pending_;
-	std::unordered_map<int, std::mutex> buffer_mutexes_;
+	std::unordered_map<size_t, std::atomic<int>> buffer_writes_pending_;
+	std::unordered_map<size_t, std::mutex> buffer_mutexes_;
 	static std::mutex sequence_id_mutex_;
 
 	int open_event_report_interval_ms_;
@@ -540,7 +540,7 @@ private:
 	fhicl::ParameterSet data_pset_;
 
 	std::mutex init_fragments_mutex_;
-	std::unordered_map<Fragment::fragment_id_t, std::unordered_map<int, FragmentPtr>> init_fragment_map_;
+	std::unordered_map<Fragment::fragment_id_t, std::unordered_map<Fragment::timestamp_t, FragmentPtr>> init_fragment_map_;
 	bool init_frags_sent_{false};
 	std::list<std::pair<detail::RawFragmentHeader, FragmentPtr>> dropped_data_;
 
@@ -558,12 +558,12 @@ private:
 
 	bool broadcastFragments_(FragmentPtrs& frags);
 
-	detail::RawEventHeader* getEventHeader_(int buffer);
+	detail::RawEventHeader* getEventHeader_(size_t buffer);
 
 	int getBufferForSequenceID_(Fragment::sequence_id_t seqID, bool create_new, Fragment::timestamp_t timestamp = Fragment::InvalidTimestamp);
-	bool hasFragments_(int buffer);
-	void complete_buffer_(int buffer);
-	bool bufferComparator(int bufA, int bufB);
+	bool hasFragments_(size_t buffer);
+	void complete_buffer_(size_t buffer);
+	bool bufferComparator(size_t bufA, size_t bufB);
 	void check_pending_buffers_(std::unique_lock<std::mutex> const& lock);
 	std::vector<char*> parse_art_command_line_(const std::shared_ptr<art_config_file>& config_file, size_t process_index);
 
