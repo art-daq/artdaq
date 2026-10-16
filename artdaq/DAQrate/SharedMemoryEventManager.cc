@@ -101,6 +101,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(const fhicl::Paramete
                   pset.get<int>("expected_art_event_processing_time_us", 100000) * pset.get<size_t>("buffer_count"), false)
 {
 	subrun_event_map_[0] = 1;
+	buffer_sequence_ids_.resize(size(), Fragment::InvalidSequenceID);
 	SetMinWriteSize(sizeof(detail::RawEventHeader) + sizeof(detail::RawFragmentHeader));
 	broadcasts_.SetMinWriteSize(sizeof(detail::RawEventHeader) + sizeof(detail::RawFragmentHeader));
 
@@ -1074,6 +1075,7 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 
 	released_events_.clear();
 	released_incomplete_events_.clear();
+	std::fill(buffer_sequence_ids_.begin(), buffer_sequence_ids_.end(), Fragment::InvalidSequenceID);
 
 	TLOG(TLVL_ENDOFDATA) << "endOfData END";
 	TLOG(TLVL_INFO) << "EndOfData Complete. Final Buffer ID is " << GetLastSeenBufferID() << ".";
@@ -1096,6 +1098,7 @@ bool artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 	}
 	released_events_.clear();
 	released_incomplete_events_.clear();
+	std::fill(buffer_sequence_ids_.begin(), buffer_sequence_ids_.end(), Fragment::InvalidSequenceID);
 	// If we fail to start the art processes, abort Start
 	if (!StartArt())
 	{
@@ -1299,20 +1302,10 @@ artdaq::SharedMemoryEventManager::event_id_t artdaq::SharedMemoryEventManager::G
 int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence_id_t seqID, bool create_new, Fragment::timestamp_t timestamp)
 {
 	TLOG(TLVL_GETBUFFER) << "getBufferForSequenceID " << seqID << " BEGIN";
+
 	std::unique_lock<std::mutex> lk(sequence_id_mutex_);
 
 	TLOG(TLVL_GETBUFFER) << "getBufferForSequenceID obtained sequence_id_mutex for seqid=" << seqID;
-
-	auto buffers = GetBuffersOwnedByManager();
-	for (auto& buf : buffers)
-	{
-		auto hdr = getEventHeader_(buf);
-		if (hdr->sequence_id == seqID)
-		{
-			TLOG(TLVL_GETBUFFER) << "getBufferForSequenceID " << seqID << " returning " << buf;
-			return static_cast<int>(buf);
-		}
-	}
 
 #if !ART_SUPPORTS_DUPLICATE_EVENTS
 	if (released_incomplete_events_.count(seqID) != 0u)
@@ -1326,6 +1319,26 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 		return -2;
 	}
 #endif
+	for (size_t ii = 0; ii < size(); ++ii)
+	{
+		if (buffer_sequence_ids_[ii] == seqID)
+		{
+			TLOG(TLVL_GETBUFFER) << "getBufferForSequenceID " << seqID << " returning buffer " << ii << " (already assigned)";
+			return ii;
+		}
+	}
+
+	auto buffers = GetBuffersOwnedByManager();
+	for (auto& buf : buffers)
+	{
+		auto hdr = getEventHeader_(buf);
+		buffer_sequence_ids_[buf] = hdr->sequence_id;  // Update sequence ID cache
+		if (hdr->sequence_id == seqID)
+		{
+			TLOG(TLVL_GETBUFFER) << "getBufferForSequenceID " << seqID << " returning " << buf;
+			return buf;
+		}
+	}
 
 	if (!create_new)
 	{
@@ -1358,6 +1371,7 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 	hdr->sequence_id = seqID;
 	hdr->timestamp = timestamp;
 	buffer_writes_pending_[new_buffer] = 0;
+	buffer_sequence_ids_[new_buffer] = seqID;
 	IncrementWritePos(new_buffer, sizeof(detail::RawEventHeader));
 	Globals::SetMFIteration("Sequence ID " + std::to_string(seqID));
 
