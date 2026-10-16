@@ -1,14 +1,15 @@
-#ifndef artdaq_Application_MPI2_DataLoggerApp_hh
-#define artdaq_Application_MPI2_DataLoggerApp_hh
+#ifndef ARTDAQ_ARTDAQ_APPLICATION_DATALOGGERAPP_HH_
+#define ARTDAQ_ARTDAQ_APPLICATION_DATALOGGERAPP_HH_
 
 #include "artdaq/Application/Commandable.hh"
 #include "artdaq/Application/DataLoggerCore.hh"
 
 #include <memory>
+#include <string>
 
 namespace artdaq {
 class DataLoggerApp;
-}
+}  // namespace artdaq
 
 /**
  * \brief DataLoggerApp is an artdaq::Commandable derived class which controls the DataLoggerCore
@@ -113,4 +114,4 @@ private:
 	std::unique_ptr<DataLoggerCore> DataLogger_ptr_;
 };
 
-#endif
+#endif  // ARTDAQ_ARTDAQ_APPLICATION_DATALOGGERAPP_HH_

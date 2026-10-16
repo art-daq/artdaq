@@ -21,7 +21,7 @@ artdaq::GenericFragmentSimulator::GenericFragmentSimulator(fhicl::ParameterSet c
 	auto current_id = ps.get<Fragment::fragment_id_t>("starting_fragment_id", 0);
 	std::generate(fragment_ids_.begin(),
 	              fragment_ids_.end(),
-	              [&current_id]() { return current_id++; });
+	              [&current_id]() { return current_id++; });  // NOLINT(runtime/increment_decrement)
 }
 
 bool artdaq::GenericFragmentSimulator::getNext_(FragmentPtrs& frags)
@@ -57,7 +57,7 @@ bool artdaq::GenericFragmentSimulator::
 			std::generate_n(frag_ptr->dataBegin(),
 			                payload_size,
 			                [&]() -> int64_t {
-				                return fragment_content_generator_(engine_);
+				                return static_cast<int64_t>(fragment_content_generator_(engine_));
 			                });
 			break;
 		case content_selector_t::DEAD_BEEF:

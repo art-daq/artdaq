@@ -120,7 +120,7 @@ try
 		          << x << std::endl;
 		rc = 2;
 	}
-	catch (char const* x)
+	catch (char const*& x)
 	{
 		std::cerr << *argv << " failure\n"
 		          << x << std::endl;

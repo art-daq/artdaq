@@ -3,10 +3,12 @@
 #include "artdaq-core/Data/detail/RawFragmentHeader.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 
-#include <memory>
-#include <thread>
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME "BrokenTransferTest"
+
+#include <memory>
+#include <thread>
+#include <utility>
 
 #define TLVL_MAKE_TRANSFER_PS TLVL_DEBUG + 5
 #define TLVL_START_TEST TLVL_DEBUG + 6
@@ -111,7 +113,7 @@ void artdaqtest::BrokenTransferTest::TestSenderReconnect()
 	catch (const boost::exception& e)
 	{
 		TLOG(TLVL_ERROR) << "Caught boost::exception starting Sender thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
-		std::cerr << "Caught boost::exception starting Sender thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
+		std::cerr << "Caught boost::exception starting Sender thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;  // NOLINT(runtime/output_format)
 		exit(5);
 	}
 
@@ -125,7 +127,7 @@ void artdaqtest::BrokenTransferTest::TestReceiverReconnect(int send_throttle_fac
 {
 	TLOG(TLVL_INFO) << "TestReceiverReconnect BEGIN";
 	auto start_time = std::chrono::steady_clock::now();
-	send_throttle_us_ = send_throttle_factor * 1000000 / fragment_rate_hz_;
+	send_throttle_us_ = static_cast<int>(static_cast<double>(send_throttle_factor) * 1000000.0 / static_cast<double>(fragment_rate_hz_));
 	start_test_();
 	usleep_for_n_buffer_epochs_(2);
 
@@ -156,7 +158,7 @@ void artdaqtest::BrokenTransferTest::TestReceiverReconnect(int send_throttle_fac
 	catch (const boost::exception& e)
 	{
 		TLOG(TLVL_ERROR) << "Caught boost::exception starting Receiver thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
-		std::cerr << "Caught boost::exception starting Receiver thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
+		std::cerr << "Caught boost::exception starting Receiver thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;  // NOLINT(runtime/output_format)
 		exit(5);
 	}
 
@@ -224,7 +226,7 @@ void artdaqtest::BrokenTransferTest::start_test_()
 	catch (const boost::exception& e)
 	{
 		TLOG(TLVL_ERROR) << "Caught boost::exception starting Receiver thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
-		std::cerr << "Caught boost::exception starting Receiver thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
+		std::cerr << "Caught boost::exception starting Receiver thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;  // NOLINT(runtime/output_format)
 		exit(5);
 	}
 
@@ -243,7 +245,7 @@ void artdaqtest::BrokenTransferTest::start_test_()
 	catch (const boost::exception& e)
 	{
 		TLOG(TLVL_ERROR) << "Caught boost::exception starting Sender thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
-		std::cerr << "Caught boost::exception starting Sender thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
+		std::cerr << "Caught boost::exception starting Sender thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;  // NOLINT(runtime/output_format)
 		exit(5);
 	}
 
@@ -317,9 +319,9 @@ void artdaqtest::BrokenTransferTest::do_sending_(int sender_rank)
 	                                                                                    "d2", artdaq::TransferInterface::Role::kSend);
 
 	TLOG(TLVL_SENDER) << "Sender " << sender_rank << " setting sender_ready_";
-	sender_ready_[sender_rank] = true;
+	sender_ready_[sender_rank] = true;  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
 
-	while (sender_current_fragment_[sender_rank] < sequence_id_target_() || !test_end_requested_)
+	while (sender_current_fragment_[sender_rank] < sequence_id_target_() || !test_end_requested_)  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
 	{
 		if (sender_rank == 0 && kill_first_sender_)
 		{
@@ -332,17 +334,17 @@ void artdaqtest::BrokenTransferTest::do_sending_(int sender_rank)
 		}
 
 		artdaq::Fragment frag(fragment_size_);
-		frag.setSequenceID(sender_current_fragment_[sender_rank]);
+		frag.setSequenceID(sender_current_fragment_[sender_rank]);  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
 		frag.setFragmentID(sender_rank);
 		frag.setSystemType(artdaq::Fragment::DataFragmentType);
 
 		auto start_time = std::chrono::steady_clock::now();
 		auto sts = artdaq::TransferInterface::CopyStatus::kErrorNotRequiringException;
 
-		if (sender_tokens_[sender_rank].load() == 0)
+		if (sender_tokens_[sender_rank].load() == 0)  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
 		{
 			TLOG(TLVL_SENDER_TOKEN_WAIT) << "Sender " << sender_rank << " waiting for token from receiver";
-			while (sender_tokens_[sender_rank].load() == 0 && !test_end_requested_) { usleep(10000); }
+			while (sender_tokens_[sender_rank].load() == 0 && !test_end_requested_) { usleep(10000); }  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
 			if (test_end_requested_)
 			{
 				continue;
@@ -369,14 +371,14 @@ void artdaqtest::BrokenTransferTest::do_sending_(int sender_rank)
 		                  << " with size " << fragment_size_ << " words in " << fm_(duration, "s")
 		                  << " (approx " << fm_(static_cast<double>(fragment_size_ * sizeof(artdaq::detail::RawFragmentHeader::RawDataType)) / duration, "B/s")
 		                  << ") throttle " << send_throttle_us_;
-		++sender_current_fragment_[sender_rank];
-		sender_tokens_[sender_rank]--;
+		++sender_current_fragment_[sender_rank];  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+		sender_tokens_[sender_rank]--;            // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
 		throttle_sender_(sender_rank);
 	}
 
 	TLOG(TLVL_SENDER) << "Sender " << sender_rank << " shutting down...";
 	theTransfer.reset(nullptr);
-	sender_ready_[sender_rank] = false;
+	sender_ready_[sender_rank] = false;  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
 	TLOG(TLVL_SENDER) << "Sender " << sender_rank << " DONE";
 }
 
@@ -388,8 +390,8 @@ void artdaqtest::BrokenTransferTest::do_receiving_(int sender_rank, int receiver
 	artdaq::FragmentPtr dropFrag = nullptr;
 
 	TLOG(TLVL_RECEIVER) << "Receiver " << sender_rank << "->" << receiver_rank << " setting receiver_ready_";
-	receiver_ready_[sender_rank] = true;
-	sender_tokens_[sender_rank] = event_buffer_count_;
+	receiver_ready_[sender_rank] = true;                // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+	sender_tokens_[sender_rank] = event_buffer_count_;  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
 
 	while (!event_buffer_.empty() || !test_end_requested_ || sender_ready_[0] || sender_ready_[1])
 	{
@@ -496,13 +498,13 @@ void artdaqtest::BrokenTransferTest::do_receiving_(int sender_rank, int receiver
 
 	std::lock_guard<std::mutex> lk(event_buffer_mutex_);
 	theTransfer.reset(nullptr);
-	receiver_ready_[sender_rank] = false;
+	receiver_ready_[sender_rank] = false;  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
 	TLOG(TLVL_RECEIVER) << "Receiver " << sender_rank << "->" << receiver_rank << " DONE";
-}
+}  // NOLINT(readability/fn_size)
 
 void artdaqtest::BrokenTransferTest::throttle_sender_(int sender_rank)
 {
-	if (send_throttle_us_ != 0 && sender_current_fragment_[sender_rank] >= sequence_id_target_() - fragment_rate_hz_)
+	if (send_throttle_us_ != 0 && sender_current_fragment_[sender_rank] >= sequence_id_target_() - fragment_rate_hz_)  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
 	{
 		usleep(send_throttle_us_);
 	}

@@ -94,9 +94,7 @@ try
 	// Fill the fragment with monotonically increasing 64-bit integers
 	// to be checked on the other end
 
-	std::iota(reinterpret_cast<uint64_t*>(frag->dataBeginBytes()),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-	          reinterpret_cast<uint64_t*>(frag->dataEndBytes()),    // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-	          0);
+	std::iota(reinterpret_cast<uint64_t*>(frag->dataBeginBytes()), reinterpret_cast<uint64_t*>(frag->dataEndBytes()), 0);  // NOLINT
 
 	auto timeout = pset.get<size_t>("send_timeout_usecs", std::numeric_limits<size_t>::max());
 

@@ -153,7 +153,6 @@ cet_make_library(LIBRARY_NAME ArtdaqBuildInfo INTERFACE
 cet_build_plugin(ArtdaqBuildInfo art::EDProducer
   LIBRARIES PRIVATE
   artdaq-core::BuildInfo
-  artdaq-utilities::BuildInfo
   artdaq::BuildInfo
 )
 

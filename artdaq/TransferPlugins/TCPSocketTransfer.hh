@@ -1,5 +1,5 @@
-#ifndef TCPSocketTransfer_hh
-#define TCPSocketTransfer_hh
+#ifndef ARTDAQ_ARTDAQ_TRANSFERPLUGINS_TCPSOCKETTRANSFER_HH_
+#define ARTDAQ_ARTDAQ_TRANSFERPLUGINS_TCPSOCKETTRANSFER_HH_
 // This file (TCPSocketTransfer.hh) was created by Ron Rechenmacher <ron@fnal.gov> on
 // Sep 14, 2016. "TERMS AND CONDITIONS" governing this file are in the README
 // or COPYING file. If you do not have such a file, one can be obtained by
@@ -25,16 +25,18 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <string>
 #include <utility>  // std::move()
 
 #ifndef USE_ACKS
+// NOLINTNEXTLINE
 #define USE_ACKS 0
 #endif
 
 namespace artdaq {
 class TCPSocketTransfer;
-}
+}  // namespace artdaq
 
 /**
  * \brief TransferInterface implementation plugin that sends data using TCP sockets
@@ -122,7 +124,7 @@ private:
 	union
 	{
 		MessHead mh;
-		uint8_t mha[sizeof(MessHead)];
+		uint8_t mha[sizeof(MessHead)];  // NOLINT
 	};
 
 	enum class SocketState
@@ -151,7 +153,7 @@ private:
 	std::atomic<int> send_ack_diff_;                        // Number of sends - number of acks received. Not allowed to exceed buffer_count.
 	std::unique_ptr<boost::thread> ack_listen_thread_;      // Thread to listen for ack messages on the sender
 
-private:  // methods
+	// methods
 	TCPSocketTransfer(TCPSocketTransfer const&) = delete;
 	TCPSocketTransfer(TCPSocketTransfer&&) = delete;
 	TCPSocketTransfer& operator=(TCPSocketTransfer const&) = delete;
@@ -186,4 +188,4 @@ private:  // methods
 	void setLastActiveFD_(int source_rank, int fd);
 };
 
-#endif  // TCPSocketTransfer_hh
+#endif  // ARTDAQ_ARTDAQ_TRANSFERPLUGINS_TCPSOCKETTRANSFER_HH_

@@ -28,6 +28,7 @@
 #include <memory>
 #include <mutex>
 #include <thread>
+#include <vector>
 
 #define TLVL_GETNEXT 35
 #define TLVL_GETNEXT_VERBOSE 36
@@ -109,7 +110,7 @@ void artdaq::CommandableFragmentGenerator::joinThreads()
 			monitoringThread_.join();
 		}
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{
 		// IGNORED
 	}
@@ -146,14 +147,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 			return false;
 		}
 		TLOG(TLVL_DEBUG + 33) << "getNext: Calling getNext_ w/ ev_counter()=" << ev_counter();
-		try
-		{
-			result = getNext_(output);
-		}
-		catch (...)
-		{
-			throw;
-		}
+		result = getNext_(output);
 		TLOG(TLVL_DEBUG + 33) << "getNext: Done with getNext_ - ev_counter() now " << ev_counter();
 		for (auto& dataIter : output)
 		{
@@ -207,7 +201,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 		set_exception(true);
 		return false;
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{
 		latest_exception_report_ = "Unknown exception caught in getNext().";
 		TLOG(TLVL_ERROR) << "getNext: unknown exception caught";
@@ -239,7 +233,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 	}
 
 	return result;
-}
+}  // NOLINT(readability/fn_size)
 
 bool artdaq::CommandableFragmentGenerator::check_stop()
 {
@@ -413,7 +407,7 @@ void artdaq::CommandableFragmentGenerator::startMonitoringThread()
 	try
 	{
 		monitoringThread_ = boost::thread(&CommandableFragmentGenerator::getMonitoringDataLoop, this);
-		char tname[16];                                            // Size 16 - see man page pthread_setname_np(3) and/or prctl(2)
+		char tname[16];                                            // NOLINT Size 16 - see man page pthread_setname_np(3) and/or prctl(2)
 		snprintf(tname, sizeof(tname) - 1, "%d-CFGMon", my_rank);  // NOLINT
 		tname[sizeof(tname) - 1] = '\0';                           // assure term. snprintf is not too evil :)
 		auto handle = monitoringThread_.native_handle();

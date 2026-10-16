@@ -34,8 +34,8 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
 	{
 		metric_pset = psi.get<fhicl::ParameterSet>("metrics");
 	}
-	catch (...)
-	{}  // OK if there's no metrics table defined in the FHiCL
+	catch (...)  // NOLINT
+	{}           // OK if there's no metrics table defined in the FHiCL
 
 	try
 	{
@@ -43,7 +43,7 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
 		metricMan->initialize(metric_pset, name);
 		metricMan->do_start();
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{}
 
 	auto type(psi.get<std::string>("transfer_plugin_type", "TCPSocket"));
@@ -116,7 +116,7 @@ int artdaq::TransferTest::runTest()
 		std::vector<std::future<std::pair<size_t, double>>> results_futures(sending_threads_);
 		for (int ii = 0; ii < sending_threads_; ++ii)
 		{
-			results_futures[ii] = std::async(std::launch::async, std::bind(&TransferTest::do_sending, this, ii));
+			results_futures[ii] = std::async(std::launch::async, std::bind(&TransferTest::do_sending, this, ii));  // NOLINT
 		}
 		for (auto& future : results_futures)
 		{
@@ -157,7 +157,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 	{
 		artdaq::RawDataType gen_seed = 0;
 
-		std::generate_n(frag.dataBegin(), data_size_wrds, [&]() { return ++gen_seed; });
+		std::generate_n(frag.dataBegin(), data_size_wrds, [&]() { return ++gen_seed; });  // NOLINT(runtime/increment_decrement)
 		for (size_t ii = 0; ii < frag.dataSize(); ++ii)
 		{
 			if (*(frag.dataBegin() + ii) != ii + 1)
@@ -216,7 +216,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 		{
 			artdaq::RawDataType gen_seed = ii + 1;
 
-			std::generate_n(frag.dataBegin(), data_size_wrds, [&]() { return ++gen_seed; });
+			std::generate_n(frag.dataBegin(), data_size_wrds, [&]() { return ++gen_seed; });  // NOLINT(runtime/increment_decrement)
 			for (size_t jj = 0; jj < frag.dataSize(); ++jj)
 			{
 				if (*(frag.dataBegin() + jj) != (ii + 1) + jj + 1)
@@ -232,7 +232,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 		auto total_send_time = std::chrono::duration_cast<artdaq::TimeUtils::seconds>(after_send - send_start).count();
 		totalTime += total_send_time;
 		send_time_metric += total_send_time;
-		send_size_metric += data_size_wrds * sizeof(artdaq::RawDataType);
+		send_size_metric += static_cast<double>(data_size_wrds * sizeof(artdaq::RawDataType));
 		after_time_metric += std::chrono::duration_cast<artdaq::TimeUtils::seconds>(std::chrono::steady_clock::now() - after_send).count();
 		init_time_metric += std::chrono::duration_cast<artdaq::TimeUtils::seconds>(send_start - loop_start).count();
 

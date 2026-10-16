@@ -1,5 +1,13 @@
 #include "artdaq/DAQdata/Globals.hh"  // Before trace.h gets included in ConcurrentQueue (from GlobalQueue)
 #define TRACE_NAME (app_name + "_TokenSender").c_str()
+
+#include "artdaq-core/Core/StatisticsCollection.hh"
+#include "artdaq/DAQdata/TCPConnect.hh"
+#include "artdaq/DAQrate/detail/RoutingPacket.hh"
+#include "artdaq/DAQrate/detail/TokenSender.hh"
+
+#include "cetlib_except/exception.h"
+
 #include <dlfcn.h>
 #include <chrono>
 #include <cstring>
@@ -7,22 +15,12 @@
 #include <iomanip>
 #include <sstream>
 #include <utility>
-#include "artdaq/DAQrate/detail/TokenSender.hh"
-
-#include "artdaq-core/Core/StatisticsCollection.hh"
-#include "artdaq/DAQdata/TCPConnect.hh"
-#include "artdaq/DAQrate/detail/RoutingPacket.hh"
-#include "cetlib_except/exception.h"
 
 namespace artdaq {
 TokenSender::TokenSender(const fhicl::ParameterSet& pset)
-    : initialized_(false)
-    , send_routing_tokens_(pset.get<bool>("use_routing_manager", false))
+    : send_routing_tokens_(pset.get<bool>("use_routing_manager", false))
     , token_port_(pset.get<int>("routing_token_port", 35555))
-    , token_socket_(-1)
     , token_address_(pset.get<std::string>("routing_manager_hostname", "localhost"))
-    , tokens_sent_(0)
-    , run_number_(0)
 {
 	TLOG(TLVL_DEBUG + 32) << "TokenSender CONSTRUCTOR";
 
@@ -73,7 +71,7 @@ void TokenSender::setup_tokens_()
 	}
 }
 
-void TokenSender::send_routing_token_(int nSlots, int run_number, int rank)
+void TokenSender::send_routing_token_(int nSlots, uint32_t run_number, int rank)
 {
 	TLOG(TLVL_DEBUG + 33) << "send_routing_token_ called, send_routing_tokens_=" << std::boolalpha << send_routing_tokens_;
 	if (!send_routing_tokens_)
@@ -94,7 +92,7 @@ void TokenSender::send_routing_token_(int nSlots, int run_number, int rank)
 	size_t sts = 0;
 	while (sts < sizeof(detail::RoutingToken))
 	{
-		auto res = send(token_socket_, reinterpret_cast<uint8_t*>(&token) + sts, sizeof(detail::RoutingToken) - sts, 0);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
+		auto res = send(token_socket_, reinterpret_cast<uint8_t*>(&token) + sts, sizeof(detail::RoutingToken) - sts, 0);  // NOLINT
 		if (res < 0)
 		{
 			TLOG(TLVL_WARNING) << "Error on token_socket, reconnecting";
@@ -110,7 +108,7 @@ void TokenSender::send_routing_token_(int nSlots, int run_number, int rank)
 	TLOG(TLVL_DEBUG + 33) << "Done sending RoutingToken to " << token_address_ << ":" << token_port_;
 }
 
-void TokenSender::SendRoutingToken(int nSlots, int run_number, int rank)
+void TokenSender::SendRoutingToken(int nSlots, uint32_t run_number, int rank)
 {
 	while (!initialized_)
 	{

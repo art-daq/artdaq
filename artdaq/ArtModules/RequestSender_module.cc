@@ -22,7 +22,7 @@
 
 namespace artdaq {
 class RequestSenderModule;
-}
+}  // namespace artdaq
 
 /// <summary>
 /// An art::EDAnalyzer module which sends requests for events (e.g. for the Mu2e CRV system)

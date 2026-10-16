@@ -1,20 +1,20 @@
-#ifndef artdaq_Application_Commandable_hh
-#define artdaq_Application_Commandable_hh
+#ifndef ARTDAQ_ARTDAQ_APPLICATION_COMMANDABLE_HH_
+#define ARTDAQ_ARTDAQ_APPLICATION_COMMANDABLE_HH_
+
+#include "canvas/Persistency/Provenance/RunID.h"
+namespace fhicl {
+class ParameterSet;
+}  // namespace fhicl
+
+#include "artdaq/Application/detail/Commandable_sm.h"  // must be included after others
 
 #include <mutex>
 #include <string>
 #include <vector>
 
-#include "canvas/Persistency/Provenance/RunID.h"
-namespace fhicl {
-class ParameterSet;
-}
-
-#include "artdaq/Application/detail/Commandable_sm.h"  // must be included after others
-
 namespace artdaq {
 class Commandable;
-}
+}  // namespace artdaq
 
 /**
  * \brief Commandable is the base class for all artdaq components which implement the artdaq state machine
@@ -328,4 +328,4 @@ private:
 	mutable std::mutex primary_mutex_;
 };
 
-#endif /* artdaq_Application_Commandable_hh */
+#endif  // ARTDAQ_ARTDAQ_APPLICATION_COMMANDABLE_HH_

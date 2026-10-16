@@ -1,15 +1,15 @@
-#ifndef artdaq_Application_MPI2_EventBuilderCore_hh
-#define artdaq_Application_MPI2_EventBuilderCore_hh
+#ifndef ARTDAQ_ARTDAQ_APPLICATION_EVENTBUILDERCORE_HH_
+#define ARTDAQ_ARTDAQ_APPLICATION_EVENTBUILDERCORE_HH_
 
 #include "artdaq/Application/DataReceiverCore.hh"
 
 namespace fhicl {
 class ParameterSet;
-}
+}  // namespace fhicl
 
 namespace artdaq {
 class EventBuilderCore;
-}
+}  // namespace artdaq
 
 /**
  * \brief EventBuilderCore implements the state machine for the EventBuilder artdaq application.
@@ -66,4 +66,4 @@ public:
 	bool initialize(fhicl::ParameterSet const& pset) override;
 };
 
-#endif /* artdaq_Application_MPI2_EventBuilderCore_hh */
+#endif  // ARTDAQ_ARTDAQ_APPLICATION_EVENTBUILDERCORE_HH_

@@ -1,7 +1,9 @@
-#include <iostream>
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
+
 #include "fhiclcpp/types/TableFragment.h"
+
+#include <iostream>
 
 /**
  * \brief Configuration for simple_metric_sender
@@ -22,8 +24,8 @@ try
 	int level = config_ps.get<int>("metric_level", 1);
 
 	std::cout << "Enter metrics in <name> <value> <units> format. Ctrl-D to end" << std::endl;
-	std::string name, unit;
-	double value;
+	std::string name, unit;  // NOLINT
+	double value = 0.0;
 	while (std::cin >> name >> value >> unit)
 	{
 		mm.sendMetric(name, value, unit, level, artdaq::MetricMode::LastPoint);

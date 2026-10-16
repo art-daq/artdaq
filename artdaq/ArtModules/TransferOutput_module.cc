@@ -2,15 +2,16 @@
 #define TRACE_NAME "TransferOutput"
 #include "artdaq/ArtModules/ArtdaqOutput.hh"
 
-#include <csignal>
 #include "art/Framework/Core/ModuleMacros.h"
 #include "artdaq/DAQdata/NetMonHeader.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 
+#include <csignal>
+
 namespace art {
 class TransferOutput;
-}
+}  // namespace art
 
 /**
  * \brief An art::OutputModule which sends events using DataSenderManager.

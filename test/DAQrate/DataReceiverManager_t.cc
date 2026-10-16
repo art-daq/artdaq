@@ -5,10 +5,11 @@
 #include "cetlib/quiet_unit_test.hpp"
 #include "cetlib_except/exception.h"
 
+// NOLINTNEXTLINE
 #define TRACE_REQUIRE_EQUAL(l, r)                                                                                                \
 	do                                                                                                                           \
 	{                                                                                                                            \
-		if (l == r)                                                                                                              \
+		if ((l) == (r))                                                                                                          \
 		{                                                                                                                        \
 			TLOG(TLVL_DEBUG) << __LINE__ << ": Checking if " << #l << " (" << l << ") equals " << #r << " (" << r << ")...YES!"; \
 		}                                                                                                                        \

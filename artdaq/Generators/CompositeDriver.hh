@@ -1,12 +1,14 @@
-#ifndef artdaq_Application_CompositeDriver_hh
-#define artdaq_Application_CompositeDriver_hh
+#ifndef ARTDAQ_ARTDAQ_GENERATORS_COMPOSITEDRIVER_HH_
+#define ARTDAQ_ARTDAQ_GENERATORS_COMPOSITEDRIVER_HH_
 
 #include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
 
-#include <vector>
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
 #include "fhiclcpp/fwd.h"
+
+#include <memory>
+#include <vector>
 
 namespace artdaq {
 /**
@@ -76,4 +78,4 @@ private:
 	std::vector<bool> generator_active_list_;
 };
 }  // namespace artdaq
-#endif /* artdaq_Application_CompositeDriver_hh */
+#endif  // ARTDAQ_ARTDAQ_GENERATORS_COMPOSITEDRIVER_HH_

@@ -1,12 +1,12 @@
-#ifndef artdaq_Application_makeCommandableFragmentGenerator_hh
-#define artdaq_Application_makeCommandableFragmentGenerator_hh
+#ifndef ARTDAQ_ARTDAQ_GENERATORS_MAKECOMMANDABLEFRAGMENTGENERATOR_HH_
+#define ARTDAQ_ARTDAQ_GENERATORS_MAKECOMMANDABLEFRAGMENTGENERATOR_HH_
 // Using LibraryManager, find the correct library and return an instance
 // of the specified generator.
 
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
 namespace fhicl {
 class ParameterSet;
-}
+}  // namespace fhicl
 
 #include <memory>
 #include <string>
@@ -22,4 +22,4 @@ std::unique_ptr<CommandableFragmentGenerator>
 makeCommandableFragmentGenerator(std::string const& generator_plugin_spec,
                                  fhicl::ParameterSet const& ps);
 }  // namespace artdaq
-#endif /* artdaq_Application_makeCommandableFragmentGenerator_hh */
+#endif  // ARTDAQ_ARTDAQ_GENERATORS_MAKECOMMANDABLEFRAGMENTGENERATOR_HH_

@@ -14,7 +14,7 @@ BOOST_AUTO_TEST_SUITE(SharedMemoryEventManager_test)
 
 artdaq::detail::RawFragmentHeader GetHeader(artdaq::FragmentPtr const& frag)
 {
-	return *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+	return *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());  // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
 }
 
 BOOST_AUTO_TEST_CASE(Construct)
@@ -50,7 +50,8 @@ BOOST_AUTO_TEST_CASE(AddFragment)
 	artdaq::SharedMemoryEventManager t(pset, pset);
 	t.startRun(1);
 
-	artdaq::FragmentPtr frag(new artdaq::Fragment(1, 0, artdaq::Fragment::FirstUserFragmentType, 0UL)), tmpFrag;
+	artdaq::FragmentPtr frag(new artdaq::Fragment(1, 0, artdaq::Fragment::FirstUserFragmentType, 0UL));
+	artdaq::FragmentPtr tmpFrag = nullptr;
 	frag->resize(4);
 	for (auto ii = 0; ii < 4; ++ii)
 	{
@@ -76,7 +77,9 @@ BOOST_AUTO_TEST_CASE(DataFlow)
 	artdaq::SharedMemoryEventManager t(pset, pset);
 	t.startRun(1);
 
-	artdaq::FragmentPtr frag(new artdaq::Fragment(1, 0, artdaq::Fragment::FirstUserFragmentType, 0UL)), tmpFrag;
+	artdaq::FragmentPtr frag(new artdaq::Fragment(1, 0, artdaq::Fragment::FirstUserFragmentType, 0UL));
+	artdaq::FragmentPtr tmpFrag = nullptr;
+
 	frag->resize(4);
 	for (auto ii = 0; ii < 4; ++ii)
 	{
@@ -123,7 +126,9 @@ BOOST_AUTO_TEST_CASE(EndOfData)
 	artdaq::SharedMemoryEventManager t(pset, pset);
 	t.startRun(1);
 
-	artdaq::FragmentPtr frag(new artdaq::Fragment(1, 0, artdaq::Fragment::FirstUserFragmentType, 0UL)), tmpFrag;
+	artdaq::FragmentPtr frag(new artdaq::Fragment(1, 0, artdaq::Fragment::FirstUserFragmentType, 0UL));
+	artdaq::FragmentPtr tmpFrag = nullptr;
+
 	frag->resize(4);
 	for (auto ii = 0; ii < 4; ++ii)
 	{
@@ -179,7 +184,9 @@ BOOST_AUTO_TEST_CASE(TooManyFragments_InterleavedWrites)
 	artdaq::SharedMemoryEventManager t(pset, pset);
 	t.startRun(1);
 
-	artdaq::FragmentPtr frag(new artdaq::Fragment(1, 0, artdaq::Fragment::FirstUserFragmentType, 0UL)), tmpFrag;
+	artdaq::FragmentPtr frag(new artdaq::Fragment(1, 0, artdaq::Fragment::FirstUserFragmentType, 0UL));
+	artdaq::FragmentPtr tmpFrag = nullptr;
+
 	frag->resize(4);
 	for (auto ii = 0; ii < 4; ++ii)
 	{
@@ -257,7 +264,9 @@ BOOST_AUTO_TEST_CASE(TooManyFragments_DiscreteWrites)
 	artdaq::SharedMemoryEventManager t(pset, pset);
 	t.startRun(1);
 
-	artdaq::FragmentPtr frag(new artdaq::Fragment(1, 0, artdaq::Fragment::FirstUserFragmentType, 0UL)), tmpFrag;
+	artdaq::FragmentPtr frag(new artdaq::Fragment(1, 0, artdaq::Fragment::FirstUserFragmentType, 0UL));
+	artdaq::FragmentPtr tmpFrag = nullptr;
+
 	frag->resize(4);
 	for (auto ii = 0; ii < 4; ++ii)
 	{
@@ -334,7 +343,9 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 	pset.put("expected_fragments_per_event", 2);
 	pset.put("stale_buffer_timeout_usec", 100000);
 
-	artdaq::FragmentPtr frag(new artdaq::Fragment(1, 0, artdaq::Fragment::FirstUserFragmentType, 0UL)), tmpFrag;
+	artdaq::FragmentPtr frag(new artdaq::Fragment(1, 0, artdaq::Fragment::FirstUserFragmentType, 0UL));
+	artdaq::FragmentPtr tmpFrag = nullptr;
+
 	frag->resize(4);
 	for (auto ii = 0; ii < 4; ++ii)
 	{

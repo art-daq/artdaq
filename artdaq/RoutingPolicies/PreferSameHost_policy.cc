@@ -82,8 +82,8 @@ void PreferSameHostPolicy::CreateRoutingTable(detail::RoutingPacket& output)
 		for (auto it = table.begin(); it != table.end();)
 		{
 			TLOG(TLVL_DEBUG + 38) << "PreferSameHostPolicy::GetCurrentTable assigning sequenceID " << next_sequence_id_ << " to rank " << it->first;
-			output.emplace_back(detail::RoutingPacketEntry(next_sequence_id_++, it->first));
-			table[it->first]--;
+			output.emplace_back(next_sequence_id_++, it->first);  // NOLINT(runtime/increment_decrement)
+			table[it->first]--;                                   // NOLINT(runtime/increment_decrement)
 
 			if (table[it->first] <= 0)
 			{
@@ -149,7 +149,7 @@ detail::RoutingPacketEntry PreferSameHostPolicy::CreateRouteForSequenceID(artdaq
 	else if (matching_ranks_.size() == 1)
 	{
 		output = detail::RoutingPacketEntry(seq, *matching_ranks_.begin());
-		table[*matching_ranks_.begin()]--;
+		table[*matching_ranks_.begin()]--;  // NOLINT(runtime/increment_decrement)
 	}
 	else
 	{

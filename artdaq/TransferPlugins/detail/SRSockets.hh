@@ -1,5 +1,5 @@
-#ifndef SRSockets_hh
-#define SRSockets_hh
+#ifndef ARTDAQ_ARTDAQ_TRANSFERPLUGINS_DETAIL_SRSOCKETS_HH_
+#define ARTDAQ_ARTDAQ_TRANSFERPLUGINS_DETAIL_SRSOCKETS_HH_
 #include <cstdint>
 
 // This file (SRSockets.hh) was created by Ron Rechenmacher <ron@fnal.gov> on
@@ -45,6 +45,6 @@ struct MessHead
 /**
  * \brief Magic Bytes to put in header
  */
-#define CONN_MAGIC 0xcafefeca
-#define ACK_MAGIC 0xbeeffeed
-#endif  // SRSockets_hh
+constexpr uint32_t CONN_MAGIC = 0xcafefeca;
+constexpr uint32_t ACK_MAGIC = 0xbeeffeed;
+#endif  // ARTDAQ_ARTDAQ_TRANSFERPLUGINS_DETAIL_SRSOCKETS_HH_

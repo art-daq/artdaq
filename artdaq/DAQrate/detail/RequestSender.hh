@@ -1,5 +1,5 @@
-#ifndef artdaq_DAQrate_RequestSender_hh
-#define artdaq_DAQrate_RequestSender_hh
+#ifndef ARTDAQ_ARTDAQ_DAQRATE_DETAIL_REQUESTSENDER_HH_
+#define ARTDAQ_ARTDAQ_DAQRATE_DETAIL_REQUESTSENDER_HH_
 
 #include "artdaq/DAQrate/detail/RequestMessage.hh"
 
@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <string>
 
 namespace artdaq {
 
@@ -116,7 +117,6 @@ public:
 	size_t GetSentMessageCount() { return requests_sent_.load(); }
 
 private:
-private:
 	// State variables
 	std::atomic<bool> initialized_{false};
 	std::atomic<bool> sender_thread_running_{false};
@@ -144,7 +144,6 @@ private:
 	std::chrono::milliseconds request_interval_;
 	std::chrono::milliseconds request_delay_;
 
-private:
 	void setup_requests_();
 
 	void start_send_request_thread_();
@@ -154,4 +153,4 @@ private:
 	void do_send_request_();
 };
 }  // namespace artdaq
-#endif /* artdaq_DAQrate_RequestSender_hh */
+#endif  // ARTDAQ_ARTDAQ_DAQRATE_DETAIL_REQUESTSENDER_HH_

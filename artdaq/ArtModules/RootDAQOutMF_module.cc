@@ -65,7 +65,7 @@ using namespace std;
 using namespace hep::concurrency;
 
 namespace {
-string const dev_null{"/dev/null"};
+string const dev_null{"/dev/null"};  // NOLINT
 
 bool maxCriterionSpecified(art::ClosingCriteria const& cc)
 {
@@ -86,14 +86,14 @@ auto shouldFastClone(bool const fastCloningSet,
                      art::ClosingCriteria const& cc)
 {
 	art::FastCloningEnabled enabled;
-	if (fastCloningSet and not fastCloning)
+	if (fastCloningSet && !fastCloning)
 	{
 		enabled.disable(
 		    "RootDAQOutMF configuration explicitly disables fast cloning.");
 		return enabled;
 	}
 
-	if (not wantAllEvents)
+	if (!wantAllEvents)
 	{
 		enabled.disable(
 		    "Event-selection has been specified in the RootDAQOutMF configuration.");
@@ -115,7 +115,7 @@ struct SubrunStats
 	art::EventNumber_t lastEvent{0};
 };
 
-static void writeSummaryFile(
+void writeSummaryFile(
     std::string const& summaryDir,
     std::map<art::SubRunID, SubrunStats> const& subrunStats,
     std::string const& closedFileName)
@@ -176,7 +176,7 @@ static void writeSummaryFile(
 			auto remaining = static_cast<ssize_t>(buf.size());
 			while (remaining > 0)
 			{
-				ssize_t written = ::write(fd, buf.c_str() + total, static_cast<size_t>(remaining));
+				ssize_t written = ::write(fd, buf.c_str() + total, static_cast<size_t>(remaining));  // NOLINT
 				if (written < 0)
 				{
 					if (errno == EINTR) { continue; }
@@ -196,7 +196,9 @@ static void writeSummaryFile(
 		                 << " subrun row(s) to \"" << fname.str() << "\"";
 	}
 }
-}  // namespace
+// clang-format off
+}  // namespace ""
+// clang-format on
 
 namespace art {
 
@@ -481,7 +483,7 @@ RootDAQOutMF::~RootDAQOutMF()
 		TLOG(TLVL_ERROR) << "RootDAQOutMF DESTRUCTOR: std::exception while closing pending files: "
 		                 << ex.what();
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{
 		TLOG(TLVL_ERROR) << "RootDAQOutMF DESTRUCTOR: unknown exception while closing pending files";
 	}
@@ -519,7 +521,7 @@ RootDAQOutMF::RootDAQOutMF(Parameters const& config)
 		    << "RootDAQOutMF: maxOpenFiles must be >= 1.\n";
 	}
 
-	bool const check_filename = config.get_PSet().has_key("fileProperties") and
+	bool const check_filename = config.get_PSet().has_key("fileProperties") &&
 	                            config().safeFileName().checkFileName();
 	detail::validateFileNamePattern(check_filename, filePattern_);
 
@@ -599,7 +601,7 @@ void RootDAQOutMF::respondToOpenInputFile(FileBlock const& fb)
 	{
 		return;
 	}
-	auto const* rfb = dynamic_cast<RootFileBlock const*>(&fb);
+	auto const* rfb = dynamic_cast<RootFileBlock const*>(&fb);  // NOLINT
 	auto fastCloneThisOne = fastCloningEnabled_;
 	if (!rfb)
 	{
@@ -1175,12 +1177,12 @@ RootDAQOutMF::fileNameAtClose(PostCloseFileRenamer& renamer,
 	}
 
 	// Extract optional width from the first %N# occurrence (default 3).
-	unsigned width = 3;
+	int width = 3;
 	{
 		boost::smatch m;
 		if (boost::regex_search(filePattern_, m, boost::regex{R"(%([0-9]+)#)"}))
 		{
-			width = static_cast<unsigned>(std::stoul(m[1].str()));
+			width = static_cast<int>(std::stoul(m[1].str()));
 		}
 	}
 
@@ -1194,7 +1196,7 @@ RootDAQOutMF::fileNameAtClose(PostCloseFileRenamer& renamer,
 	    renamer.maybeRenameFile(currentFileName, sentinelPattern);
 
 	// Assign the next unique index for this base name across all bundles.
-	size_t const idx = ++sharedFileIndex_[intermediateName];
+	size_t const idx = ++sharedFileIndex_[intermediateName];  // NOLINT(runtime/increment_decrement)
 	if (idx > 1)
 	{
 		TLOG(TLVL_INFO) << __func__ << ": shared %# index=" << idx
@@ -1302,7 +1304,7 @@ RootDAQOutMF::modifyFilePattern(std::string const& inputPattern, Config const& c
 	// initialization
 	std::string modifiedPattern = inputPattern;
 	std::string searchString;
-	size_t targetLocation;
+	size_t targetLocation{0};
 	int zeroBasedRelativeRank = my_rank;
 	int oneBasedRelativeRank = my_rank + 1;
 	if (firstLoggerRank >= 0)
@@ -1414,7 +1416,7 @@ RootDAQOutMF::modifyFilePattern(std::string const& inputPattern, Config const& c
 
 	TLOG(TLVL_DEBUG + 32) << __func__ << ": modifiedPattern = \"" << modifiedPattern << "\"";
 	return modifiedPattern;
-}
+}  // NOLINT(readability/fn_size)
 
 }  // namespace art
 

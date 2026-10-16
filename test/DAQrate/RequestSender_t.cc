@@ -1,7 +1,7 @@
 #define BOOST_TEST_MODULE RequestSender_t
 #include "boost/test/unit_test.hpp"
 
-#include "tracemf.h"
+#include "TRACE/tracemf.h"
 #define TRACE_NAME "RequestSender_t"
 
 #include "artdaq-core/Utilities/configureMessageFacility.hh"
@@ -14,6 +14,7 @@
 
 BOOST_AUTO_TEST_SUITE(RequestSender_test)
 
+// NOLINTNEXTLINE
 #define TRACE_REQUIRE_EQUAL(l, r)                                                                                                    \
 	do                                                                                                                               \
 	{                                                                                                                                \
@@ -47,7 +48,7 @@ BOOST_AUTO_TEST_CASE(Requests)
 	metricMan->initialize(fhicl::ParameterSet());
 	metricMan->do_start();
 	TLOG(TLVL_INFO) << "Requests Test Case BEGIN";
-	const int REQUEST_PORT = (artdaq::Globals::SeedAndRandom() % (32768 - 1024)) + 1024;
+	const int REQUEST_PORT = static_cast<int>((artdaq::Globals::SeedAndRandom() % (32768 - 1024)) + 1024);
 	const int DELAY_TIME = 100;
 #if 0
 	const std::string MULTICAST_IP = "227.28.12.28";
@@ -77,7 +78,7 @@ BOOST_AUTO_TEST_CASE(Requests)
 	si_me_request.sin_family = AF_INET;
 	si_me_request.sin_port = htons(REQUEST_PORT);
 	si_me_request.sin_addr.s_addr = htonl(INADDR_ANY);
-	if (bind(request_socket, reinterpret_cast<struct sockaddr*>(&si_me_request), sizeof(si_me_request)) == -1)  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+	if (bind(request_socket, reinterpret_cast<struct sockaddr*>(&si_me_request), sizeof(si_me_request)) == -1)  // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
 	{
 		TLOG(TLVL_ERROR) << "Cannot bind request socket to port " << REQUEST_PORT;
 		BOOST_REQUIRE_EQUAL(true, false);
@@ -106,7 +107,7 @@ BOOST_AUTO_TEST_CASE(Requests)
 	TLOG(TLVL_DEBUG) << "Sending request";
 	auto start_time = std::chrono::steady_clock::now();
 	t.AddRequest(0, 0x10);
-	struct pollfd ufds[1];
+	struct pollfd ufds[1];  // NOLINT
 
 	TLOG(TLVL_DEBUG) << "Receiving Request";
 	ufds[0].fd = request_socket;
@@ -119,7 +120,7 @@ BOOST_AUTO_TEST_CASE(Requests)
 			auto delay_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count();
 			BOOST_REQUIRE_GE(delay_time, DELAY_TIME);
 			TLOG(TLVL_TRACE) << "Recieved packet on Request channel";
-			std::vector<uint8_t> buffer(MAX_REQUEST_MESSAGE_SIZE);
+			std::vector<uint8_t> buffer(artdaq::detail::MAX_REQUEST_MESSAGE_SIZE);
 			artdaq::detail::RequestHeader hdr_buffer;
 			recv(request_socket, &buffer[0], buffer.size(), 0);
 			memcpy(&hdr_buffer, &buffer[0], sizeof(artdaq::detail::RequestHeader));
@@ -173,7 +174,7 @@ BOOST_AUTO_TEST_CASE(Requests)
 			if (ufds[0].revents == POLLIN || ufds[0].revents == POLLPRI)
 			{
 				TLOG(TLVL_TRACE) << "Recieved packet on Request channel";
-				std::vector<uint8_t> buffer(MAX_REQUEST_MESSAGE_SIZE);
+				std::vector<uint8_t> buffer(artdaq::detail::MAX_REQUEST_MESSAGE_SIZE);
 				artdaq::detail::RequestHeader hdr_buffer;
 				recv(request_socket, &buffer[0], buffer.size(), 0);
 				memcpy(&hdr_buffer, &buffer[0], sizeof(artdaq::detail::RequestHeader));
@@ -235,7 +236,7 @@ BOOST_AUTO_TEST_CASE(Requests)
 			auto delay_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count();
 			BOOST_REQUIRE_GE(delay_time, DELAY_TIME);
 			TLOG(TLVL_TRACE) << "Recieved packet on Request channel";
-			std::vector<uint8_t> buffer(MAX_REQUEST_MESSAGE_SIZE);
+			std::vector<uint8_t> buffer(artdaq::detail::MAX_REQUEST_MESSAGE_SIZE);
 			artdaq::detail::RequestHeader hdr_buffer;
 			recv(request_socket, &buffer[0], buffer.size(), 0);
 			memcpy(&hdr_buffer, &buffer[0], sizeof(artdaq::detail::RequestHeader));

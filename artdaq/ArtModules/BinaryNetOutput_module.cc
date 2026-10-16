@@ -29,7 +29,7 @@
 
 namespace art {
 class BinaryNetOutput;
-}
+}  // namespace art
 
 using art::BinaryNetOutput;
 using fhicl::ParameterSet;
@@ -82,7 +82,6 @@ private:
 
 	bool readParameterSet_(fhicl::ParameterSet const& pset);
 
-private:
 	ParameterSet data_pset_;
 	std::string name_ = "BinaryNetOutput";
 	int rt_priority_ = 0;

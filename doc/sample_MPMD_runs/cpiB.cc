@@ -2,10 +2,10 @@
    (C) 2001 by Argonne National Laboratory.
        See COPYRIGHT in top-level directory.
 */
-#include <math.h>
-#include <stdio.h>
+#include <mpi.h>
+#include <cmath>
+#include <cstdio>
 #include <iostream>
-#include "mpi.h"
 
 using namespace std;
 
@@ -24,15 +24,15 @@ int main(int argc, char* argv[])
 
 	cout << "booB" << endl;
 
-	int done = 0, n, myid, numprocs, i;
+	int done = 0, n, myid, numprocs, i;  // NOLINT
 	double PI25DT = 3.141592653589793238462643;
-	double mypi, pi, h, sum, x;
-	double startwtime = 0.0, endwtime;
-	int namelen;
-	char processor_name[MPI_MAX_PROCESSOR_NAME];
+	double mypi, pi, h, sum, x;         // NOLINT
+	double startwtime = 0.0, endwtime;  // NOLINT
+	int namelen = 0;
+	char processor_name[MPI_MAX_PROCESSOR_NAME];  // NOLINT
 
 	for (int i = 0; i < argc; ++i)
-		cout << "argv[" << i << "] = " << argv[i]
+		cout << "argv[" << i << "] = " << argv[i]  // NOLINT
 		     << endl;
 
 	MPI_Init(&argc, &argv);
@@ -60,11 +60,11 @@ int main(int argc, char* argv[])
 			done = 1;
 		else
 		{
-			h = 1.0 / (double)n;
+			h = 1.0 / static_cast<double>(n);
 			sum = 0.0;
 			for (i = myid + 1; i <= n; i += numprocs)
 			{
-				x = h * ((double)i - 0.5);
+				x = h * (static_cast<double>(i) - 0.5);
 				sum += f(x);
 			}
 			mypi = h * sum;

@@ -1,20 +1,20 @@
-#ifndef artdaq_DAQrate_detail_RequestMessage_hh
-#define artdaq_DAQrate_detail_RequestMessage_hh
+#ifndef ARTDAQ_ARTDAQ_DAQRATE_DETAIL_REQUESTMESSAGE_HH_
+#define ARTDAQ_ARTDAQ_DAQRATE_DETAIL_REQUESTMESSAGE_HH_
 
 #include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
-#define MAX_REQUEST_MESSAGE_SIZE 65000
 
 #include "artdaq/DAQdata/Globals.hh"
 
 #include <iostream>
 #include <vector>
 
-namespace artdaq {
-namespace detail {
+namespace artdaq::detail {
 struct RequestPacket;
 struct RequestHeader;
 class RequestMessage;
+
+constexpr size_t MAX_REQUEST_MESSAGE_SIZE = 65000;
 
 /**
  * \brief Mode used to indicate current run conditions to the request receiver
@@ -45,8 +45,7 @@ inline std::ostream& operator<<(std::ostream& o, RequestMessageMode m)
 	return o;
 }
 
-}  // namespace detail
-}  // namespace artdaq
+}  // namespace artdaq::detail
 
 /**
  * \brief The RequestPacket contains information about a single data request
@@ -171,7 +170,7 @@ public:
 	 */
 	void addRequest(const Fragment::sequence_id_t& seq, const Fragment::timestamp_t& time)
 	{
-		packets_.emplace_back(RequestPacket(seq, time));
+		packets_.emplace_back(seq, time);
 	}
 
 	/**
@@ -188,4 +187,4 @@ private:
 	std::vector<RequestPacket> packets_;
 };
 
-#endif  // artdaq_DAQrate_detail_RequestMessage
+#endif  // ARTDAQ_ARTDAQ_DAQRATE_DETAIL_REQUESTMESSAGE_HH_

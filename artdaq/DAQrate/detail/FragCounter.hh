@@ -1,16 +1,14 @@
-#ifndef artdaq_DAQrate_detail_FragCounter_hh
-#define artdaq_DAQrate_detail_FragCounter_hh
+#ifndef ARTDAQ_ARTDAQ_DAQRATE_DETAIL_FRAGCOUNTER_HH_
+#define ARTDAQ_ARTDAQ_DAQRATE_DETAIL_FRAGCOUNTER_HH_
 
 #include <atomic>
 #include <limits>
 #include <mutex>
 #include <unordered_map>
 
-namespace artdaq {
-namespace detail {
+namespace artdaq::detail {
 class FragCounter;
-}
-}  // namespace artdaq
+}  // namespace artdaq::detail
 
 /**
  * \brief Keep track of the count of Fragments received from a set of sources
@@ -21,7 +19,7 @@ public:
 	/**
 	 * \brief Default Constructor
 	 */
-	explicit FragCounter();
+	FragCounter();
 
 	/**
 	 * \brief Increment the given slot by one
@@ -149,4 +147,4 @@ artdaq::detail::FragCounter::
 	return min;
 }
 
-#endif /* artdaq_DAQrate_detail_FragCounter_hh */
+#endif  // ARTDAQ_ARTDAQ_DAQRATE_DETAIL_FRAGCOUNTER_HH_

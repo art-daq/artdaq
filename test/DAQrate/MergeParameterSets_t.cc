@@ -7,7 +7,7 @@ BOOST_AUTO_TEST_SUITE(MergeParameterSets_test)
 
 BOOST_AUTO_TEST_CASE(Simple)
 {
-	fhicl::ParameterSet p1, p2;
+	fhicl::ParameterSet p1, p2;  // NOLINT
 	p1.put<std::string>("test_str", "test1");
 	p1.put<int>("test_int", 1);
 
@@ -25,7 +25,7 @@ BOOST_AUTO_TEST_CASE(Simple)
 
 BOOST_AUTO_TEST_CASE(Overwrite)
 {
-	fhicl::ParameterSet p1, p2;
+	fhicl::ParameterSet p1, p2;  // NOLINT
 	p1.put<std::string>("test_str", "test1");
 	p1.put<int>("test_int", 1);
 

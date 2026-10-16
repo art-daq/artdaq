@@ -216,7 +216,7 @@ try
 	artdaq::Globals::CleanUpGlobals();
 
 	return 0;
-}
+}  // NOLINT(readability/fn_size)
 catch (...)
 {
 	return -1;

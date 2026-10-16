@@ -1,5 +1,7 @@
-#ifndef _H_STATEMAP
-#define _H_STATEMAP
+#ifndef ARTDAQ_APPLICATION_DETAIL_STATEMAP_H_
+#define ARTDAQ_APPLICATION_DETAIL_STATEMAP_H_
+
+// NOLINTBEGIN
 
 //
 // The contents of this file are subject to the Mozilla Public
@@ -987,4 +989,6 @@ private:
 // Revision 1.0  2003/12/14 20:37:49  charlesr
 // Initial revision
 
-#endif
+// NOLINTEND
+
+#endif  // ARTDAQ_APPLICATION_DETAIL_STATEMAP_H_

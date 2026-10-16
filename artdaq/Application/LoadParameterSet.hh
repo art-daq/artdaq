@@ -1,5 +1,5 @@
-#ifndef artdaq_proto_LoadParameterSet_hh
-#define artdaq_proto_LoadParameterSet_hh 1
+#ifndef ARTDAQ_ARTDAQ_APPLICATION_LOADPARAMETERSET_HH_
+#define ARTDAQ_ARTDAQ_APPLICATION_LOADPARAMETERSET_HH_
 
 // note: in header files (this LoadParameterSet.hh) consider if you want TRACE/LOG to use "name" from .cc or name for this file
 #include "TRACE/tracemf.h"
@@ -63,7 +63,7 @@ void PrintConfigurationToConsole(std::string const& name)
  * \return The parsed fhicl::ParameterSet for the named table
  */
 template<typename C>
-inline fhicl::ParameterSet LoadParameterSet(int argc, char* argv[], std::string const& name, std::string const& description)
+inline fhicl::ParameterSet LoadParameterSet(int argc, char* argv[], std::string const& name, std::string const& description)  // NOLINT
 {
 	std::ostringstream descstr;
 	descstr << argv[0]  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
@@ -84,9 +84,9 @@ inline fhicl::ParameterSet LoadParameterSet(int argc, char* argv[], std::string 
 	}
 	if (vm.count("help"))
 	{
-		std::cout << desc << std::endl;
-		std::cout << description << std::endl;
-		std::cout << "Sample FHiCL configuration for this application: " << std::endl;
+		std::cout << desc << std::endl;                                                 // NOLINT(runtime/output_format)
+		std::cout << description << std::endl;                                          // NOLINT(runtime/output_format)
+		std::cout << "Sample FHiCL configuration for this application: " << std::endl;  // NOLINT(runtime/output_format)
 		fhicl::Table<C> config_description(fhicl::Name{name});
 		config_description.print_allowed_configuration(std::cout);
 		exit(1);
@@ -133,4 +133,4 @@ inline fhicl::ParameterSet LoadParameterSet(int argc, char* argv[], std::string 
 	}
 	return pset;
 }
-#endif  // artdaq_proto_LoadParameterSet_hh
+#endif  // ARTDAQ_ARTDAQ_APPLICATION_LOADPARAMETERSET_HH_

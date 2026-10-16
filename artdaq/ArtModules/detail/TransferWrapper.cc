@@ -20,10 +20,9 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <utility>
 
-namespace {
 volatile std::sig_atomic_t gSignalStatus = 0;  ///< Stores singal from signal handler
-}
 
 /**
  * \brief Handle a Unix signal
@@ -67,7 +66,7 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset)
 			metricMan->do_start();
 		}
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{
 		ExceptionHandler(ExceptionHandlerRethrow::no, "TransferWrapper: could not configure metrics");
 	}
@@ -187,7 +186,7 @@ artdaq::FragmentPtrs artdaq::TransferWrapper::receiveMessage()
 					           << ", status = " << result << ", last received data " << last_received_milliseconds << " ms ago.";
 				}
 			}
-			catch (...)
+			catch (...)  // NOLINT
 			{
 				ExceptionHandler(ExceptionHandlerRethrow::yes,
 				                 "Problem receiving data in TransferWrapper::receiveMessage");
@@ -221,7 +220,7 @@ artdaq::FragmentPtrs artdaq::TransferWrapper::receiveMessage()
 	}
 
 	return fragmentPtrs;
-}
+}  // NOLINT(readability/fn_size)
 
 std::shared_ptr<ArtdaqEvent> artdaq::TransferWrapper::receiveMessages()
 {
@@ -298,7 +297,7 @@ void artdaq::TransferWrapper::registerMonitor(bool setup_transfer)
 			transfer_.reset(nullptr);
 			transfer_ = MakeTransferPlugin(pset_, "transfer_plugin", TransferInterface::Role::kReceive);
 		}
-		catch (...)
+		catch (...)  // NOLINT
 		{
 			ExceptionHandler(ExceptionHandlerRethrow::yes,
 			                 "TransferWrapper: failure in call to MakeTransferPlugin");
@@ -330,7 +329,7 @@ void artdaq::TransferWrapper::registerMonitor(bool setup_transfer)
 
 	while (retry > 0)
 	{
-		label_ = dispatcherConfig.get<std::string>("unique_label") + "T" + std::to_string(time(0));
+		label_ = dispatcherConfig.get<std::string>("unique_label") + "T" + std::to_string(time(nullptr));
 		dispatcherConfig.erase("unique_label");
 		dispatcherConfig.put<std::string>("unique_label", label_);
 		TLOG(TLVL_INFO) << "Attempting to register this monitor (\"" << label_
@@ -447,7 +446,7 @@ artdaq::TransferWrapper::~TransferWrapper()
 		{
 			unregisterMonitor();
 		}
-		catch (...)
+		catch (...)  // NOLINT
 		{
 			ExceptionHandler(ExceptionHandlerRethrow::no,
 			                 "An exception occurred when trying to unregister monitor during TransferWrapper's destruction");

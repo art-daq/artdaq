@@ -1,5 +1,5 @@
-#ifndef artdaq_Application_MPI2_RoutingManagerCore_hh
-#define artdaq_Application_MPI2_RoutingManagerCore_hh
+#ifndef ARTDAQ_ARTDAQ_APPLICATION_ROUTINGMANAGERCORE_HH_
+#define ARTDAQ_ARTDAQ_APPLICATION_ROUTINGMANAGERCORE_HH_
 
 #include "artdaq/DAQrate/StatisticsHelper.hh"
 #include "artdaq/DAQrate/detail/RoutingPacket.hh"
@@ -24,7 +24,7 @@
 
 namespace artdaq {
 class RoutingManagerCore;
-}
+}  // namespace artdaq
 
 /**
  * \brief RoutingManagerCore implements the state machine for the RoutingManager artdaq application.
@@ -206,4 +206,4 @@ private:
 	int find_fd_(int fd) const;
 };
 
-#endif /* artdaq_Application_MPI2_RoutingManagerCore_hh */
+#endif  // ARTDAQ_ARTDAQ_APPLICATION_ROUTINGMANAGERCORE_HH_

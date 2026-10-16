@@ -1,5 +1,5 @@
-#ifndef artdaq_ArtModules_ShmemWrapper_hh
-#define artdaq_ArtModules_ShmemWrapper_hh
+#ifndef ARTDAQ_ARTDAQ_ARTMODULES_DETAIL_SHMEMWRAPPER_HH_
+#define ARTDAQ_ARTDAQ_ARTMODULES_DETAIL_SHMEMWRAPPER_HH_
 
 #include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
@@ -30,7 +30,7 @@ public:
 	 * \brief ShmemWrapper Constructor
 	 * \param ps ParameterSet for ShmemWrapper
 	 */
-	ShmemWrapper(fhicl::ParameterSet const& ps);
+	explicit ShmemWrapper(fhicl::ParameterSet const& ps);
 
 	/**
 	 * \brief ShmemWrapper Destructor
@@ -62,4 +62,4 @@ private:
 };
 }  // namespace art
 
-#endif /* artdaq_ArtModules_ShmemWrapper_hh */
+#endif  // ARTDAQ_ARTDAQ_ARTMODULES_DETAIL_SHMEMWRAPPER_HH_

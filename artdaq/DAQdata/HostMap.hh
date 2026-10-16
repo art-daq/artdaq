@@ -1,9 +1,7 @@
-#ifndef ARTDAQ_DAQDATA_HOSTMAP_HH
-#define ARTDAQ_DAQDATA_HOSTMAP_HH
+#ifndef ARTDAQ_ARTDAQ_DAQDATA_HOSTMAP_HH_
+#define ARTDAQ_ARTDAQ_DAQDATA_HOSTMAP_HH_
 
-#include <map>
-#include <string>
-#include <vector>
+#include "TRACE/trace.h"
 
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/types/Atom.h"
@@ -11,7 +9,9 @@
 #include "fhiclcpp/types/Sequence.h"  // Must pre-empt fhiclcpp/types/Atom.h
 #include "fhiclcpp/types/Table.h"
 
-#include "TRACE/trace.h"
+#include <map>
+#include <string>
+#include <vector>
 
 namespace artdaq {
 
@@ -86,4 +86,4 @@ inline hostMap_t MakeHostMap(fhicl::ParameterSet const& pset, hostMap_t map = ho
 }
 }  // namespace artdaq
 
-#endif  // ARTDAQ_DAQDATA_HOSTMAP_HH
+#endif  // ARTDAQ_ARTDAQ_DAQDATA_HOSTMAP_HH_

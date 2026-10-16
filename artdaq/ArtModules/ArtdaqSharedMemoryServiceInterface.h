@@ -1,10 +1,12 @@
-#ifndef artdaq_ArtModules_ArtdaqSharedMemoryServiceInterface_h
-#define artdaq_ArtModules_ArtdaqSharedMemoryServiceInterface_h
+#ifndef ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQSHAREDMEMORYSERVICEINTERFACE_H_
+#define ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQSHAREDMEMORYSERVICEINTERFACE_H_
 
 #include "art/Framework/Services/Registry/ServiceDeclarationMacros.h"
 #include "artdaq-core/Data/RawEvent.hh"
 #include "artdaq/ArtModules/ArtdaqEvent.hh"
 #include "fhiclcpp/types/Atom.h"
+
+#include <memory>
 
 /**
  * \brief Interface for ArtdaqSharedMemoryService. This interface is declared to art as part of the required registration of an art Service
@@ -53,7 +55,7 @@ private:
 
 DECLARE_ART_SERVICE_INTERFACE(ArtdaqSharedMemoryServiceInterface, LEGACY)
 
-#endif /* artdaq_ArtModules_ArtdaqSharedMemoryServiceInterface_h */
+#endif  // ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQSHAREDMEMORYSERVICEINTERFACE_H_
 
 // Local Variables:
 // mode: c++
