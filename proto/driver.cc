@@ -261,7 +261,7 @@ dynamic_unique_ptr_cast(std::unique_ptr<B>& p)
 
 	if (result)
 	{
-		p.release(); // NOLINT
+		p.release();  // NOLINT
 		return std::unique_ptr<D>(result);
 	}
 	return nullptr;

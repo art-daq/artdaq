@@ -107,7 +107,7 @@ BOOST_AUTO_TEST_CASE(Requests)
 	TLOG(TLVL_DEBUG) << "Sending request";
 	auto start_time = std::chrono::steady_clock::now();
 	t.AddRequest(0, 0x10);
-	struct pollfd ufds[1]; // NOLINT
+	struct pollfd ufds[1];  // NOLINT
 
 	TLOG(TLVL_DEBUG) << "Receiving Request";
 	ufds[0].fd = request_socket;

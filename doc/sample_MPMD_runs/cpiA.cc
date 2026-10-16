@@ -2,8 +2,8 @@
    (C) 2001 by Argonne National Laboratory.
        See COPYRIGHT in top-level directory.
 */
-#include <cmath>
 #include <mpi.h>
+#include <cmath>
 #include <cstdio>
 #include <iostream>
 
@@ -24,15 +24,15 @@ int main(int argc, char* argv[])
 
 	cout << "BooA" << endl;
 
-	int done = 0, n, myid, numprocs, i; // NOLINT
+	int done = 0, n, myid, numprocs, i;  // NOLINT
 	double PI25DT = 3.141592653589793238462643;
-	double mypi, pi, h, sum, x; // NOLINT
-	double startwtime = 0.0, endwtime; // NOLINT
+	double mypi, pi, h, sum, x;         // NOLINT
+	double startwtime = 0.0, endwtime;  // NOLINT
 	int namelen = 0;
-	char processor_name[MPI_MAX_PROCESSOR_NAME]; // NOLINT
+	char processor_name[MPI_MAX_PROCESSOR_NAME];  // NOLINT
 
 	for (int i = 0; i < argc; ++i)
-		cout << "argv[" << i << "] = " << argv[i] 		     << endl; // NOLINT
+		cout << "argv[" << i << "] = " << argv[i] << endl;  // NOLINT
 
 	MPI_Init(&argc, &argv);
 	MPI_Comm_size(MPI_COMM_WORLD, &numprocs);

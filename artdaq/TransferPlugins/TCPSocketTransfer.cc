@@ -315,7 +315,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 		if (byte_cnt > 0)
 		{
 			TLOG(TLVL_DEBUG + 35) << GetTraceName() << "Reading " << byte_cnt << " bytes from socket " << fd;
-			sts = read(fd, buff, byte_cnt); // NOLINT
+			sts = read(fd, buff, byte_cnt);  // NOLINT
 			TLOG(TLVL_DEBUG + 35) << GetTraceName() << "Done with read sts=" << sts;
 		}
 		if (sts > 0)
@@ -640,7 +640,7 @@ void artdaq::TCPSocketTransfer::flush_buffers()
 		}
 	}
 
-	char discard_buf[0x1000]; // NOLINT
+	char discard_buf[0x1000];  // NOLINT
 	for (auto& fd : fds)
 	{
 		TLOG(TLVL_INFO) << GetTraceName() << "flush_buffers: Checking for data in socket " << fd << " for rank " << rank;

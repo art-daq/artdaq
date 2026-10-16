@@ -24,7 +24,7 @@ try
 	int level = config_ps.get<int>("metric_level", 1);
 
 	std::cout << "Enter metrics in <name> <value> <units> format. Ctrl-D to end" << std::endl;
-	std::string name, unit; // NOLINT
+	std::string name, unit;  // NOLINT
 	double value = 0.0;
 	while (std::cin >> name >> value >> unit)
 	{

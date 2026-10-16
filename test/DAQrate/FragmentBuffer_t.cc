@@ -18,7 +18,7 @@ constexpr size_t RATE_TEST_COUNT = 100000;
 #define TRACE_REQUIRE_EQUAL(l, r)                                                                                                \
 	do                                                                                                                           \
 	{                                                                                                                            \
-		if ((l) == (r))                                                                                                              \
+		if ((l) == (r))                                                                                                          \
 		{                                                                                                                        \
 			TLOG(TLVL_DEBUG) << __LINE__ << ": Checking if " << #l << " (" << l << ") equals " << #r << " (" << r << ")...YES!"; \
 		}                                                                                                                        \

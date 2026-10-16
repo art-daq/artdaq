@@ -1,13 +1,13 @@
 #define TRACE_NAME "TokenSender_t"
 
-#include "artdaq/DAQrate/detail/TokenSender.hh"
 #include "artdaq/DAQdata/Globals.hh"
+#include "artdaq/DAQrate/detail/TokenSender.hh"
 
 #define BOOST_TEST_MODULE TokenSender_t
+#include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
 #include "artdaq/DAQdata/TCP_listen_fd.hh"
 #include "artdaq/DAQrate/detail/RoutingPacket.hh"
-#include "artdaq-core/Utilities/configureMessageFacility.hh"
 
 #include "cetlib/quiet_unit_test.hpp"
 #include "cetlib_except/exception.h"
