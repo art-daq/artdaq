@@ -1336,7 +1336,7 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 		if (hdr->sequence_id == seqID)
 		{
 			TLOG(TLVL_GETBUFFER) << "getBufferForSequenceID " << seqID << " returning " << buf;
-			return buf;
+			return static_cast<int>(buf);
 		}
 	}
 
