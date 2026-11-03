@@ -20,11 +20,11 @@ constexpr size_t RATE_TEST_COUNT = 100000;
 	{                                                                                                                            \
 		if ((l) == (r))                                                                                                          \
 		{                                                                                                                        \
-			TLOG(TLVL_DEBUG) << __LINE__ << ": Checking if " << #l << " (" << l << ") equals " << #r << " (" << r << ")...YES!"; \
+			TLOG(TLVL_DEBUG) << __LINE__ << ": Checking if " << #l << " (" << (l) << ") equals " << #r << " (" << (r) << ")...YES!"; \
 		}                                                                                                                        \
 		else                                                                                                                     \
 		{                                                                                                                        \
-			TLOG(TLVL_ERROR) << __LINE__ << ": Checking if " << #l << " (" << l << ") equals " << #r << " (" << r << ")...NO!";  \
+			TLOG(TLVL_ERROR) << __LINE__ << ": Checking if " << #l << " (" << (l) << ") equals " << #r << " (" << (r) << ")...NO!";  \
 		}                                                                                                                        \
 		BOOST_REQUIRE_EQUAL(l, r);                                                                                               \
 	} while (0)
