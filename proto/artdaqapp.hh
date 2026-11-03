@@ -1,5 +1,5 @@
-#ifndef ARTDAQ_PROTO_ARTDAQAPP_HH
-#define ARTDAQ_PROTO_ARTDAQAPP_HH
+#ifndef ARTDAQ_PROTO_ARTDAQAPP_HH_
+#define ARTDAQ_PROTO_ARTDAQAPP_HH_
 
 #include "artdaq/DAQdata/Globals.hh"
 
@@ -15,6 +15,8 @@
 #include "artdaq/ExternalComms/MakeCommanderPlugin.hh"
 
 #include <sys/prctl.h>
+#include <memory>
+#include <string>
 
 namespace artdaq {
 /// <summary>
@@ -58,11 +60,10 @@ public:
 
 		if (config_ps.get<bool>("replace_image_name", config_ps.get<bool>("rin", false)))
 		{
-			int s;
-			s = prctl(PR_SET_NAME, app_name.c_str(), NULL, NULL, NULL);
+			int s = prctl(PR_SET_NAME, app_name.c_str(), NULL, NULL, NULL);  // NOLINT(build/null_usage)
 			if (s != 0)
 			{
-				std::cerr << "Could not replace process image name with " << app_name << "!" << std::endl;
+				std::cerr << "Could not replace process image name with " << app_name << "!" << std::endl;  // NOLINT(runtime/output_format)
 				exit(1);
 			}
 		}
@@ -139,4 +140,4 @@ public:
 };
 }  // namespace artdaq
 
-#endif  // ARTDAQ_PROTO_ARTDAQAPP_HH
+#endif  // ARTDAQ_PROTO_ARTDAQAPP_HH_

@@ -1,12 +1,15 @@
-#ifndef artdaq_Application_MPI2_BoardReaderApp_hh
-#define artdaq_Application_MPI2_BoardReaderApp_hh
+#ifndef ARTDAQ_ARTDAQ_APPLICATION_BOARDREADERAPP_HH_
+#define ARTDAQ_ARTDAQ_APPLICATION_BOARDREADERAPP_HH_
 
 #include "artdaq/Application/BoardReaderCore.hh"
 #include "artdaq/Application/Commandable.hh"
 
+#include <memory>
+#include <string>
+
 namespace artdaq {
 class BoardReaderApp;
-}
+}  // namespace artdaq
 
 /**
  * \brief BoardReaderApp is an artdaq::Commandable derived class which controls the BoardReaderCore state machine
@@ -121,7 +124,7 @@ public:
 	 */
 	bool do_meta_command(std::string const& command, std::string const& arg) override;
 
-	/* Report_ptr */
+	// Report_ptr
 	/**
 	 * \brief If which is "transition_status", report the status of the last transition. Otherwise pass through to BoardReaderCore
 	 * \param which What to report on
@@ -143,4 +146,4 @@ private:
 	boost::thread fragment_output_thread_;
 };
 
-#endif /* artdaq_Application_MPI2_BoardReaderApp_hh */
+#endif  // ARTDAQ_ARTDAQ_APPLICATION_BOARDREADERAPP_HH_

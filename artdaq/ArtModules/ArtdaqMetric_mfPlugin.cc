@@ -13,7 +13,6 @@
 #define TRACE_NAME "ArtdaqMetric"
 
 namespace mfplugins {
-using mf::ELseverityLevel;
 using mf::ErrorObj;
 using mf::service::ELdestination;
 
@@ -50,12 +49,11 @@ public:
 	/// Used for ParameterSet validation
 	using Parameters = fhicl::WrappedTable<Config>;
 
-public:
 	/// <summary>
 	/// ELArtdaqMetric Constructor
 	/// </summary>
 	/// <param name="pset">ParameterSet used to configure ELArtdaqMetric</param>
-	ELArtdaqMetric(Parameters const& pset);
+	explicit ELArtdaqMetric(Parameters const& pset);
 
 	/**
 	 * \brief Fill the "Prefix" portion of the message
@@ -204,6 +202,8 @@ void ELArtdaqMetric::routePayload(const std::ostringstream& oss, const ErrorObj&
 			case 3:
 				metricMan->sendMetric("Debug Message Rate", 1, "messages", metricLevelOffset_, artdaq::MetricMode::Rate);
 				break;
+			default:
+				break;
 		}
 	}
 }
@@ -216,6 +216,7 @@ void ELArtdaqMetric::routePayload(const std::ostringstream& oss, const ErrorObj&
 //======================================================================
 
 #ifndef EXTERN_C_FUNC_DECLARE_START
+// NOLINTNEXTLINE
 #define EXTERN_C_FUNC_DECLARE_START extern "C" {
 #endif
 

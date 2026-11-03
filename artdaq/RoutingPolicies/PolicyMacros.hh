@@ -1,12 +1,12 @@
-#ifndef artdaq_Application_Routing_PolicyMacros_hh
-#define artdaq_Application_Routing_PolicyMacros_hh
+#ifndef ARTDAQ_ARTDAQ_ROUTINGPOLICIES_POLICYMACROS_HH_
+#define ARTDAQ_ARTDAQ_ROUTINGPOLICIES_POLICYMACROS_HH_
 
 #include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
 #include "cetlib/compiler_macros.h"
 
 namespace fhicl {
 class ParameterSet;
-}
+}  // namespace fhicl
 
 #include <memory>
 
@@ -20,9 +20,11 @@ typedef std::unique_ptr<artdaq::RoutingManagerPolicy> makeFunc_t(fhicl::Paramete
 }  // namespace artdaq
 
 #ifndef EXTERN_C_FUNC_DECLARE_START
+// NOLINTNEXTLINE
 #define EXTERN_C_FUNC_DECLARE_START extern "C" {
 #endif
 
+// NOLINTNEXTLINE
 #define DEFINE_ARTDAQ_ROUTING_POLICY(klass)                                  \
 	EXTERN_C_FUNC_DECLARE_START                                              \
 	std::unique_ptr<artdaq::RoutingManagerPolicy>                            \
@@ -32,4 +34,4 @@ typedef std::unique_ptr<artdaq::RoutingManagerPolicy> makeFunc_t(fhicl::Paramete
 	}                                                                        \
 	}
 
-#endif /* artdaq_Application_Routing_PolicyMacros_hh */
+#endif  // ARTDAQ_ARTDAQ_ROUTINGPOLICIES_POLICYMACROS_HH_

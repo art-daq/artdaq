@@ -6,6 +6,8 @@
 
 #include "fhiclcpp/ParameterSet.h"
 
+#include <string>
+
 artdaq::RoutingManagerPolicy::RoutingManagerPolicy(const fhicl::ParameterSet& ps)
     : tokens_used_since_last_update_(0)
     , next_sequence_id_(1)
@@ -154,7 +156,7 @@ void artdaq::RoutingManagerPolicy::CreateRoutingTableFromCache(detail::RoutingPa
 		{
 			if (!cache_entry.second[0].included_in_table)
 			{
-				table.push_back(artdaq::detail::RoutingPacketEntry(cache_entry.second[0].sequence_id, cache_entry.second[0].destination_rank));
+				table.emplace_back(cache_entry.second[0].sequence_id, cache_entry.second[0].destination_rank);
 				cache_entry.second[0].included_in_table = true;
 			}
 		}

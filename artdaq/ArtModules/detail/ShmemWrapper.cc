@@ -7,6 +7,8 @@
 #include "artdaq/ArtModules/ArtdaqSharedMemoryServiceInterface.h"
 #include "artdaq/DAQdata/NetMonHeader.hh"
 
+#include <utility>
+
 art::ShmemWrapper::ShmemWrapper(fhicl::ParameterSet const& ps)
 {
 	init_timeout_s_ = ps.get<double>("init_fragment_timeout_seconds", 600.0);

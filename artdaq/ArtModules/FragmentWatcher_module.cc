@@ -39,7 +39,7 @@
 
 namespace artdaq {
 class FragmentWatcher;
-}
+}  // namespace artdaq
 
 /// <summary>
 /// An art::EDAnalyzer module which checks events for certain error conditions (missing fragments, empty fragments, etc)
@@ -231,8 +231,8 @@ void artdaq::FragmentWatcher::analyze(art::Event const& evt)
 	// reporting for the BASIC_COUNTS_MODE
 	if (metricMan != nullptr && mode_bitset_.test(BASIC_COUNTS_MODE))
 	{
-		if (missing_fragment_count_this_event > 0) { ++events_with_missing_fragments_; }
-		if (empty_fragment_count_this_event > 0) { ++events_with_empty_fragments_; }
+		if (missing_fragment_count_this_event > 0) { ++events_with_missing_fragments_; }  // NOLINT(runtime/increment_decrement)
+		if (empty_fragment_count_this_event > 0) { ++events_with_empty_fragments_; }      // NOLINT(runtime/increment_decrement)
 
 		metricMan->sendMetric("EventsWithMissingFragments", events_with_missing_fragments_, "events",
 		                      metrics_reporting_level_, artdaq::MetricMode::LastPoint);
@@ -355,6 +355,6 @@ void artdaq::FragmentWatcher::analyze(art::Event const& evt)
 
 		==================================================== =
 #endif
-}
+}  // NOLINT(readability/fn_size)
 
 DEFINE_ART_MODULE(artdaq::FragmentWatcher)  // NOLINT(performance-unnecessary-value-param)

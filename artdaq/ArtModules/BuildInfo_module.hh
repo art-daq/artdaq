@@ -55,7 +55,7 @@ public:
 	 *
 	 * This function is a required override for EDProducer, and is a No-Op in BuildInfo_module.
 	 */
-	void produce(art::Event& e) final override;
+	void produce(art::Event& e) final;
 
 private:
 	BuildInfo(BuildInfo const&) = delete;

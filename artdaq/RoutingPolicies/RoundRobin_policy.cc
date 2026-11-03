@@ -79,8 +79,8 @@ void RoundRobinPolicy::CreateRoutingTable(detail::RoutingPacket& output)
 		for (auto it = table.begin(); it != table.end();)
 		{
 			TLOG(TLVL_DEBUG + 38) << "RoundRobinPolicy::GetCurrentTable assigning sequenceID " << next_sequence_id_ << " to rank " << it->first;
-			output.emplace_back(detail::RoutingPacketEntry(next_sequence_id_++, it->first));
-			table[it->first]--;
+			output.emplace_back(next_sequence_id_++, it->first);  // NOLINT(runtime/increment_decrement)
+			table[it->first]--;                                   // NOLINT(runtime/increment_decrement)
 
 			if (table[it->first] <= 0)
 			{

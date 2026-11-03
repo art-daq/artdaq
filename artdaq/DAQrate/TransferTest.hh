@@ -1,13 +1,13 @@
-#ifndef ARTDAQ_TEST_DAQRATE_TRANSFERTEST_HH
-#define ARTDAQ_TEST_DAQRATE_TRANSFERTEST_HH
+#ifndef ARTDAQ_ARTDAQ_DAQRATE_TRANSFERTEST_HH_
+#define ARTDAQ_ARTDAQ_DAQRATE_TRANSFERTEST_HH_
+
+#include "fhiclcpp/ParameterSet.h"
 
 #include <chrono>
 #include <cmath>
 #include <string>
 #include <utility>  // std::pair<>
 #include <vector>
-
-#include "fhiclcpp/ParameterSet.h"
 
 namespace artdaq {
 /**
@@ -99,4 +99,4 @@ inline std::string TransferTest::formatHertz(double hertz, size_t suffixIndex)
 }
 
 }  // namespace artdaq
-#endif  // ARTDAQ_TEST_DAQRATE_TRANSFERTEST_HH
+#endif  // ARTDAQ_ARTDAQ_DAQRATE_TRANSFERTEST_HH_

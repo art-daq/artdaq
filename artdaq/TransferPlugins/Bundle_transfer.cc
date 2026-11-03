@@ -1,5 +1,3 @@
-#include <memory>
-
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_BundleTransfer").c_str()
 
@@ -8,6 +6,7 @@
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 
 #include <boost/thread.hpp>
+#include <memory>
 
 namespace artdaq {
 /**
@@ -46,7 +45,7 @@ public:
 		ContainerFragment cf(*bundle_fragment_);
 		TLOG(TLVL_DEBUG + 32) << GetTraceName() << "Retrieving Fragment " << (current_block_index_ + 1) << " of " << cf.block_count();
 		fragment.resizeBytes(cf.fragSize(current_block_index_) - sizeof(detail::RawFragmentHeader));
-		memcpy(fragment.headerAddress(), static_cast<const uint8_t*>(cf.dataBegin()) + cf.fragmentIndex(current_block_index_), cf.fragSize(current_block_index_));
+		memcpy(fragment.headerAddress(), static_cast<const uint8_t*>(cf.dataBegin()) + cf.fragmentIndex(current_block_index_), cf.fragSize(current_block_index_));  // NOLINT
 		current_block_index_++;
 		if (current_block_index_ >= cf.block_count())  // Index vs. count!
 		{
@@ -70,7 +69,7 @@ public:
 		}
 		ContainerFragment cf(*bundle_fragment_);
 		TLOG(TLVL_DEBUG + 32) << GetTraceName() << "Retrieving Fragment Header " << (current_block_index_ + 1) << " of " << cf.block_count();
-		memcpy(&header, static_cast<const uint8_t*>(cf.dataBegin()) + cf.fragmentIndex(current_block_index_), sizeof(detail::RawFragmentHeader));
+		memcpy(&header, static_cast<const uint8_t*>(cf.dataBegin()) + cf.fragmentIndex(current_block_index_), sizeof(detail::RawFragmentHeader));  // NOLINT
 		return current_rank_;
 	}
 
@@ -88,7 +87,7 @@ public:
 		}
 		ContainerFragment cf(*bundle_fragment_);
 		TLOG(TLVL_DEBUG + 32) << GetTraceName() << "Retrieving Fragment Data " << (current_block_index_ + 1) << " of " << cf.block_count();
-		memcpy(destination, static_cast<const uint8_t*>(cf.dataBegin()) + cf.fragmentIndex(current_block_index_) + sizeof(detail::RawFragmentHeader), cf.fragSize(current_block_index_) - sizeof(detail::RawFragmentHeader));
+		memcpy(destination, static_cast<const uint8_t*>(cf.dataBegin()) + cf.fragmentIndex(current_block_index_) + sizeof(detail::RawFragmentHeader), cf.fragSize(current_block_index_) - sizeof(detail::RawFragmentHeader));  // NOLINT
 		current_block_index_++;
 		if (current_block_index_ >= cf.block_count())  // Index vs. count!
 		{
@@ -206,7 +205,6 @@ private:
 	BundleTransfer& operator=(BundleTransfer const&) = delete;
 	BundleTransfer& operator=(BundleTransfer&&) = delete;
 
-private:
 	std::unique_ptr<TransferInterface> theTransfer_;
 	size_t send_threshold_bytes_;
 	size_t max_hold_size_bytes_;
@@ -250,7 +248,7 @@ private:
 		if (!metricMan) return;
 		auto rankString = std::to_string(destination_rank());
 		metricMan->sendMetric("Bundle Buffer Occupancy to Rank " + rankString, current_buffer_size_bytes_.load(), "B", 2, MetricMode::LastPoint);
-		metricMan->sendMetric("Bundle Buffer Events to Rank " + rankString, static_cast<unsigned long>(fragment_buffer_.size()), "events", 2, MetricMode::LastPoint);
+		metricMan->sendMetric("Bundle Buffer Events to Rank " + rankString, static_cast<unsigned long>(fragment_buffer_.size()), "events", 2, MetricMode::LastPoint);  // NOLINT
 		double oldestAge = fragment_buffer_.empty() ? 0.0 : std::chrono::duration<double>(std::chrono::steady_clock::now() - buffer_oldest_time_).count();
 		metricMan->sendMetric("Bundle Buffer Oldest Event Age to Rank " + rankString, oldestAge, "s", 2, MetricMode::LastPoint);
 	}
@@ -299,7 +297,7 @@ void artdaq::BundleTransfer::start_timeout_thread_()
 	try
 	{
 		send_timeout_thread_ = std::make_unique<boost::thread>(&BundleTransfer::send_timeout_thread_proc_, this);
-		char tname[16];                                            // Size 16 - see man page pthread_setname_np(3) and/or prctl(2)
+		char tname[16];                                            // NOLINT Size 16 - see man page pthread_setname_np(3) and/or prctl(2)
 		snprintf(tname, sizeof(tname) - 1, "%d-SNDTMO", my_rank);  // NOLINT
 		tname[sizeof(tname) - 1] = '\0';                           // assure term. snprintf is not too evil :)
 		auto handle = send_timeout_thread_->native_handle();
@@ -308,7 +306,7 @@ void artdaq::BundleTransfer::start_timeout_thread_()
 	catch (const boost::exception& e)
 	{
 		TLOG(TLVL_ERROR) << GetTraceName() << "Caught boost::exception starting Send Timeout thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
-		std::cerr << GetTraceName() << "Caught boost::exception starting Send Timeout thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
+		std::cerr << GetTraceName() << "Caught boost::exception starting Send Timeout thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;  // NOLINT
 		exit(5);
 	}
 }

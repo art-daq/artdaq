@@ -1,19 +1,19 @@
 #define TRACE_NAME "RequestSender"
 
-#include <boost/program_options.hpp>
-#include <memory>
-#include <thread>
-
+#include "artdaq/DAQrate/detail/RequestSender.hh"
 #include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
 #include "artdaq/DAQrate/detail/RequestReceiver.hh"
-#include "artdaq/DAQrate/detail/RequestSender.hh"
 
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/types/Atom.h"
 #include "fhiclcpp/types/Comment.h"
 #include "fhiclcpp/types/Name.h"
 #include "fhiclcpp/types/TableFragment.h"
+
+#include <boost/program_options.hpp>
+#include <memory>
+#include <thread>
 
 int main(int argc, char* argv[])
 try
@@ -39,7 +39,7 @@ try
 	fhicl::ParameterSet tempPset;
 	if (pset.has_key("daq"))
 	{
-		fhicl::ParameterSet daqPset = pset.get<fhicl::ParameterSet>("daq");
+		auto daqPset = pset.get<fhicl::ParameterSet>("daq");
 		for (auto& name : daqPset.get_pset_names())
 		{
 			auto thisPset = daqPset.get<fhicl::ParameterSet>(name);
@@ -134,7 +134,7 @@ try
 	}
 
 	return rc;
-}
+}  // NOLINT(readability/fn_size)
 catch (...)
 {
 	return -1;

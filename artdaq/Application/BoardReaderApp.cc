@@ -41,7 +41,7 @@ bool artdaq::BoardReaderApp::do_initialize(fhicl::ParameterSet const& pset, uint
 		report_string_ = "Error initializing " + app_name + ": " + ex.what();
 		return false;
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{
 		external_request_status_ = false;
 		report_string_ = "Error initializing " + app_name + " (unknown exception)";
@@ -74,7 +74,7 @@ bool artdaq::BoardReaderApp::do_start(art::RunID id, uint64_t timeout, uint64_t 
 	{
 		timeout = 3600;  // seconds
 	}
-	fragment_receiver_ptr_->SetStartTransitionTimeout(timeout);
+	fragment_receiver_ptr_->SetStartTransitionTimeout(static_cast<double>(timeout));
 	external_request_status_ = true;
 
 	boost::thread::attributes attrs;
@@ -82,7 +82,7 @@ bool artdaq::BoardReaderApp::do_start(art::RunID id, uint64_t timeout, uint64_t 
 	try
 	{
 		fragment_output_thread_ = boost::thread(attrs, boost::bind(&BoardReaderCore::send_fragments, fragment_receiver_ptr_.get()));
-		char tname[16];                                                // Size 16 - see man page pthread_setname_np(3) and/or prctl(2)
+		char tname[16];                                                // NOLINT Size 16 - see man page pthread_setname_np(3) and/or prctl(2)
 		snprintf(tname, sizeof(tname) - 1, "%d-FragOutput", my_rank);  // NOLINT
 		tname[sizeof(tname) - 1] = '\0';                               // assure term. snprintf is not too evil :)
 		auto handle = fragment_output_thread_.native_handle();
@@ -104,7 +104,7 @@ bool artdaq::BoardReaderApp::do_start(art::RunID id, uint64_t timeout, uint64_t 
 	auto start_wait = std::chrono::steady_clock::now();
 	while (!fragment_receiver_ptr_->GetSenderThreadActive() || !fragment_receiver_ptr_->GetReceiverThreadActive())
 	{
-		if (TimeUtils::GetElapsedTime(start_wait) > timeout)
+		if (TimeUtils::GetElapsedTime(start_wait) > static_cast<double>(timeout))
 		{
 			TLOG(TLVL_ERROR) << "Timeout occurred waiting for BoardReaderCore threads to start. Timeout = " << timeout << " s, Time waited = " << TimeUtils::GetElapsedTime(start_wait) << " s,"
 			                 << " Receiver ready: " << std::boolalpha << fragment_receiver_ptr_->GetReceiverThreadActive() << ", Sender ready: " << fragment_receiver_ptr_->GetSenderThreadActive();
@@ -204,7 +204,7 @@ bool artdaq::BoardReaderApp::do_resume(uint64_t timeout, uint64_t timestamp)
 	try
 	{
 		fragment_output_thread_ = boost::thread(attrs, boost::bind(&BoardReaderCore::send_fragments, fragment_receiver_ptr_.get()));
-		char tname[16];                                                // Size 16 - see man page pthread_setname_np(3) and/or prctl(2)
+		char tname[16];                                                // NOLINT Size 16 - see man page pthread_setname_np(3) and/or prctl(2)
 		snprintf(tname, sizeof(tname) - 1, "%d-FragOutput", my_rank);  // NOLINT
 		tname[sizeof(tname) - 1] = '\0';                               // assure term. snprintf is not too evil :)
 		auto handle = fragment_output_thread_.native_handle();

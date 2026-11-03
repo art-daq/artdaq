@@ -1,3 +1,6 @@
+#ifndef ARTDAQ_ARTDAQ_ARTMODULES_DETAIL_ARTCONFIG_HH_
+#define ARTDAQ_ARTDAQ_ARTMODULES_DETAIL_ARTCONFIG_HH_
+
 #include "art/Framework/Core/OutputModule.h"
 #include "art/Framework/IO/ClosingCriteria.h"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
@@ -9,6 +12,9 @@
 #include "fhiclcpp/types/Table.h"
 #include "fhiclcpp/types/TableFragment.h"
 #include "fhiclcpp/types/Tuple.h"
+
+#include <set>
+#include <string>
 
 namespace art {
 /// <summary>
@@ -161,3 +167,5 @@ struct Config
 	fhicl::Atom<std::string> process_name{fhicl::Name{"process_name"}, fhicl::Comment{"Name of this art processing job"}, "DAQ"};
 };
 }  // namespace art
+
+#endif  // ARTDAQ_ARTDAQ_ARTMODULES_DETAIL_ARTCONFIG_HH_

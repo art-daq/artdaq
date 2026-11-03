@@ -17,6 +17,7 @@
 #include <iomanip>
 #include <thread>
 #include <utility>
+#include <vector>
 
 artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset, std::shared_ptr<SharedMemoryEventManager> shm)
     : stop_requested_(false)
@@ -84,8 +85,7 @@ artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset
 	{
 		try
 		{
-			auto transfer = std::unique_ptr<TransferInterface>(MakeTransferPlugin(srcs_mod, s,
-			                                                                      TransferInterface::Role::kReceive));
+			std::unique_ptr<TransferInterface> transfer{MakeTransferPlugin(srcs_mod, s, TransferInterface::Role::kReceive)};
 			auto source_rank = transfer->source_rank();
 			if (enabled_srcs_empty)
 			{
@@ -106,7 +106,7 @@ artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset
 		{
 			TLOG(TLVL_WARNING) << "std::exception caught while setting up source " << s << ": " << ex.what();
 		}
-		catch (...)
+		catch (...)  // NOLINT
 		{
 			TLOG(TLVL_WARNING) << "Non-cet exception caught while setting up source " << s << ".";
 		}
@@ -147,7 +147,7 @@ void artdaq::DataReceiverManager::start_threads()
 			try
 			{
 				source_threads_[rank] = boost::thread(attrs, boost::bind(&DataReceiverManager::runReceiver_, this, rank));
-				char tname[16];                                                   // Size 16 - see man page pthread_setname_np(3) and/or prctl(2)
+				char tname[16];                                                   // NOLINT Size 16 - see man page pthread_setname_np(3) and/or prctl(2)
 				snprintf(tname, sizeof(tname) - 1, "%d-%d RECV", rank, my_rank);  // NOLINT
 				tname[sizeof(tname) - 1] = '\0';                                  // assure term. snprintf is not too evil :)
 				auto handle = source_threads_[rank].native_handle();
@@ -156,7 +156,7 @@ void artdaq::DataReceiverManager::start_threads()
 			catch (const boost::exception& e)
 			{
 				TLOG(TLVL_ERROR) << "Caught boost::exception starting Receiver " << rank << " thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
-				std::cerr << "Caught boost::exception starting Receiver " << rank << " thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
+				std::cerr << "Caught boost::exception starting Receiver " << rank << " thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;  // NOLINT(runtime/output_format)
 				exit(5);
 			}
 		}
@@ -205,7 +205,7 @@ void artdaq::DataReceiverManager::stop_threads()
 				TLOG(TLVL_ERROR) << "stop_threads: Thread for source rank " << source_thread.first << " is not joinable!";
 			}
 		}
-		catch (...)
+		catch (...)  // NOLINT
 		{
 			// IGNORED
 		}
@@ -243,8 +243,12 @@ std::set<int> artdaq::DataReceiverManager::running_sources() const
 
 void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 {
-	std::chrono::steady_clock::time_point start_time, after_header, before_body, after_body, end_time = std::chrono::steady_clock::now();
-	int ret;
+	auto start_time = std::chrono::steady_clock::now();
+	auto after_header = std::chrono::steady_clock::now();
+	auto before_body = std::chrono::steady_clock::now();
+	auto after_body = std::chrono::steady_clock::now();
+	auto end_time = std::chrono::steady_clock::now();
+	int ret{0};
 	detail::RawFragmentHeader header;
 	size_t endOfDataCount = -1;
 	auto sleep_time = receive_timeout_ / 100 > 100000 ? 100000 : receive_timeout_ / 100;
@@ -252,7 +256,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 	{
 		sleep_time = 5000;
 	}
-	auto max_retries = non_reliable_mode_retry_count_ * ceil(receive_timeout_ / sleep_time);
+	auto max_retries = non_reliable_mode_retry_count_ * ceil(receive_timeout_ / static_cast<double>(sleep_time));
 
 	while (!(stop_requested_ && TimeUtils::gettimeofday_us() - stop_requested_time_ > stop_timeout_ms_ * 1000) && (enabled_sources_.count(source_rank) != 0u))
 	{
@@ -270,7 +274,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 
 		TLOG(TLVL_DEBUG + 35) << "runReceiver_: About to call receiveFragmentHeader, source_rank=" << source_rank << ", tmo=" << receive_timeout_;
 		ret = source_plugins_[source_rank]->receiveFragmentHeader(header, receive_timeout_);
-		TLOG(TLVL_DEBUG + 35) << "runReceiver_: receiveFragmentHeader returned: ret=" << ret << " seqid=" << header.sequence_id << " fragid=" << header.fragment_id << " type=" << (int)header.type;
+		TLOG(TLVL_DEBUG + 35) << "runReceiver_: receiveFragmentHeader returned: ret=" << ret << " seqid=" << header.sequence_id << " fragid=" << header.fragment_id << " type=" << static_cast<int>(header.type);
 		if (ret != source_rank)
 		{
 			if (ret >= 0)
@@ -300,7 +304,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			RawDataType* loc = nullptr;
 			size_t retries = 0;
 			auto latency_s = header.getLatency(true);
-			auto latency = latency_s.tv_sec + (latency_s.tv_nsec / 1000000000.0);
+			auto latency = static_cast<double>(latency_s.tv_sec) + (static_cast<double>(latency_s.tv_nsec) / 1000000000.0);
 			while (loc == nullptr)  //&& TimeUtils::GetElapsedTimeMicroseconds(after_header)) < receive_timeout_)
 			{
 				loc = shm_manager_->WriteFragmentHeader(header);
@@ -381,16 +385,16 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 				TLOG(TLVL_DEBUG + 34) << "runReceiver_: Sending receive stats for rank " << source_rank;
 				metricMan->sendMetric("Total Receive Time From Rank " + std::to_string(source_rank), delta_t, "s", 5, MetricMode::Accumulate);
 				metricMan->sendMetric("Total Receive Size From Rank " + std::to_string(source_rank), data_size, "B", 5, MetricMode::Accumulate);
-				metricMan->sendMetric("Total Receive Rate From Rank " + std::to_string(source_rank), data_size / delta_t, "B/s", 5, MetricMode::Average);
+				metricMan->sendMetric("Total Receive Rate From Rank " + std::to_string(source_rank), static_cast<double>(data_size) / delta_t, "B/s", 5, MetricMode::Average);
 
 				metricMan->sendMetric("Header Receive Time From Rank " + std::to_string(source_rank), hdr_delta_t, "s", 5, MetricMode::Accumulate);
 				metricMan->sendMetric("Header Receive Size From Rank " + std::to_string(source_rank), header_size, "B", 5, MetricMode::Accumulate);
-				metricMan->sendMetric("Header Receive Rate From Rank " + std::to_string(source_rank), header_size / hdr_delta_t, "B/s", 5, MetricMode::Average);
+				metricMan->sendMetric("Header Receive Rate From Rank " + std::to_string(source_rank), static_cast<double>(header_size) / hdr_delta_t, "B/s", 5, MetricMode::Average);
 
 				auto payloadSize = data_size - header_size;
 				metricMan->sendMetric("Data Receive Time From Rank " + std::to_string(source_rank), data_delta_t, "s", 5, MetricMode::Accumulate);
 				metricMan->sendMetric("Data Receive Size From Rank " + std::to_string(source_rank), payloadSize, "B", 5, MetricMode::Accumulate);
-				metricMan->sendMetric("Data Receive Rate From Rank " + std::to_string(source_rank), payloadSize / data_delta_t, "B/s", 5, MetricMode::Average);
+				metricMan->sendMetric("Data Receive Rate From Rank " + std::to_string(source_rank), static_cast<double>(payloadSize) / data_delta_t, "B/s", 5, MetricMode::Average);
 
 				metricMan->sendMetric("Data Receive Count From Rank " + std::to_string(source_rank), recv_frag_count_.slotCount(source_rank), "fragments", 3, MetricMode::LastPoint);
 
@@ -476,4 +480,4 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 
 	TLOG(TLVL_DEBUG + 32) << "runReceiver_ " << source_rank << " receive loop exited";
 	running_sources_[source_rank] = false;
-}
+}  // NOLINT(readability/fn_size)

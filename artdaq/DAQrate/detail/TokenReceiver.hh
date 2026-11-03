@@ -1,5 +1,5 @@
-#ifndef ARTDAQ_DAQRATE_TOKEN_RECEIVER_HH
-#define ARTDAQ_DAQRATE_TOKEN_RECEIVER_HH
+#ifndef ARTDAQ_ARTDAQ_DAQRATE_DETAIL_TOKENRECEIVER_HH_
+#define ARTDAQ_ARTDAQ_DAQRATE_DETAIL_TOKENRECEIVER_HH_
 
 #include "artdaq/DAQrate/StatisticsHelper.hh"
 #include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
@@ -14,6 +14,7 @@
 #include <sys/epoll.h>
 #include <atomic>
 #include <map>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -112,16 +113,16 @@ private:
 	int token_epoll_fd_{-1};
 
 	boost::thread token_thread_;
-	std::atomic<bool> thread_is_running_;
-	std::atomic<bool> reception_is_paused_;
-	std::atomic<bool> shutdown_requested_;
-	std::atomic<uint32_t> run_number_;
+	std::atomic<bool> thread_is_running_{false};
+	std::atomic<bool> reception_is_paused_{false};
+	std::atomic<bool> shutdown_requested_{false};
+	std::atomic<uint32_t> run_number_{0};
 
 	std::atomic<size_t> received_token_count_;
 	std::unordered_map<int, size_t> received_token_counter_;
-	std::shared_ptr<StatisticsHelper> statsHelperPtr_;
+	std::shared_ptr<StatisticsHelper> statsHelperPtr_{nullptr};
 	std::string tokens_received_stat_key_;
 };
 }  // namespace artdaq
 
-#endif  // ARTDAQ_DAQRATE_TOKEN_RECEIVER_HH
+#endif  // ARTDAQ_ARTDAQ_DAQRATE_DETAIL_TOKENRECEIVER_HH_

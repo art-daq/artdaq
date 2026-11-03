@@ -25,7 +25,7 @@
 
 namespace artdaq {
 class EventDump;
-}
+}  // namespace artdaq
 
 /**
  * \brief Write Event information to the console
@@ -76,6 +76,7 @@ artdaq::EventDump::EventDump(fhicl::ParameterSet const& pset)
 
 void artdaq::EventDump::analyze(art::Event const& e)
 {
+	// NOLINTBEGIN(runtime/output_format)
 	if (verbosity_ > 0)
 	{
 		std::cout << "***** Start of EventDump for event " << e.event() << " *****" << std::endl;
@@ -150,6 +151,7 @@ void artdaq::EventDump::analyze(art::Event const& e)
 
 		std::cout << "***** End of EventDump for event " << e.event() << " *****" << std::endl;
 	}
+	// NOLINTEND(runtime/output_format)
 }
 
 DEFINE_ART_MODULE(artdaq::EventDump)  // NOLINT(performance-unnecessary-value-param)

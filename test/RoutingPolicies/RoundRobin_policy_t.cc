@@ -1,9 +1,11 @@
 #define BOOST_TEST_MODULE RoundRobin_policy_t
-#include <boost/test/unit_test.hpp>
 
 #include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
 #include "artdaq/RoutingPolicies/makeRoutingManagerPolicy.hh"
+
 #include "fhiclcpp/ParameterSet.h"
+
+#include <boost/test/unit_test.hpp>
 
 BOOST_AUTO_TEST_SUITE(RoundRobin_policy_t)
 

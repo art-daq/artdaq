@@ -319,7 +319,9 @@ void setProductRangeSetID(art::RangeSet const& rs,
 	}
 }
 
-}  // unnamed namespace
+// clang-format off
+}  // namespace ""
+// clang-format on
 
 namespace art {
 
@@ -437,11 +439,11 @@ art::RootDAQOutFile::~RootDAQOutFile()
 		{
 			if (line.compare(0, 13, "MemAvailable:") == 0)
 			{
-				std::sscanf(line.c_str(), "MemAvailable: %lu", &available_kB);
+				std::sscanf(line.c_str(), "MemAvailable: %lu", &available_kB);  // NOLINT
 			}
 			else if (line.compare(0, 9, "MemTotal:") == 0)
 			{
-				std::sscanf(line.c_str(), "MemTotal: %lu", &total_kB);
+				std::sscanf(line.c_str(), "MemTotal: %lu", &total_kB);  // NOLINT
 			}
 		}
 	}
@@ -514,8 +516,8 @@ void RootDAQOutFile::selectProducts()
 {
 	std::lock_guard sentry{mutex_};
 	auto selectProductsToWrite = [this](BranchType const bt) {
-		auto& items = selectedOutputItemList_[bt];
-		for (auto const& pd : om_->keptProducts()[bt] | ranges::views::values)
+		auto& items = selectedOutputItemList_[bt];                              // NOLINT
+		for (auto const& pd : om_->keptProducts()[bt] | ranges::views::values)  // NOLINT
 		{
 			// Persist Results products only if they have been produced by
 			// the current process.
@@ -536,8 +538,8 @@ void RootDAQOutFile::selectProducts()
 		}
 		for (auto const& item : items | ranges::views::values)
 		{
-			treePointers_[bt]->addOutputBranch(item.branchDescription,
-			                                   item.product);
+			// NOLINTNEXTLINE
+			treePointers_[bt]->addOutputBranch(item.branchDescription, item.product);
 		}
 	};
 	for_each_branch_type(selectProductsToWrite);
@@ -579,7 +581,7 @@ void RootDAQOutFile::beginInputFile(RootFileBlock const* rfb,
 		}
 	}
 
-	if (not fastCloningEnabled)
+	if (not fastCloningEnabled)  // NOLINT
 	{
 		mf::LogInfo("FastCloning") << fastCloningEnabled.disabledBecause();
 		return;
@@ -722,7 +724,7 @@ void RootDAQOutFile::writeFileIndex()
 		findexElemPtr = &entry;
 		b->Fill();
 	}
-	b->SetAddress(0);
+	b->SetAddress(nullptr);
 }
 
 void RootDAQOutFile::writeProcessConfigurationRegistry()
@@ -860,8 +862,7 @@ void RootDAQOutFile::writeProductDescriptionRegistry()
 	// removing any transient or pruned products.
 	ProductRegistry reg;
 	auto productDescriptionsToWrite = [this, &reg](BranchType const bt) {
-		for (auto const& desc :
-		     descriptionsToPersist_[bt] | ranges::views::values)
+		for (auto const& desc : descriptionsToPersist_[bt] | ranges::views::values)  // NOLINT
 		{
 			reg.productList_.emplace(BranchKey{desc}, desc);
 		}
@@ -903,8 +904,7 @@ void RootDAQOutFile::writeTTrees()
 	TLOG(TLVL_DEBUG + 33) << "RootDAQOutFile::writeTTrees after writing fileIndexTree_";
 	RootOutputTree::writeTTree(parentageTree_);
 	TLOG(TLVL_DEBUG + 33) << "RootDAQOutFile::writeTTrees after writing parentageTree_";
-	for_each_branch_type(
-	    [this](BranchType const bt) { treePointers_[bt]->writeTree(); });
+	for_each_branch_type([this](BranchType const bt) { treePointers_[bt]->writeTree(); });  // NOLINT
 	TLOG(TLVL_DEBUG + 33) << "End of RootDAQOutFile::writeTTrees";
 }
 
@@ -982,7 +982,7 @@ void RootDAQOutFile::fillBranches(Principal const& principal,
 					{
 						vector<ProductProvenance const*> stacked_pp;
 						stacked_pp.push_back(&*oh.productProvenance());
-						while (not empty(stacked_pp))
+						while (not empty(stacked_pp))  // NOLINT
 						{
 							auto current_pp = stacked_pp.back();
 							stacked_pp.pop_back();
@@ -1086,8 +1086,7 @@ void RootDAQOutFile::fillBranches(Principal const& principal,
 				        .first;
 			}
 			auto const* product = getProduct<BT>(oh, rs, bd.wrappedName());
-			setProductRangeSetID<BT>(
-			    rs, *rootFileDB_, const_cast<EDProduct*>(product), checksumToIndex);
+			setProductRangeSetID<BT>(rs, *rootFileDB_, const_cast<EDProduct*>(product), checksumToIndex);  // NOLINT
 			val.product = product;
 		}
 	}
@@ -1107,6 +1106,6 @@ void RootDAQOutFile::fillBranches(Principal const& principal,
 	TLOG(TLVL_DEBUG + 33) << "RootDAQOutFile::fillBranches after fillTree call";
 	vpp->clear();
 	TLOG(TLVL_DEBUG + 33) << "End of RootDAQOutFile::fillBranches";
-}
+}  // NOLINT(readability/fn_size)
 
 }  // namespace art

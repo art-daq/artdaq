@@ -1,5 +1,5 @@
-#ifndef artdaq_TransferPlugins_MakeTransferPlugin_hh
-#define artdaq_TransferPlugins_MakeTransferPlugin_hh
+#ifndef ARTDAQ_ARTDAQ_TRANSFERPLUGINS_MAKETRANSFERPLUGIN_HH_
+#define ARTDAQ_ARTDAQ_TRANSFERPLUGINS_MAKETRANSFERPLUGIN_HH_
 
 // JCF, Sep-6-2016
 
@@ -15,6 +15,7 @@
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 
 #include <memory>
+#include <string>
 
 namespace artdaq {
 /**
@@ -30,4 +31,4 @@ MakeTransferPlugin(const fhicl::ParameterSet& pset,
                    TransferInterface::Role role);
 }  // namespace artdaq
 
-#endif
+#endif  // ARTDAQ_ARTDAQ_TRANSFERPLUGINS_MAKETRANSFERPLUGIN_HH_

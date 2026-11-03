@@ -1,6 +1,7 @@
-#ifndef ARTDAQ_DAQDATA_GLOBALS_HH
-#define ARTDAQ_DAQDATA_GLOBALS_HH
+#ifndef ARTDAQ_ARTDAQ_DAQDATA_GLOBALS_HH_
+#define ARTDAQ_ARTDAQ_DAQDATA_GLOBALS_HH_
 
+// NOLINTBEGIN(build/define_used)
 #ifndef TRACE_DEFINE  // as set in Globals.cc
 #define TRACE_DECLARE
 #endif
@@ -20,6 +21,7 @@
 #include <mutex>
 #include <sstream>
 #include <string>
+// NOLINTEND(build/define_used)
 
 /**
  * \brief The artdaq namespace
@@ -53,11 +55,11 @@ public:
 		{
 			int fp = open("/dev/random", O_RDONLY);
 			if (fp == -1) abort();
-			unsigned seed;
-			unsigned pos = 0;
+			ssize_t seed = 0;
+			size_t pos = 0;
 			while (pos < sizeof(seed))
 			{
-				int amt = read(fp, reinterpret_cast<char *>(&seed) + pos, sizeof(seed) - pos);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
+				int amt = read(fp, reinterpret_cast<char *>(&seed) + pos, sizeof(seed) - pos);  // NOLINT
 				if (amt <= 0) abort();
 				pos += amt;
 			}
@@ -98,16 +100,16 @@ public:
 				catch (const std::out_of_range &)
 				{}
 			}
-			partition_number_ = part_u & 0x7F;
+			partition_number_ = static_cast<int>(part_u & 0x7F);
 		}
 
-		return (part_u & 0x7F);
+		return static_cast<int>(part_u & 0x7F);
 	}
 
 	/**
 	 * \brief Get the Shared Memory Key for a given partition number
 	 */
-	static uint32_t SharedMemoryKey(uint32_t seed, bool useParentPID = false)
+	static key_t SharedMemoryKey(key_t seed, bool useParentPID = false)
 	{
 		return seed + ((GetPartitionNumber() + 1) << 16) + ((useParentPID ? getppid() : getpid()) & 0xFFFF);
 	}
@@ -163,6 +165,6 @@ public:
 };
 }  // namespace artdaq
 
-#include "tracemf.h"
+#include "TRACE/tracemf.h"  // NOLINT(build/include_order)
 
-#endif  // ARTDAQ_DAQDATA_GLOBALS_HH
+#endif  // ARTDAQ_ARTDAQ_DAQDATA_GLOBALS_HH_

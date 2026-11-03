@@ -27,7 +27,7 @@
 
 namespace artdaq {
 class RandomDelayFilter;
-}
+}  // namespace artdaq
 
 /**
  * \brief A filter which delays for a random amount of time, then

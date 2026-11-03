@@ -1,5 +1,5 @@
-#ifndef TIMEOUT_HH
-#define TIMEOUT_HH
+#ifndef ARTDAQ_ARTDAQ_TRANSFERPLUGINS_DETAIL_TIMEOUT_HH_
+#define ARTDAQ_ARTDAQ_TRANSFERPLUGINS_DETAIL_TIMEOUT_HH_
 /*  This file (Timeout.h) was created by Ron Rechenmacher <ron@fnal.gov> on
     Sep 28, 2009. "TERMS AND CONDITIONS" governing this file are in the README
     or COPYING file. If you do not have such a file, one can be obtained by
@@ -166,4 +166,4 @@ private:
 	void copy_in_timeout(timeoutspec& tmo);
 };
 
-#endif  // TIMEOUT_HH
+#endif  // ARTDAQ_ARTDAQ_TRANSFERPLUGINS_DETAIL_TIMEOUT_HH_

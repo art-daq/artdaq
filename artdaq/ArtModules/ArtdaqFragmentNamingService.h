@@ -1,12 +1,18 @@
-#ifndef artdaq_ArtModules_ArtdaqFragmentNamingService_h
-#define artdaq_ArtModules_ArtdaqFragmentNamingService_h
+#ifndef ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQFRAGMENTNAMINGSERVICE_H_
+#define ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQFRAGMENTNAMINGSERVICE_H_
 
 #include "art/Framework/Services/Registry/ServiceDeclarationMacros.h"
 #include "artdaq-core/Plugins/FragmentNameHelper.hh"
 
+#include <memory>
+#include <set>
+#include <string>
+#include <utility>
+#include <vector>
+
 namespace fhicl {
 class ParameterSet;
-}
+}  // namespace fhicl
 
 /**
  * \brief Interface for ArtdaqFragmentNamingService. This interface is declared to art as part of the required registration of an art Service
@@ -29,7 +35,7 @@ public:
 	 * "helper_plugin" (Default: "Artdaq"): The name of the FragmentNameHelper plugin to use for resolving Fragment names
 	 * "enabled_fragment_types" (Default: []): A list of Fragment instance names which are allowed to be used.  If empty, all types are allowed.
 	 */
-	ArtdaqFragmentNamingServiceInterface(fhicl::ParameterSet const& ps)
+	explicit ArtdaqFragmentNamingServiceInterface(fhicl::ParameterSet const& ps)
 	    : nameHelper_(nullptr)
 	{
 		auto unidentified_instance_name = ps.get<std::string>("unidentified_instance_name", "unidentified");
@@ -116,7 +122,7 @@ private:
 };
 DECLARE_ART_SERVICE_INTERFACE(ArtdaqFragmentNamingServiceInterface, LEGACY)
 
-#endif /* artdaq_ArtModules_ArtdaqFragmentNamingService_h */
+#endif  // ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQFRAGMENTNAMINGSERVICE_H_
 
 // Local Variables:
 // mode: c++

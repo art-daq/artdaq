@@ -3,6 +3,8 @@
 
 #include "artdaq/DAQrate/RequestBuffer.hh"
 
+#include <utility>
+
 artdaq::RequestBuffer::RequestBuffer()
 
     : requests_()
@@ -84,7 +86,7 @@ std::pair<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> artdaq
 	std::lock_guard<std::mutex> lk(request_mutex_);
 
 	auto it = requests_.begin();
-	while (it != requests_.end() && next_requests_.count(it->first)) { ++it; }
+	while (it != requests_.end() && next_requests_.count(it->first)) { ++it; }  // NOLINT(runtime/increment_decrement)
 
 	if (it == requests_.end())
 	{

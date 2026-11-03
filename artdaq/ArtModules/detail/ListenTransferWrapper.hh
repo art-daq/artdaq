@@ -1,17 +1,18 @@
-#ifndef artdaq_ArtModules_TransferWrapper_hh
-#define artdaq_ArtModules_TransferWrapper_hh
-
-#include <iostream>
-#include <memory>
-#include <string>
+#ifndef ARTDAQ_ARTDAQ_ARTMODULES_DETAIL_LISTENTRANSFERWRAPPER_HH_
+#define ARTDAQ_ARTDAQ_ARTMODULES_DETAIL_LISTENTRANSFERWRAPPER_HH_
 
 #include "artdaq-core/Data/RawEvent.hh"
 #include "artdaq/ArtModules/ArtdaqEvent.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 
+#include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
+
 namespace fhicl {
 class ParameterSet;
-}
+}  // namespace fhicl
 
 namespace artdaq {
 class Fragment;
@@ -99,4 +100,4 @@ private:
 };  // namespace artdaq
 }  // namespace artdaq
 
-#endif /* artdaq_ArtModules_TransferWrapper_hh */
+#endif  // ARTDAQ_ARTDAQ_ARTMODULES_DETAIL_LISTENTRANSFERWRAPPER_HH_

@@ -1,5 +1,7 @@
-#include "swig_artdaq.h"
+#include "tools/swig_artdaq.h"
+
 #include "TRACE/tracemf.h"
+
 #include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
 #include "artdaq/DAQdata/Globals.hh"

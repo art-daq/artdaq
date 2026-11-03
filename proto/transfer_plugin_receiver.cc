@@ -111,9 +111,9 @@ int do_check(const artdaq::Fragment& frag)
 {
 	uint64_t variable_to_compare = 0;
 
-	for (auto ptr_into_frag = reinterpret_cast<const uint64_t*>(frag.dataBeginBytes());  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-	     ptr_into_frag != reinterpret_cast<const uint64_t*>(frag.dataEndBytes());        // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-	     ++ptr_into_frag, ++variable_to_compare)
+	for (auto ptr_into_frag = reinterpret_cast<const uint64_t*>(frag.dataBeginBytes());  // NOLINT
+	     ptr_into_frag != reinterpret_cast<const uint64_t*>(frag.dataEndBytes());        // NOLINT
+	     ++ptr_into_frag, ++variable_to_compare)                                         // NOLINT
 	{
 		if (variable_to_compare != *ptr_into_frag)
 		{

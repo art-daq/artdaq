@@ -1,14 +1,15 @@
 #define TRACE_NAME "ArtdaqGlobalsService"
 
-#include <cstdint>
-#include <memory>
-
 #include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq/ArtModules/ArtdaqGlobalsService.h"
 
 #include "artdaq/DAQdata/Globals.hh"
 
+#include <cstdint>
+#include <memory>
+
+// NOLINTNEXTLINE
 #define build_key(seed) ((seed) + ((GetPartitionNumber() + 1) << 16) + (getppid() & 0xFFFF))
 
 static fhicl::ParameterSet empty_pset;
@@ -31,7 +32,7 @@ ArtdaqGlobalsService::ArtdaqGlobalsService(fhicl::ParameterSet const& pset, art:
 	if (artapp_env != nullptr && my_rank < 0)
 	{
 		TLOG(TLVL_DEBUG + 33) << "Setting rank from envrionment";
-		my_rank = strtol(artapp_env, nullptr, 10);
+		my_rank = strtol(artapp_env, nullptr, 10);  // NOLINT(cppcoreguidelines-narrowing-conversions)
 	}
 	else
 	{
@@ -47,7 +48,7 @@ ArtdaqGlobalsService::ArtdaqGlobalsService(fhicl::ParameterSet const& pset, art:
 			metricMan->do_start();
 		}
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{
 		artdaq::ExceptionHandler(artdaq::ExceptionHandlerRethrow::no, "Error loading metrics in ArtdaqGlobalsService()");
 	}
