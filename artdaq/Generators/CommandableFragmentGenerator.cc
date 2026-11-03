@@ -237,7 +237,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 
 bool artdaq::CommandableFragmentGenerator::check_stop()
 {
-	TLOG(TLVL_CHECKSTOP) << "CFG::check_stop: should_stop=" << should_stop() << ", exception status =" << int(exception());
+	TLOG(TLVL_CHECKSTOP) << "CFG::check_stop: should_stop=" << should_stop() << ", exception status =" << static_cast<int>(exception());
 
 	if (!should_stop()) return false;
 

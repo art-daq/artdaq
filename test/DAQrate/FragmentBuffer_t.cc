@@ -15,18 +15,18 @@ constexpr bool MESSAGEFACILITY_DEBUG = true;
 constexpr size_t RATE_TEST_COUNT = 100000;
 
 // NOLINTNEXTLINE
-#define TRACE_REQUIRE_EQUAL(l, r)                                                                                                \
-	do                                                                                                                           \
-	{                                                                                                                            \
-		if ((l) == (r))                                                                                                          \
-		{                                                                                                                        \
+#define TRACE_REQUIRE_EQUAL(l, r)                                                                                                    \
+	do                                                                                                                               \
+	{                                                                                                                                \
+		if ((l) == (r))                                                                                                              \
+		{                                                                                                                            \
 			TLOG(TLVL_DEBUG) << __LINE__ << ": Checking if " << #l << " (" << (l) << ") equals " << #r << " (" << (r) << ")...YES!"; \
-		}                                                                                                                        \
-		else                                                                                                                     \
-		{                                                                                                                        \
+		}                                                                                                                            \
+		else                                                                                                                         \
+		{                                                                                                                            \
 			TLOG(TLVL_ERROR) << __LINE__ << ": Checking if " << #l << " (" << (l) << ") equals " << #r << " (" << (r) << ")...NO!";  \
-		}                                                                                                                        \
-		BOOST_REQUIRE_EQUAL(l, r);                                                                                               \
+		}                                                                                                                            \
+		BOOST_REQUIRE_EQUAL(l, r);                                                                                                   \
 	} while (0)
 
 namespace artdaqtest {

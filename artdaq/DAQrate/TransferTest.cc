@@ -133,8 +133,8 @@ int artdaq::TransferTest::runTest()
 		result = do_receiving();
 	}
 	auto duration = std::chrono::duration_cast<artdaq::TimeUtils::seconds>(std::chrono::steady_clock::now() - start_time_).count();
-	TLOG(TLVL_INFO) << (my_rank < senders_ ? "Sent " : "Received ") << result.first << " bytes in " << duration << " seconds ( " << formatBytes(result.first / duration) << "/s )." << std::endl;
-	TLOG(TLVL_INFO) << "Rate of " << (my_rank < senders_ ? "sending" : "receiving") << ": " << formatBytes(result.first / result.second) << "/s, " << formatHertz((my_rank < senders_ ? sends_each_sender_ : receives_each_receiver_) / duration)
+	TLOG(TLVL_INFO) << (my_rank < senders_ ? "Sent " : "Received ") << result.first << " bytes in " << duration << " seconds ( " << formatBytes(static_cast<double>(result.first) / duration) << "/s )." << std::endl;
+	TLOG(TLVL_INFO) << "Rate of " << (my_rank < senders_ ? "sending" : "receiving") << ": " << formatBytes(static_cast<double>(result.first) / result.second) << "/s, " << formatHertz((my_rank < senders_ ? sends_each_sender_ : receives_each_receiver_) / duration)
 	                << std::endl;
 	metricMan->do_stop();
 	metricMan->shutdown();
