@@ -19,7 +19,7 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
 	{
 		daq_pset = pset.get<fhicl::ParameterSet>("daq");
 	}
-	catch (...)
+	catch (cet::exception const&)
 	{
 		TLOG(TLVL_ERROR)
 		    << "Unable to find the DAQ parameters in the initialization "
@@ -38,7 +38,7 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
 			evb_pset.put<bool>("send_init_fragments", false);
 		}
 	}
-	catch (...)
+	catch (cet::exception const&)
 	{
 		TLOG(TLVL_ERROR)
 		    << "Unable to find the event_builder parameters in the DAQ "
@@ -46,7 +46,7 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
 		return false;
 	}
 
-	fhicl::ParameterSet metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet());
+	auto metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet());
 
 	return initializeDataReceiver(pset, evb_pset, metric_pset);
 }

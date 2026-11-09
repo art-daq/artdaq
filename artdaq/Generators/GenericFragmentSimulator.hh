@@ -1,5 +1,5 @@
-#ifndef artdaq_DAQdata_GenericFragmentSimulator_hh
-#define artdaq_DAQdata_GenericFragmentSimulator_hh
+#ifndef ARTDAQ_ARTDAQ_GENERATORS_GENERICFRAGMENTSIMULATOR_HH_
+#define ARTDAQ_ARTDAQ_GENERATORS_GENERICFRAGMENTSIMULATOR_HH_
 
 #include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
@@ -8,7 +8,7 @@
 
 namespace fhicl {
 class ParameterSet;
-}
+}  // namespace fhicl
 
 #include "fhiclcpp/types/Atom.h"
 #include "fhiclcpp/types/Comment.h"
@@ -20,7 +20,7 @@ class ParameterSet;
 
 namespace artdaq {
 class GenericFragmentSimulator;
-}
+}  // namespace artdaq
 
 /**
  * \brief GenericFragmentSimulator creates simulated Generic events, with data
@@ -133,4 +133,4 @@ private:
 	std::uniform_int_distribution<uint64_t> fragment_content_generator_;
 };
 
-#endif /* artdaq_DAQdata_GenericFragmentSimulator_hh */
+#endif  // ARTDAQ_ARTDAQ_GENERATORS_GENERICFRAGMENTSIMULATOR_HH_

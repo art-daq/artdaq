@@ -4,6 +4,7 @@
 // $RCSfile: .emacs.gnu,v $
 // rev="$Revision: 1.30 $$Date: 2016/03/01 14:27:27 $";
 
+// NOLINTNEXTLINE
 #define USE_ACKS 1
 
 #include "artdaq/TransferPlugins/TCPSocketTransfer.hh"

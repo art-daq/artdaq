@@ -26,7 +26,7 @@
 
 namespace artdaq {
 class PrintBuildInfo;
-}
+}  // namespace artdaq
 
 /**
  * \brief An art::EDAnalyzer which prints any artdaq::BuildInfo objects stored in the run
@@ -82,6 +82,7 @@ artdaq::PrintBuildInfo::PrintBuildInfo(fhicl::ParameterSet const& pset)
     , buildinfo_module_label_(pset.get<std::string>("buildinfo_module_label"))
     , buildinfo_instance_label_(pset.get<std::string>("buildinfo_instance_label")) {}
 
+// NOLINTBEGIN(runtime/output_format)
 void artdaq::PrintBuildInfo::beginRun(art::Run const& run)
 {
 	art::Handle<std::vector<artdaq::PackageBuildInfo>> raw;
@@ -122,5 +123,6 @@ void artdaq::PrintBuildInfo::beginRun(art::Run const& run)
 		          << std::endl;
 	}
 }
+// NOLINTEND(runtime/output_format)
 
 DEFINE_ART_MODULE(artdaq::PrintBuildInfo)  // NOLINT(performance-unnecessary-value-param)

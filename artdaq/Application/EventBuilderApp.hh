@@ -1,14 +1,15 @@
-#ifndef artdaq_Application_MPI2_EventBuilderApp_hh
-#define artdaq_Application_MPI2_EventBuilderApp_hh
+#ifndef ARTDAQ_ARTDAQ_APPLICATION_EVENTBUILDERAPP_HH_
+#define ARTDAQ_ARTDAQ_APPLICATION_EVENTBUILDERAPP_HH_
 
 #include "artdaq/Application/Commandable.hh"
 #include "artdaq/Application/EventBuilderCore.hh"
 
 #include <memory>
+#include <string>
 
 namespace artdaq {
 class EventBuilderApp;
-}
+}  // namespace artdaq
 
 /**
  * \brief EventBuilderApp is an artdaq::Commandable derived class which controls the EventBuilderCore
@@ -107,7 +108,7 @@ public:
 	 */
 	void BootedEnter() override;
 
-	/* Report_ptr */
+	// Report_ptr
 	/**
 	 * \brief If which is "transition_status", report the status of the last transition. Otherwise pass through to EventBuilderCore
 	 * \param which What to report on
@@ -131,4 +132,4 @@ private:
 	std::unique_ptr<artdaq::EventBuilderCore> event_builder_ptr_;
 };
 
-#endif /* artdaq_Application_MPI2_EventBuilderApp_hh */
+#endif  // ARTDAQ_ARTDAQ_APPLICATION_EVENTBUILDERAPP_HH_

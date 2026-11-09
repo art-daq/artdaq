@@ -45,7 +45,7 @@ bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 	{
 		daq_pset = pset.get<fhicl::ParameterSet>("daq");
 	}
-	catch (...)
+	catch (cet::exception const&)
 	{
 		TLOG(TLVL_ERROR)
 		    << "Unable to find the DAQ parameters in the initialization "
@@ -57,7 +57,7 @@ bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 	{
 		agg_pset = daq_pset.get<fhicl::ParameterSet>("dispatcher", daq_pset.get<fhicl::ParameterSet>("aggregator"));
 	}
-	catch (...)
+	catch (cet::exception const&)
 	{
 		TLOG(TLVL_ERROR)
 		    << "Unable to find the Dispatcher parameters in the DAQ "
@@ -92,7 +92,7 @@ bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 	agg_pset.put<int>("art_analyzer_count", 0);
 
 	// initialize the MetricManager and the names of our metrics
-	fhicl::ParameterSet metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet());
+	auto metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet());
 
 	return initializeDataReceiver(pset, agg_pset, metric_pset);
 }
@@ -173,7 +173,7 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 		TLOG(TLVL_ERROR) << errmsg.str();
 		return errmsg.str();
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{
 		std::stringstream errmsg;
 		errmsg << "Unable to create a Transfer plugin with the FHiCL code \"" << pset.to_string() << "\", a new monitor has not been registered";
@@ -210,7 +210,7 @@ std::string artdaq::DispatcherCore::unregister_monitor(std::string const& label)
 		boost::thread thread([this, label] { stop_art_process_(label); });
 		thread.detach();
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{
 		std::stringstream errmsg;
 		errmsg << "Unable to unregister transfer plugin with label \"" << label << "\"";
@@ -267,7 +267,7 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 					generated_physics_filter_paths[name] = filter_path;
 				}
 			}
-			catch (...)
+			catch (...)  // NOLINT
 			{
 			}
 		}
@@ -408,7 +408,7 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 	generated_pset.put("physics", generated_physics);
 
 	return generated_pset;
-}
+}  // NOLINT(readability/fn_size)
 
 fhicl::ParameterSet artdaq::DispatcherCore::generate_filter_fhicl_()
 {

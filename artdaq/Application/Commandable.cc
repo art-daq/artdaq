@@ -431,6 +431,7 @@ void artdaq::Commandable::InRunExit()
 }
 
 #if TRACE_REVNUM < 1394
+// NOLINTNEXTLINE(build/define_used)
 #define traceLvls_p traceNamLvls_p
 #define TRACE_TID2NAME(idx) traceNamLvls_p[idx].name
 #endif

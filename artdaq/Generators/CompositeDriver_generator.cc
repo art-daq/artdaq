@@ -113,7 +113,7 @@ artdaq::CompositeDriver::~CompositeDriver() noexcept
 		{
 			generator_list_.resize(listSize);
 		}
-		catch (...)
+		catch (...)  // NOLINT
 		{
 			TLOG(TLVL_ERROR)
 			    << "Unknown exception when destructing the generator at index "
@@ -268,7 +268,7 @@ bool artdaq::CompositeDriver::makeChildGenerator_(fhicl::ParameterSet const& pse
 		    << "\", exception = " << excpt;
 		return false;
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{
 		TLOG(TLVL_ERROR)
 		    << "Unknown exception creating a FragmentGenerator of type \""
@@ -287,7 +287,7 @@ bool artdaq::CompositeDriver::makeChildGenerator_(fhicl::ParameterSet const& pse
 			generator_ptr.reset(tmp_cmdablegen_bareptr);
 		}
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{}
 	if (!generator_ptr)
 	{

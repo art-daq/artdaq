@@ -227,13 +227,13 @@ try
 
 	artdaq::Globals::CleanUpGlobals();
 	return 0;
-}
+}  // NOLINT(readability/fn_size)
 catch (std::string& x)
 {
 	std::cerr << "Exception (type string) caught in artdaqDriver: " << x << '\n';
 	return 1;
 }
-catch (char const* m)
+catch (char const*& m)
 {
 	std::cerr << "Exception (type char const*) caught in artdaqDriver: ";
 	if (m != nullptr)
@@ -257,11 +257,11 @@ template<typename B, typename D>
 std::unique_ptr<D>
 dynamic_unique_ptr_cast(std::unique_ptr<B>& p)
 {
-	D* result = dynamic_cast<D*>(p.get());
+	D* result = dynamic_cast<D*>(p.get());  // NOLINT
 
 	if (result)
 	{
-		p.release();
+		p.release();  // NOLINT
 		return std::unique_ptr<D>(result);
 	}
 	return nullptr;

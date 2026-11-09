@@ -1,5 +1,5 @@
-#ifndef ARTDAQ_DAQRATE_DATASENDERMANAGER_HH
-#define ARTDAQ_DAQRATE_DATASENDERMANAGER_HH
+#ifndef ARTDAQ_ARTDAQ_DAQRATE_DATASENDERMANAGER_HH_
+#define ARTDAQ_ARTDAQ_DAQRATE_DATASENDERMANAGER_HH_
 
 #include "fhiclcpp/types/Sequence.h"  // Must pre-empt fhiclcpp/types/Atom.h
 
@@ -23,10 +23,12 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <utility>
+#include <vector>
 
 namespace artdaq {
 class DataSenderManager;
-}
+}  // namespace artdaq
 
 /**
  * \brief Sends Fragment objects using TransferInterface plugins. Uses Routing Tables if configured,
@@ -150,7 +152,6 @@ private:
 	// Calculate where the fragment with this sequenceID should go.
 	int calcDest_(Fragment::sequence_id_t) const;
 
-private:
 	std::map<int, std::unique_ptr<artdaq::TransferInterface>> destinations_;
 	std::set<int> enabled_destinations_;
 
@@ -183,4 +184,4 @@ artdaq::DataSenderManager::
 {
 	return sent_frag_count_.slotCount(rank);
 }
-#endif  // ARTDAQ_DAQRATE_DATASENDERMANAGER_HH
+#endif  // ARTDAQ_ARTDAQ_DAQRATE_DATASENDERMANAGER_HH_

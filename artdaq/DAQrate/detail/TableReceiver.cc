@@ -49,8 +49,8 @@ artdaq::TableReceiver::~TableReceiver()
 				routing_thread_->join();
 			}
 		}
-		catch (...)
-		{  // IGNORED
+		catch (...)  // NOLINT
+		{            // IGNORED
 		}
 	}
 	TLOG(TLVL_DEBUG + 32) << "Shutting down TableReceiver END.";
@@ -141,7 +141,7 @@ void artdaq::TableReceiver::startTableReceiverThread_()
 	try
 	{
 		routing_thread_.reset(new boost::thread(&TableReceiver::receiveTableUpdatesLoop_, this));
-		char tname[16];
+		char tname[16];                               // NOLINT
 		snprintf(tname, 16, "%s", "RoutingReceive");  // NOLINT
 		auto handle = routing_thread_->native_handle();
 		pthread_setname_np(handle, tname);
@@ -149,7 +149,7 @@ void artdaq::TableReceiver::startTableReceiverThread_()
 	catch (const boost::exception& e)
 	{
 		TLOG(TLVL_ERROR) << "Caught boost::exception starting Routing Table Receive thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
-		std::cerr << "Caught boost::exception starting Routing Table Receive thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
+		std::cerr << "Caught boost::exception starting Routing Table Receive thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;  // NOLINT
 		exit(5);
 	}
 }
@@ -204,7 +204,7 @@ bool artdaq::TableReceiver::receiveTableUpdate_()
 			size_t total = sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries;
 			while (sts < total)
 			{
-				stss = read(table_socket_, reinterpret_cast<char*>(&buffer[0]) + sts, total - sts);
+				stss = read(table_socket_, reinterpret_cast<char*>(&buffer[0]) + sts, total - sts);  // NOLINT
 				sts += stss;
 				TLOG(TLVL_DEBUG + 32) << "Read " << stss << " bytes, total " << sts << " / " << total;
 				if (stss < 0)
@@ -235,7 +235,6 @@ bool artdaq::TableReceiver::receiveTableUpdate_()
 						if (thisSeqID != entry.sequence_id)
 						{
 							TLOG(TLVL_ERROR) << __func__ << ": Aborting processing of this RoutingPacket because I encountered an inconsistent entry (seqid=" << entry.sequence_id << ", expected=" << thisSeqID << ")!";
-							last = thisSeqID - 1;
 							break;
 						}
 						thisSeqID++;
@@ -285,7 +284,7 @@ bool artdaq::TableReceiver::receiveTableUpdate_()
 		}
 	}
 	return false;
-}
+}  // NOLINT(readability/fn_size)
 
 void artdaq::TableReceiver::receiveTableUpdatesLoop_()
 {

@@ -1,6 +1,17 @@
 #define TRACE_NAME "RoutingReceiver"
 #include "artdaq/DAQdata/Globals.hh"
 
+#include "artdaq/Application/LoadParameterSet.hh"
+#include "artdaq/DAQdata/TCPConnect.hh"
+#include "artdaq/DAQrate/detail/RoutingPacket.hh"
+#include "artdaq/DAQrate/detail/TableReceiver.hh"
+#include "proto/artdaqapp.hh"
+
+#include "canvas/Utilities/Exception.h"
+#include "fhiclcpp/types/Atom.h"
+#include "fhiclcpp/types/OptionalTable.h"
+#include "fhiclcpp/types/TableFragment.h"
+
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <poll.h>
@@ -9,15 +20,6 @@
 #include <chrono>
 #include <csignal>
 #include <thread>
-#include "artdaq/Application/LoadParameterSet.hh"
-#include "artdaq/DAQdata/TCPConnect.hh"
-#include "artdaq/DAQrate/detail/RoutingPacket.hh"
-#include "artdaq/DAQrate/detail/TableReceiver.hh"
-#include "canvas/Utilities/Exception.h"
-#include "fhiclcpp/types/Atom.h"
-#include "fhiclcpp/types/OptionalTable.h"
-#include "fhiclcpp/types/TableFragment.h"
-#include "proto/artdaqapp.hh"
 
 namespace artdaq {
 /**
@@ -215,7 +217,7 @@ try
 	artdaq::Globals::CleanUpGlobals();
 
 	return 0;
-}
+}  // NOLINT(readability/fn_size)
 catch (...)
 {
 	return -1;

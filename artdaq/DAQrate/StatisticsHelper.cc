@@ -2,6 +2,8 @@
 
 #include "fhiclcpp/ParameterSet.h"
 
+#include <algorithm>
+
 // This class is really nothing more than a collection of code that
 // would be repeated throughout artdaq "application" classes if it
 // weren't centralized here.  So, we should be careful not to put

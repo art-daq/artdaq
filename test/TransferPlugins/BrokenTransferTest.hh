@@ -1,5 +1,5 @@
-#ifndef artdaq_test_TransferPlugins_BrokenTransferTest_hh
-#define artdaq_test_TransferPlugins_BrokenTransferTest_hh
+#ifndef ARTDAQ_TEST_TRANSFERPLUGINS_BROKENTRANSFERTEST_HH_
+#define ARTDAQ_TEST_TRANSFERPLUGINS_BROKENTRANSFERTEST_HH_
 
 #include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
@@ -17,7 +17,10 @@
 #include <boost/thread.hpp>
 
 #include <condition_variable>
+#include <map>
 #include <mutex>
+#include <set>
+#include <string>
 #include <unordered_set>
 
 namespace artdaqtest {
@@ -56,7 +59,7 @@ public:
 	/// BrokenTransferTest Constructor
 	/// </summary>
 	/// <param name="ps">ParameterSet containing BrokenTransferTest configuration</param>
-	BrokenTransferTest(const fhicl::ParameterSet& ps);
+	explicit BrokenTransferTest(const fhicl::ParameterSet& ps);
 
 	/// <summary>
 	/// Run the "Sender Paused" test
@@ -106,8 +109,8 @@ private:
 
 	std::string fm_(double data, const std::string& units, int logt = 0);
 
-	boost::thread sender_threads_[2];
-	boost::thread receiver_threads_[2];
+	std::array<boost::thread, 2> sender_threads_;
+	std::array<boost::thread, 2> receiver_threads_;
 
 	std::array<std::atomic<bool>, 2> sender_ready_;
 	std::array<std::atomic<bool>, 2> receiver_ready_;
@@ -142,4 +145,4 @@ private:
 };
 }  // namespace artdaqtest
 
-#endif  // artdaq_test_TransferPlugins_BrokenTransferTest_hh
+#endif  // ARTDAQ_TEST_TRANSFERPLUGINS_BROKENTRANSFERTEST_HH_

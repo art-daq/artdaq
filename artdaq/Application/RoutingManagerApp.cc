@@ -64,7 +64,7 @@ bool artdaq::RoutingManagerApp::do_start(art::RunID id, uint64_t timeout, uint64
 	try
 	{
 		routing_manager_thread_ = boost::thread(attrs, boost::bind(&RoutingManagerCore::process_event_table, routing_manager_ptr_.get()));
-		char tname[16];                                             // Size 16 - see man page pthread_setname_np(3) and/or prctl(2)
+		char tname[16];                                             // NOLINT Size 16 - see man page pthread_setname_np(3) and/or prctl(2)
 		snprintf(tname, sizeof(tname) - 1, "%d-Routing", my_rank);  // NOLINT
 		tname[sizeof(tname) - 1] = '\0';                            // assure term. snprintf is not too evil :)
 		auto handle = routing_manager_thread_.native_handle();
@@ -73,7 +73,7 @@ bool artdaq::RoutingManagerApp::do_start(art::RunID id, uint64_t timeout, uint64
 	catch (const boost::exception& e)
 	{
 		TLOG(TLVL_ERROR) << "Caught boost::exception starting RoutingManagerCore thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
-		std::cerr << "Caught boost::exception starting RoutingManagerCore thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
+		std::cerr << "Caught boost::exception starting RoutingManagerCore thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;  // NOLINT
 		exit(5);
 	}
 
@@ -141,7 +141,7 @@ bool artdaq::RoutingManagerApp::do_resume(uint64_t timeout, uint64_t timestamp)
 	try
 	{
 		routing_manager_thread_ = boost::thread(attrs, boost::bind(&RoutingManagerCore::process_event_table, routing_manager_ptr_.get()));
-		char tname[16];                                             // Size 16 - see man page pthread_setname_np(3) and/or prctl(2)
+		char tname[16];                                             // NOLINT Size 16 - see man page pthread_setname_np(3) and/or prctl(2)
 		snprintf(tname, sizeof(tname) - 1, "%d-Routing", my_rank);  // NOLINT
 		tname[sizeof(tname) - 1] = '\0';                            // assure term. snprintf is not too evil :)
 		auto handle = routing_manager_thread_.native_handle();
@@ -150,7 +150,7 @@ bool artdaq::RoutingManagerApp::do_resume(uint64_t timeout, uint64_t timestamp)
 	catch (boost::exception const& e)
 	{
 		TLOG(TLVL_ERROR) << "Exception encountered starting Routing Manager thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
-		std::cerr << "Exception encountered starting Routing Manager thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
+		std::cerr << "Exception encountered starting Routing Manager thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;  // NOLINT
 		exit(3);
 	}
 	TLOG(TLVL_INFO) << "Started Routing Manager thread";

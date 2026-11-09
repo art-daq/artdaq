@@ -1,8 +1,8 @@
 #include "TRACE/tracemf.h"
 #define TRACE_NAME "FragmentSniffer"
 
-#include <memory>
-#include <string>
+#include "artdaq-core/Data/Fragment.hh"
+#include "artdaq/DAQdata/Globals.hh"
 
 #include "art/Framework/Core/EDAnalyzer.h"
 #include "art/Framework/Core/ModuleMacros.h"
@@ -13,8 +13,8 @@
 #include "canvas/Persistency/Provenance/BranchType.h"
 #include "fhiclcpp/ParameterSet.h"
 
-#include "artdaq-core/Data/Fragment.hh"
-#include "artdaq/DAQdata/Globals.hh"
+#include <memory>
+#include <string>
 
 namespace artdaq {
 /**

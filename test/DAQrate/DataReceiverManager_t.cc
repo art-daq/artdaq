@@ -5,18 +5,19 @@
 #include "cetlib/quiet_unit_test.hpp"
 #include "cetlib_except/exception.h"
 
-#define TRACE_REQUIRE_EQUAL(l, r)                                                                                                \
-	do                                                                                                                           \
-	{                                                                                                                            \
-		if (l == r)                                                                                                              \
-		{                                                                                                                        \
-			TLOG(TLVL_DEBUG) << __LINE__ << ": Checking if " << #l << " (" << l << ") equals " << #r << " (" << r << ")...YES!"; \
-		}                                                                                                                        \
-		else                                                                                                                     \
-		{                                                                                                                        \
-			TLOG(TLVL_ERROR) << __LINE__ << ": Checking if " << #l << " (" << l << ") equals " << #r << " (" << r << ")...NO!";  \
-		}                                                                                                                        \
-		BOOST_REQUIRE_EQUAL(l, r);                                                                                               \
+// NOLINTNEXTLINE
+#define TRACE_REQUIRE_EQUAL(l, r)                                                                                                    \
+	do                                                                                                                               \
+	{                                                                                                                                \
+		if ((l) == (r))                                                                                                              \
+		{                                                                                                                            \
+			TLOG(TLVL_DEBUG) << __LINE__ << ": Checking if " << #l << " (" << (l) << ") equals " << #r << " (" << (r) << ")...YES!"; \
+		}                                                                                                                            \
+		else                                                                                                                         \
+		{                                                                                                                            \
+			TLOG(TLVL_ERROR) << __LINE__ << ": Checking if " << #l << " (" << (l) << ") equals " << #r << " (" << (r) << ")...NO!";  \
+		}                                                                                                                            \
+		BOOST_REQUIRE_EQUAL(l, r);                                                                                                   \
 	} while (0)
 
 BOOST_AUTO_TEST_SUITE(DataReceiverManager_test)

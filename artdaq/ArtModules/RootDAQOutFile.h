@@ -1,5 +1,5 @@
-#ifndef art_root_io_RootDAQOutFile_h
-#define art_root_io_RootDAQOutFile_h
+#ifndef ARTDAQ_ARTDAQ_ARTMODULES_ROOTDAQOUTFILE_H_
+#define ARTDAQ_ARTDAQ_ARTMODULES_ROOTDAQOUTFILE_H_
 // vim: set sw=2 expandtab :
 
 #include "art/Framework/Core/fwd.h"
@@ -168,4 +168,4 @@ private:
 // mode: c++
 // End:
 
-#endif /* art_root_io_RootDAQOutFile_h */
+#endif  // ARTDAQ_ARTDAQ_ARTMODULES_ROOTDAQOUTFILE_H_

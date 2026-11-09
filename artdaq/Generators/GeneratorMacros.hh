@@ -1,11 +1,11 @@
-#ifndef artdaq_Application_GeneratorMacros_hh
-#define artdaq_Application_GeneratorMacros_hh
+#ifndef ARTDAQ_ARTDAQ_GENERATORS_GENERATORMACROS_HH_
+#define ARTDAQ_ARTDAQ_GENERATORS_GENERATORMACROS_HH_
 
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
 
 namespace fhicl {
 class ParameterSet;
-}
+}  // namespace fhicl
 
 #include "cetlib/compiler_macros.h"
 
@@ -21,9 +21,11 @@ typedef std::unique_ptr<artdaq::CommandableFragmentGenerator> makeFunc_t(fhicl::
 }  // namespace artdaq
 
 #ifndef EXTERN_C_FUNC_DECLARE_START
+// NOLINTNEXTLINE
 #define EXTERN_C_FUNC_DECLARE_START extern "C" {
 #endif
 
+// NOLINTNEXTLINE
 #define DEFINE_ARTDAQ_COMMANDABLE_GENERATOR(klass)                                   \
 	EXTERN_C_FUNC_DECLARE_START                                                      \
 	std::unique_ptr<artdaq::CommandableFragmentGenerator>                            \
@@ -33,4 +35,4 @@ typedef std::unique_ptr<artdaq::CommandableFragmentGenerator> makeFunc_t(fhicl::
 	}                                                                                \
 	}
 
-#endif /* artdaq_Application_GeneratorMacros_hh */
+#endif  // ARTDAQ_ARTDAQ_GENERATORS_GENERATORMACROS_HH_

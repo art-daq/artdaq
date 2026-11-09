@@ -1,27 +1,27 @@
-#ifndef ARTDAQ_DAQDATA_PORTMANAGER_HH
-#define ARTDAQ_DAQDATA_PORTMANAGER_HH
-
-#include <netinet/in.h>
-#include <string>
+#ifndef ARTDAQ_ARTDAQ_DAQDATA_PORTMANAGER_HH_
+#define ARTDAQ_ARTDAQ_DAQDATA_PORTMANAGER_HH_
 
 namespace fhicl {
 class ParameterSet;
-}
+}  // namespace fhicl
 
 #include "fhiclcpp/types/Atom.h"
 #include "fhiclcpp/types/Comment.h"
 #include "fhiclcpp/types/ConfigurationTable.h"
 #include "fhiclcpp/types/Name.h"
 
-#define DEFAULT_BASE 10000
-#define DEFAULT_PORTS_PER_PARTITION 1000
-#define DEFAULT_ROUTING_TOKEN_OFFSET 10
-#define DEFAULT_ROUTING_TABLE_ACK_OFFSET 30
-#define DEFAULT_XMLRPC_OFFSET 100
-#define DEFAULT_TCPSOCKET_OFFSET 500
-#define DEFAULT_REQUEST_PORT 3001
-#define DEFAULT_ROUTING_TABLE_PORT 3001
-#define DEFAULT_MULTICAST_GROUP_OFFSET 128
+#include <netinet/in.h>
+#include <string>
+
+constexpr int DEFAULT_BASE = 10000;
+constexpr int DEFAULT_PORTS_PER_PARTITION = 1000;
+constexpr int DEFAULT_ROUTING_TOKEN_OFFSET = 10;
+constexpr int DEFAULT_ROUTING_TABLE_ACK_OFFSET = 30;
+constexpr int DEFAULT_XMLRPC_OFFSET = 100;
+constexpr int DEFAULT_TCPSOCKET_OFFSET = 500;
+constexpr int DEFAULT_REQUEST_PORT = 3001;
+constexpr int DEFAULT_ROUTING_TABLE_PORT = 3001;
+constexpr int DEFAULT_MULTICAST_GROUP_OFFSET = 128;
 
 namespace artdaq {
 /**
@@ -190,4 +190,4 @@ private:
 };
 }  // namespace artdaq
 
-#endif  // ARTDAQ_DAQDATA_PORTMANAGER_HH
+#endif  // ARTDAQ_ARTDAQ_DAQDATA_PORTMANAGER_HH_

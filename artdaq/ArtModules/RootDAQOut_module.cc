@@ -60,7 +60,7 @@ using namespace std;
 using namespace hep::concurrency;
 
 namespace {
-string const dev_null{"/dev/null"};
+string const dev_null{"/dev/null"};  // NOLINT
 
 bool maxCriterionSpecified(art::ClosingCriteria const& cc)
 {
@@ -81,14 +81,14 @@ auto shouldFastClone(bool const fastCloningSet,
                      art::ClosingCriteria const& cc)
 {
 	art::FastCloningEnabled enabled;
-	if (fastCloningSet and not fastCloning)
+	if (fastCloningSet and not fastCloning)  // NOLINT
 	{
 		enabled.disable(
 		    "RootDAQOut configuration explicitly disables fast cloning.");
 		return enabled;
 	}
 
-	if (not wantAllEvents)
+	if (not wantAllEvents)  // NOLINT
 	{
 		enabled.disable(
 		    "Event-selection has been specified in the RootDAQOut configuration.");
@@ -102,7 +102,9 @@ auto shouldFastClone(bool const fastCloningSet,
 	}
 	return enabled;
 }
-}  // namespace
+// clang-format off
+}  // namespace ""
+// clang-format on
 
 namespace art {
 
@@ -309,7 +311,7 @@ RootDAQOut::RootDAQOut(Parameters const& config)
     , rpm_{config.get_PSet()}
 {
 	TLOG(TLVL_INFO) << "RootDAQOut_module (s124 version) CONSTRUCTOR Start";
-	bool const check_filename = config.get_PSet().has_key("fileProperties") and
+	bool const check_filename = config.get_PSet().has_key("fileProperties") and  // NOLINT
 	                            config().safeFileName().checkFileName();
 	detail::validateFileNamePattern(check_filename, filePattern_);
 
@@ -380,7 +382,7 @@ void RootDAQOut::respondToOpenInputFile(FileBlock const& fb)
 	{
 		return;
 	}
-	auto const* rfb = dynamic_cast<RootFileBlock const*>(&fb);
+	auto const* rfb = dynamic_cast<RootFileBlock const*>(&fb);  // NOLINT
 	auto fastCloneThisOne = fastCloningEnabled_;
 	if (!rfb)
 	{
@@ -599,7 +601,7 @@ void RootDAQOut::setFileStatus(OutputFileStatus const ofs)
 bool RootDAQOut::isFileOpen() const
 {
 	std::lock_guard sentry{mutex_};
-	return rootOutputFile_.get() != nullptr;
+	return rootOutputFile_ != nullptr;
 }
 
 void RootDAQOut::incrementInputFileNumber()
@@ -742,7 +744,7 @@ RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& con
 	// initialization
 	std::string modifiedPattern = inputPattern;
 	std::string searchString;
-	size_t targetLocation;
+	size_t targetLocation{0};
 	int zeroBasedRelativeRank = my_rank;
 	int oneBasedRelativeRank = my_rank + 1;
 	if (firstLoggerRank >= 0)
@@ -854,7 +856,7 @@ RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& con
 
 	TLOG(TLVL_DEBUG + 32) << __func__ << ": modifiedPattern = \"" << modifiedPattern << "\"";
 	return modifiedPattern;
-}
+}  // NOLINT(readability/fn_size)
 
 void RootDAQOut::writeSummaryFile(std::string const& closedFileName)
 {
@@ -923,7 +925,7 @@ void RootDAQOut::writeSummaryFile(std::string const& closedFileName)
 			auto remaining = static_cast<ssize_t>(buf.size());
 			while (remaining > 0)
 			{
-				ssize_t written = ::write(fd, buf.c_str() + total, static_cast<size_t>(remaining));
+				ssize_t written = ::write(fd, buf.c_str() + total, static_cast<size_t>(remaining));  // NOLINT
 				if (written < 0)
 				{
 					if (errno == EINTR) { continue; }

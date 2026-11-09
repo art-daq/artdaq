@@ -1,11 +1,11 @@
-#ifndef artdaq_Application_MPI2_DataLoggerCore_hh
-#define artdaq_Application_MPI2_DataLoggerCore_hh
+#ifndef ARTDAQ_ARTDAQ_APPLICATION_DATALOGGERCORE_HH_
+#define ARTDAQ_ARTDAQ_APPLICATION_DATALOGGERCORE_HH_
 
 #include "artdaq/Application/DataReceiverCore.hh"
 
 namespace artdaq {
 class DataLoggerCore;
-}
+}  // namespace artdaq
 
 /**
  * \brief DataLoggerCore implements the state machine for the DataLogger artdaq application.
@@ -70,6 +70,6 @@ public:
 	bool initialize(fhicl::ParameterSet const& pset) override;
 };
 
-#endif
+#endif  // ARTDAQ_ARTDAQ_APPLICATION_DATALOGGERCORE_HH_
 
 //  LocalWords:  ds

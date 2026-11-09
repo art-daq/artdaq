@@ -1,5 +1,5 @@
-#ifndef ARTDAQ_DAQRATE_REQUEST_RECEVIER_HH
-#define ARTDAQ_DAQRATE_REQUEST_RECEVIER_HH
+#ifndef ARTDAQ_ARTDAQ_DAQRATE_DETAIL_REQUESTRECEIVER_HH_
+#define ARTDAQ_ARTDAQ_DAQRATE_DETAIL_REQUESTRECEIVER_HH_
 
 #include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
@@ -8,7 +8,7 @@
 
 namespace fhicl {
 class ParameterSet;
-}
+}  // namespace fhicl
 
 #include "fhiclcpp/types/Atom.h"
 #include "fhiclcpp/types/Comment.h"
@@ -16,7 +16,9 @@ class ParameterSet;
 #include "fhiclcpp/types/Name.h"
 
 #include <boost/thread.hpp>
+#include <memory>
 #include <mutex>
+#include <string>
 
 namespace artdaq {
 /// <summary>
@@ -124,4 +126,4 @@ private:
 };
 }  // namespace artdaq
 
-#endif  // ARTDAQ_DAQRATE_REQUEST_RECEVIER_HH
+#endif  // ARTDAQ_ARTDAQ_DAQRATE_DETAIL_REQUESTRECEIVER_HH_

@@ -1,11 +1,13 @@
 #define BOOST_TEST_MODULE PreferSameHost_policy_t
-#include <boost/test/unit_test.hpp>
 
 #include "TRACE/tracemf.h"
 
 #include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
 #include "artdaq/RoutingPolicies/makeRoutingManagerPolicy.hh"
+
 #include "fhiclcpp/ParameterSet.h"
+
+#include <boost/test/unit_test.hpp>
 
 BOOST_AUTO_TEST_SUITE(PreferSameHost_policy_t)
 
@@ -164,13 +166,13 @@ BOOST_AUTO_TEST_CASE(ManyMissingParticipants)
 BOOST_AUTO_TEST_CASE(DataFlowMode)
 {
 	fhicl::ParameterSet ps = fhicl::ParameterSet::make(
-	    "routing_manager_mode: DataFlow \
-                              host_map: [{rank: 1 host: \"testHost1\"}, \
-                                         {rank: 2 host: \"testHost1\"}, \
-                                         {rank: 3 host: \"testHost2\"}, \
-                                         {rank: 4 host: \"testHost1\"}, \
-                                         {rank: 5 host: \"testHost2\"}, \
-                                         {rank: 6 host: \"testHost3\"}]");
+	    "routing_manager_mode: DataFlow "
+	    "host_map: [{rank: 1 host: \"testHost1\"}, "
+	    "{rank: 2 host: \"testHost1\"}, "
+	    "{rank: 3 host: \"testHost2\"}, "
+	    "{rank: 4 host: \"testHost1\"}, "
+	    "{rank: 5 host: \"testHost2\"}, "
+	    "{rank: 6 host: \"testHost3\"}]");
 
 	auto psh = artdaq::makeRoutingManagerPolicy("PreferSameHost", ps);
 
@@ -218,13 +220,13 @@ BOOST_AUTO_TEST_CASE(DataFlowMode)
 BOOST_AUTO_TEST_CASE(RequestBasedEventBuilding)
 {
 	fhicl::ParameterSet ps = fhicl::ParameterSet::make(
-	    "routing_manager_mode: RequestBasedEventBuilding routing_cache_size: 2 \
-                              host_map: [{rank: 1 host: \"testHost1\"}, \
-                                         {rank: 2 host: \"testHost1\"}, \
-                                         {rank: 3 host: \"testHost2\"}, \
-                                         {rank: 4 host: \"testHost1\"}, \
-                                         {rank: 5 host: \"testHost2\"}, \
-                                         {rank: 6 host: \"testHost3\"}]");
+	    "routing_manager_mode: RequestBasedEventBuilding routing_cache_size: 2 "
+	    "host_map: [{rank: 1 host: \"testHost1\"}, "
+	    "{rank: 2 host: \"testHost1\"}, "
+	    "{rank: 3 host: \"testHost2\"}, "
+	    "{rank: 4 host: \"testHost1\"}, "
+	    "{rank: 5 host: \"testHost2\"}, "
+	    "{rank: 6 host: \"testHost3\"}]");
 
 	auto psh = artdaq::makeRoutingManagerPolicy("PreferSameHost", ps);
 
@@ -310,7 +312,7 @@ BOOST_AUTO_TEST_CASE(RequestBasedEventBuilding)
 	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
 	BOOST_REQUIRE_EQUAL(route.sequence_id, 50);
 
-	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case RequestBasedEventBuilding END";
+	TLOG(TLVL_INFO) << "PreferSameHost_policy_t Test Case RequestBasedEventBuilding END";
 }
 
 BOOST_AUTO_TEST_SUITE_END()

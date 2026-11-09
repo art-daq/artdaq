@@ -1,7 +1,9 @@
-#include <cmath>
 #include "artdaq/RoutingPolicies/PolicyMacros.hh"
 #include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
+
 #include "fhiclcpp/ParameterSet.h"
+
+#include <cmath>
 
 namespace artdaq {
 /**
@@ -36,14 +38,14 @@ public:
 	 * the capacity of the system. (i.e. if you have 5 receivers, and 3 of them are 100% busy, then your load
 	 * factor is approximately 60%.)
 	 */
-	virtual void CreateRoutingTable(detail::RoutingPacket& output) override;
+	void CreateRoutingTable(detail::RoutingPacket& output) override;
 	/**
 	 * @brief Get an artdaq::detail::RoutingPacketEntry for a given sequence ID and rank. Used by RequestBasedEventBuilder and DataFlow RoutingManagerMode
 	 * @param seq Sequence Number to get route for
 	 * @param requesting_rank Rank to route for
 	 * @return artdaq::detail::RoutingPacketEntry connecting sequence ID to destination rank
 	 */
-	virtual detail::RoutingPacketEntry CreateRouteForSequenceID(artdaq::Fragment::sequence_id_t seq, int requesting_rank) override;
+	detail::RoutingPacketEntry CreateRouteForSequenceID(artdaq::Fragment::sequence_id_t seq, int requesting_rank) override;
 
 private:
 	std::pair<size_t, std::map<int, int>> sortTokens_();
@@ -74,7 +76,7 @@ void CapacityTestPolicy::CreateRoutingTable(detail::RoutingPacket& output)
 		bool breakCondition = false;
 		while (table[r.first] > 0)
 		{
-			output.emplace_back(detail::RoutingPacketEntry(next_sequence_id_++, r.first));
+			output.emplace_back(next_sequence_id_++, r.first);  // NOLINT(runtime/increment_decrement)
 			table[r.first]--;
 			tokens_used_since_last_update_++;
 			if (tokens_used_since_last_update_ >= tokensToUse)
@@ -94,7 +96,6 @@ void CapacityTestPolicy::CreateRoutingTable(detail::RoutingPacket& output)
 
 detail::RoutingPacketEntry CapacityTestPolicy::CreateRouteForSequenceID(artdaq::Fragment::sequence_id_t seq, int)
 {
-	// TODO, ELF 09/22/2020: Do we want to use the tokens_used_per_table_percent limitation here, too?
 	detail::RoutingPacketEntry output;
 	auto sorted_tokens = sortTokens_();
 	if (sorted_tokens.first == 0) return output;  // Trivial case: no tokens

@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <sstream>
 #include <string>
+#include <vector>
 
 artdaq::PortManager::PortManager()
     : multicast_interface_address_()
@@ -245,7 +246,7 @@ void artdaq::PortManager::UpdateConfiguration(fhicl::ParameterSet const& ps)
 		multicast_transfer_pattern_configured_ = true;
 		multicast_transfer_group_pattern_ = newVal;
 	}
-}
+}  // NOLINT(readability/fn_size)
 
 int artdaq::PortManager::GetRoutingTokenPort(int subsystemID)
 {

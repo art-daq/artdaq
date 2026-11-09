@@ -1,5 +1,5 @@
-#ifndef artdaq_DAQrate_detail_RoutingPacket_hh
-#define artdaq_DAQrate_detail_RoutingPacket_hh
+#ifndef ARTDAQ_ARTDAQ_DAQRATE_DETAIL_ROUTINGPACKET_HH_
+#define ARTDAQ_ARTDAQ_DAQRATE_DETAIL_ROUTINGPACKET_HH_
 
 #include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
@@ -7,8 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace artdaq {
-namespace detail {
+namespace artdaq::detail {
 struct RoutingPacketEntry;
 /**
  * \brief A RoutingPacket is simply a vector of RoutingPacketEntry objects.
@@ -70,8 +69,8 @@ public:
 		return "Unknown Mode";
 	}
 };
-}  // namespace detail
-}  // namespace artdaq
+}  // namespace artdaq::detail
+
 /**
  * \brief A row of the Routing Table
  */
@@ -96,7 +95,7 @@ struct artdaq::detail::RoutingPacketEntry
 /**
  * \brief Magic bytes expected in every RoutingPacketHeader
  */
-#define ROUTING_MAGIC 0x1337beef
+constexpr uint32_t ROUTING_MAGIC = 0x1337beef;
 
 /**
  * \brief The header of the Routing Table, containing the magic bytes and the number of entries
@@ -167,7 +166,7 @@ struct artdaq::detail::RoutingRequest
 	 *
 	 * This constructor is primarily used to sed RequestMode::Connect and RequestMode::Disconnect control messages
 	 */
-	RoutingRequest(int r, RequestMode m = RequestMode::Connect)
+	explicit RoutingRequest(int r, RequestMode m = RequestMode::Connect)
 	    : header(ROUTING_MAGIC), rank(r), mode(m) {}
 
 	/**
@@ -184,7 +183,7 @@ struct artdaq::detail::RoutingRequest
 /**
  * \brief Magic bytes expected in every RoutingToken
  */
-#define TOKEN_MAGIC 0xbeefcafe
+constexpr uint32_t TOKEN_MAGIC = 0xbeefcafe;
 
 /**
  * \brief The RoutingToken contains the magic bytes, the rank of the token sender, and the number of slots free. This is
@@ -195,7 +194,7 @@ struct artdaq::detail::RoutingToken
 	uint32_t header;          ///< The magic bytes that help validate the RoutingToken
 	int rank;                 ///< The rank from which the RoutingToken came
 	unsigned new_slots_free;  ///< The number of slots free in the token sender (usually 1)
-	unsigned run_number;      ///< The Run with which this token should be associated
+	uint32_t run_number;      ///< The Run with which this token should be associated
 };
 
-#endif  // artdaq_Application_Routing_RoutingPacket_hh
+#endif  // ARTDAQ_ARTDAQ_DAQRATE_DETAIL_ROUTINGPACKET_HH_

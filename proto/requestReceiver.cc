@@ -1,11 +1,11 @@
 #define TRACE_NAME "requestReceiver"
 
-#include <boost/program_options.hpp>
-
+#include "artdaq/DAQrate/detail/RequestReceiver.hh"
 #include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
 #include "artdaq/DAQrate/RequestBuffer.hh"
-#include "artdaq/DAQrate/detail/RequestReceiver.hh"
+
+#include <boost/program_options.hpp>
 
 int main(int argc, char* argv[])
 {
@@ -18,7 +18,7 @@ int main(int argc, char* argv[])
 	fhicl::ParameterSet tempPset;
 	if (pset.has_key("daq"))
 	{
-		fhicl::ParameterSet daqPset = pset.get<fhicl::ParameterSet>("daq");
+		auto daqPset = pset.get<fhicl::ParameterSet>("daq");
 		for (auto& name : daqPset.get_pset_names())
 		{
 			auto thisPset = daqPset.get<fhicl::ParameterSet>(name);

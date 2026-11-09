@@ -1,5 +1,5 @@
-#ifndef _artdaq_DAQrate_RequestBuffer_hh_
-#define _artdaq_DAQrate_RequestBuffer_hh_
+#ifndef ARTDAQ_ARTDAQ_DAQRATE_REQUESTBUFFER_HH_
+#define ARTDAQ_ARTDAQ_DAQRATE_REQUESTBUFFER_HH_
 
 #include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
@@ -7,6 +7,7 @@
 #include <condition_variable>
 #include <map>
 #include <set>
+#include <utility>
 
 namespace artdaq {
 /**
@@ -117,4 +118,4 @@ private:
 };
 }  // namespace artdaq
 
-#endif  // _artdaq_DAQrate_RequestBuffer_hh_
+#endif  // ARTDAQ_ARTDAQ_DAQRATE_REQUESTBUFFER_HH_

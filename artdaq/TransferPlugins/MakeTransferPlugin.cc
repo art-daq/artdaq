@@ -22,7 +22,7 @@ MakeTransferPlugin(const fhicl::ParameterSet& pset,
 	{
 		transfer_pset = pset.get<fhicl::ParameterSet>(plugin_label);
 	}
-	catch (...)
+	catch (cet::exception const&)
 	{
 		std::stringstream errmsg;
 		errmsg
@@ -44,7 +44,7 @@ MakeTransferPlugin(const fhicl::ParameterSet& pset,
 
 		return transfer;
 	}
-	catch (...)
+	catch (...)  // NOLINT
 	{
 		std::stringstream errmsg;
 		errmsg

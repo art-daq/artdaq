@@ -14,6 +14,10 @@
 #include "artdaq-core/Data/ContainerFragment.hh"
 #include "artdaq-core/Data/Fragment.hh"
 
+#include "art_root_io/TFileService.h"
+
+#include <TTree.h>
+
 #include <algorithm>
 #include <cassert>
 #include <cmath>
@@ -23,13 +27,9 @@
 #include <set>
 #include <vector>
 
-#include "art_root_io/TFileService.h"
-
-#include "TTree.h"
-
 namespace artdaq {
 class MissingDataCheck;
-}
+}  // namespace artdaq
 
 /**
  * \brief Check art::Event for potentially missing data
@@ -142,6 +142,7 @@ artdaq::MissingDataCheck::MissingDataCheck(fhicl::ParameterSet const& pset)
 	}
 }
 
+// NOLINTBEGIN(runtime/output_format)
 void artdaq::MissingDataCheck::analyze(art::Event const& e)
 {
 	run_ = e.run();
@@ -194,7 +195,7 @@ void artdaq::MissingDataCheck::analyze(art::Event const& e)
 	// first time through, if this is -1, set it to total fragments seen
 	if (expected_n_fragments_ == -1)
 	{
-		expected_n_fragments_ = total_n_frags_;
+		expected_n_fragments_ = static_cast<int>(total_n_frags_);
 	}
 
 	if (verbosity_ > 2)
@@ -227,7 +228,7 @@ void artdaq::MissingDataCheck::analyze(art::Event const& e)
 				frag_id_ = f.fragmentID();
 				seq_id_ = f.sequenceID();
 				frag_type_ = f.type();
-				contained_frags_ = cf.block_count();
+				contained_frags_ = static_cast<int>(cf.block_count());
 				missing_data_ = cf.missing_data() ? 1 : 0;
 				frag_data_size_ = f.dataSizeBytes();
 				fragtree_->Fill();
@@ -268,7 +269,7 @@ void artdaq::MissingDataCheck::analyze(art::Event const& e)
 	{
 		evtree_->Fill();
 	}
-}
+}  // NOLINT(readability/fn_size)
 
 void artdaq::MissingDataCheck::endJob()
 {
@@ -281,19 +282,19 @@ void artdaq::MissingDataCheck::endJob()
 		std::cout << "Total events processed: " << evtree_->GetEntries()
 		          << ", expected fragments: " << expected_n_fragments_ << std::endl;
 
-		unsigned int run;
+		unsigned int run{0};
 		evtree_->SetBranchAddress("run", &run);
-		unsigned int subrun;
+		unsigned int subrun{0};
 		evtree_->SetBranchAddress("subrun", &subrun);
-		unsigned int event;
+		unsigned int event{0};
 		evtree_->SetBranchAddress("event", &event);
-		int n_frag_exp;
+		int n_frag_exp{0};
 		evtree_->SetBranchAddress("n_frag_exp", &n_frag_exp);
-		unsigned int n_frag;
+		unsigned int n_frag{0};
 		evtree_->SetBranchAddress("n_frag", &n_frag);
-		unsigned int n_frag_broken;
+		unsigned int n_frag_broken{0};
 		evtree_->SetBranchAddress("n_frag_broken", &n_frag_broken);
-		unsigned int n_miss_data;
+		unsigned int n_miss_data{0};
 		evtree_->SetBranchAddress("n_miss_data", &n_miss_data);
 
 		std::cout << "Events missing fragments:\t\t"
@@ -355,5 +356,6 @@ void artdaq::MissingDataCheck::endJob()
 		std::cout << "---------------------------------------------------" << std::endl;
 	}
 }
+// NOLINTEND(runtime/output_format)
 
 DEFINE_ART_MODULE(artdaq::MissingDataCheck)  // NOLINT(performance-unnecessary-value-param)

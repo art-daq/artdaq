@@ -14,11 +14,12 @@
 // if TRACE_NAME has variable, it is safest to define after includes
 #define TRACE_NAME (app_name + "_RootNetOutput").c_str()
 
+// NOLINTNEXTLINE
 #define DUMP_SEND_MESSAGE 0
 
 namespace art {
 class RootNetOutput;
-}
+}  // namespace art
 
 /**
  * \brief An art::OutputModule which sends events using DataSenderManager.
@@ -129,7 +130,7 @@ void art::RootNetOutput::connect()
 	char const* artapp_env = getenv("ARTDAQ_RANK");
 	if (artapp_env != nullptr && my_rank < 0)
 	{
-		my_rank = strtol(artapp_env, nullptr, 10);
+		my_rank = static_cast<int>(strtol(artapp_env, nullptr, 10));
 	}
 
 	while (my_rank == -1 && artdaq::TimeUtils::GetElapsedTime(start_time) < init_timeout_s_)

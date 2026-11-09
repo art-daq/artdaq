@@ -1,5 +1,5 @@
-#ifndef artdaq_ArtModules_InputUtilities_hh
-#define artdaq_ArtModules_InputUtilities_hh
+#ifndef ARTDAQ_ARTDAQ_ARTMODULES_INPUTUTILITIES_HH_
+#define ARTDAQ_ARTDAQ_ARTMODULES_INPUTUTILITIES_HH_
 
 #include "TRACE/tracemf.h"  // TLOG - note: no #define TRACE_NAME in .hh files -
 //  could conflict with TRACE_NAME in .cc files.
@@ -48,7 +48,7 @@ T* ReadObjectAny(const std::unique_ptr<TBufferFile>& infile, const std::string& 
 	// the real beginning of the object in memory. You will need to use
 	// a dynamic_cast later if you need to retrieve it."
 
-	T* ptr = reinterpret_cast<T*>(infile->ReadObjectAny(tclassPtr));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+	T* ptr = reinterpret_cast<T*>(infile->ReadObjectAny(tclassPtr));  // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
 	TLOG(TLVL_READOBJANY, "InputUtilities") << "ReadObjectAny: Got object of class " << className << ", located at " << static_cast<void*>(ptr) << " caller:" << callerName;
 
 	return ptr;
@@ -104,4 +104,4 @@ void printProcessMap(const T& mappable, const std::string& description)
 }
 }  // namespace art
 
-#endif
+#endif  // ARTDAQ_ARTDAQ_ARTMODULES_INPUTUTILITIES_HH_

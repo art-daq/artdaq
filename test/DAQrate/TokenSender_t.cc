@@ -1,17 +1,22 @@
 #define TRACE_NAME "TokenSender_t"
 
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQrate/detail/TokenSender.hh"
 
 #define BOOST_TEST_MODULE TokenSender_t
-#include <sys/poll.h>
+#include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
 #include "artdaq/DAQdata/TCP_listen_fd.hh"
 #include "artdaq/DAQrate/detail/RoutingPacket.hh"
+
 #include "cetlib/quiet_unit_test.hpp"
 #include "cetlib_except/exception.h"
 
+#include <sys/poll.h>
+
 BOOST_AUTO_TEST_SUITE(TokenSender_test)
 
+// NOLINTNEXTLINE
 #define TRACE_REQUIRE_EQUAL(l, r)                                                                                                    \
 	do                                                                                                                               \
 	{                                                                                                                                \
@@ -43,7 +48,7 @@ BOOST_AUTO_TEST_CASE(Tokens)
 	metricMan->initialize(fhicl::ParameterSet());
 	metricMan->do_start();
 	TLOG(TLVL_INFO) << "Tokens Test Case BEGIN";
-	const int TOKEN_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
+	const int TOKEN_PORT = static_cast<int>((artdaq::Globals::SeedAndRandom() % (32768 - 1024)) + 1024);
 	TLOG(TLVL_DEBUG) << "Opening token listener socket";
 	auto token_socket = TCP_listen_fd(TOKEN_PORT, 3 * sizeof(artdaq::detail::RoutingToken));
 
@@ -67,7 +72,7 @@ BOOST_AUTO_TEST_CASE(Tokens)
 	TLOG(TLVL_DEBUG) << "Accepting new connection on token_socket";
 	sockaddr_in addr;
 	socklen_t arglen = sizeof(addr);
-	auto conn_sock = accept(token_socket, reinterpret_cast<struct sockaddr*>(&addr), &arglen);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+	auto conn_sock = accept(token_socket, reinterpret_cast<struct sockaddr*>(&addr), &arglen);  // NOLINT(runtime/casting,cppcoreguidelines-pro-type-reinterpret-cast)
 
 	t.SendRoutingToken(120, 130);
 
