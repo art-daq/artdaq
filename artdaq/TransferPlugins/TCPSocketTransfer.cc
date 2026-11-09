@@ -755,7 +755,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 	auto start_time = std::chrono::steady_clock::now();
 	auto sleep_wait_usec = send_timeout_usec / 100;
 	bool timeoutArmed = true;
-	if(sleep_wait_usec < 1000)
+	if (sleep_wait_usec < 1000)
 	{
 		sleep_wait_usec = 1000;
 	}
@@ -784,7 +784,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 	size_t out_iov_idx = 0;
 	ssize_t this_write_bytes = 0;
 
-		fcntl(send_fd_, F_SETFL, O_NONBLOCK);  // set O_NONBLOCK
+	fcntl(send_fd_, F_SETFL, O_NONBLOCK);  // set O_NONBLOCK
 	do
 	{
 		// The first out_iov may be set at the end of the previous loop.
