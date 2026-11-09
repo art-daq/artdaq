@@ -139,7 +139,6 @@ private:
 	hostMap_t hostMap_;
 
 	volatile unsigned connect_state : 1;  // 0=not "connected" (initial msg not sent)
-	unsigned blocking : 1;                // compatible with bool (true/false)
 
 	bool connection_was_lost_;
 
