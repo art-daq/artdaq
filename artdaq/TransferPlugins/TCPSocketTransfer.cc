@@ -752,7 +752,13 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 		return CopyStatus::kTimeout;
 	}
 	timeoutMessageArmed_ = true;
-	TLOG(TLVL_DEBUG + 44) << GetTraceName() << "send_timeout_usec is " << send_timeout_usec << ", currently unused.";
+	auto start_time = std::chrono::steady_clock::now();
+	auto sleep_wait_usec = send_timeout_usec / 100;
+	bool timeoutArmed = true;
+	if (sleep_wait_usec < 1000)
+	{
+		sleep_wait_usec = 1000;
+	}
 
 	// TLOG(TLVL_DEBUG + 32) << GetTraceName() << "sendData_: Determining write size" ;
 	uint32_t total_to_write_bytes = 0;
@@ -778,6 +784,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 	size_t out_iov_idx = 0;
 	ssize_t this_write_bytes = 0;
 
+	fcntl(send_fd_, F_SETFL, O_NONBLOCK);  // set O_NONBLOCK
 	do
 	{
 		// The first out_iov may be set at the end of the previous loop.
@@ -807,7 +814,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 		memset(&msg, 0, sizeof(msghdr));
 		msg.msg_iov = &(iovv[0]);
 		msg.msg_iovlen = out_iov_idx;  // at this point out_iov_idx is really the count (not an idx per se)
-		sts = sendmsg(send_fd_, &msg, MSG_NOSIGNAL | (blocking != 0u ? 0 : MSG_DONTWAIT));
+		sts = sendmsg(send_fd_, &msg, MSG_NOSIGNAL | MSG_DONTWAIT);
 #else
 		sts = writev(send_fd_, &(iovv[0]), out_iov_idx);  // SIGPIPE may occur -- need signal handler or mask/ignore
 #endif
@@ -818,9 +825,14 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 			if (errno == EAGAIN /* same as EWOULDBLOCK */)
 			{
 				TLOG(TLVL_DEBUG + 32) << GetTraceName() << "sendFragment EWOULDBLOCK";
-				blocking = 1u;
-
-				fcntl(send_fd_, F_SETFL, 0);  // clear O_NONBLOCK
+				if (!timeoutArmed || static_cast<size_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start_time).count()) < send_timeout_usec)
+				{
+					usleep(sleep_wait_usec);
+				}
+				else
+				{
+					return TransferInterface::CopyStatus::kTimeout;
+				}
 
 				// NOTE: YES -- could drop here
 				goto do_again;
@@ -832,6 +844,8 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 			connection_was_lost_ = true;
 			return TransferInterface::CopyStatus::kErrorNotRequiringException;
 		}
+		// Once anything is sent, we cannot timeout, or we risk corrupting the message stream
+		timeoutArmed = false;
 		if (sts != this_write_bytes)
 		{
 			// we'll loop around -- with
@@ -915,11 +929,6 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 		TLOG(TLVL_ERROR) << GetTraceName() << "sendFragment program error: too many bytes transferred";
 	}
 
-	if (blocking != 0u)
-	{
-		blocking = 0u;
-		fcntl(send_fd_, F_SETFL, O_NONBLOCK);  // set O_NONBLOCK
-	}
 	sts = total_written_bytes - sizeof(MessHead);
 
 	TLOG(TLVL_DEBUG + 44) << GetTraceName() << "sendFragment sts=" << sts;
@@ -951,7 +960,6 @@ void artdaq::TCPSocketTransfer::connect_()
 		}
 	}
 	connect_state = 0;
-	blocking = 0;
 	TLOG(TLVL_DEBUG + 32) << GetTraceName() << "connect_ " + hostMap_[destination_rank()] + ":" << port_ << " send_fd_=" << send_fd_;
 	if (send_fd_ != -1)
 	{
