@@ -935,12 +935,23 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 	return TransferInterface::CopyStatus::kSuccess;
 }
 
+void artdaq::TCPSocketTransfer::abort_send()
+{
+	if (role_ != Role::kSend) return;
+	send_aborted_ = true;
+	if (send_fd_ != -1)
+	{
+		TLOG(TLVL_WARNING) << GetTraceName() << "abort_send: shutting down send socket " << send_fd_ << " to rank " << destination_rank() << "; any in-flight data is dropped";
+		shutdown(send_fd_, SHUT_RDWR);  // wakes a thread blocked in sendmsg(); its error path closes the fd
+	}
+}
+
 void artdaq::TCPSocketTransfer::connect_()
 {
 	auto start_time = std::chrono::steady_clock::now();
 
 	// Retry a few times if we can't connect
-	while (send_fd_ == -1 && TimeUtils::GetElapsedTimeMicroseconds(start_time) < send_retry_timeout_us_ * 10)
+	while (send_fd_ == -1 && !send_aborted_ && TimeUtils::GetElapsedTimeMicroseconds(start_time) < send_retry_timeout_us_ * 10)
 	{
 		TLOG(TLVL_DEBUG + 32) << GetTraceName() << "Connecting sender socket";
 		int sndbuf_bytes = static_cast<int>(sndbuf_);
