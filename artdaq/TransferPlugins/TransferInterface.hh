@@ -196,6 +196,12 @@ public:
 	 */
 	virtual void flush_buffers() = 0;
 
+	/**
+	 * \brief Abort any in-progress send (sender role). Used at teardown when the receiver is not
+	 * draining; in-flight data may be lost. Default is a no-op.
+	 */
+	virtual void abort_send() {}
+
 /** \cond */
 #define GetTraceName() unique_label_ << (role_ == Role::kSend ? std::string("_SEND: ") : std::string("_RECV: "))
 	/** \endcond */

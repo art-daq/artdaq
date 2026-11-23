@@ -107,6 +107,13 @@ public:
 	 */
 	void flush_buffers() override;
 
+	/**
+	 * \brief Abort any in-progress send (sender role only). Shuts down the send socket so that a
+	 * thread blocked in sendmsg() returns with an error, and prevents further reconnection attempts.
+	 * Intended for teardown when the receiver is not draining the socket; in-flight data is lost.
+	 */
+	void abort_send() override;
+
 private:
 	static std::atomic<int> listen_thread_refcount_;
 	static std::mutex listen_thread_mutex_;
@@ -141,6 +148,7 @@ private:
 	volatile unsigned connect_state : 1;  // 0=not "connected" (initial msg not sent)
 
 	bool connection_was_lost_;
+	std::atomic<bool> send_aborted_{false};  // set by abort_send(); blocks reconnect_()
 
 	bool timeoutMessageArmed_;                              // don't repeatedly print about the send fd not being open...
 	std::chrono::steady_clock::time_point last_recv_time_;  // Time of last successful receive

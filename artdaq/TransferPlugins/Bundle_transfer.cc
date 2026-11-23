@@ -4,6 +4,7 @@
 #define TRACE_NAME (app_name + "_BundleTransfer").c_str()
 
 #include "artdaq-core/Data/ContainerFragmentLoader.hh"
+#include "artdaq-core/Utilities/TimeUtils.hh"
 #include "artdaq/TransferPlugins/TCPSocketTransfer.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 
@@ -226,6 +227,9 @@ private:
 	std::atomic<bool> last_send_call_reliable_{true};
 	std::atomic<size_t> last_send_timeout_usec_{1000000};
 	std::atomic<bool> running_{true};
+	int stop_abort_timeout_ms_;                    // How long the destructor waits for the send thread before aborting the socket
+	std::atomic<bool> aborted_{false};             // Set when the in-flight Bundle was abandoned at teardown
+	std::atomic<bool> send_thread_exited_{false};  // Set by send_timeout_thread_proc_ on return
 	std::mutex fragment_mutex_;
 	std::condition_variable fragment_cv_;
 
@@ -262,6 +266,7 @@ artdaq::BundleTransfer::BundleTransfer(const fhicl::ParameterSet& pset, Role rol
     , send_threshold_bytes_(pset.get<size_t>("send_threshold_bytes", 10 * 0x100000))  // 10 MB
     , max_hold_size_bytes_(pset.get<size_t>("max_hold_size_bytes", 1000 * 0x100000))  // 1000 MB
     , max_hold_time_us_(pset.get<int>("max_hold_time_us", 100000))                    // 0.1 s
+    , stop_abort_timeout_ms_(pset.get<int>("stop_abort_timeout_ms", 10000))           // 10 s
 {
 	TLOG(TLVL_INFO) << GetTraceName() << "Begin BundleTransfer constructor";
 	TLOG(TLVL_INFO) << GetTraceName() << "Constructing TCPSocketTransfer";
@@ -280,9 +285,36 @@ artdaq::BundleTransfer::~BundleTransfer()
 		send_timeout_thread_running_ = false;
 		if (send_timeout_thread_ && send_timeout_thread_->joinable())
 		{
+			// The send thread may be blocked in a TCP write that the receiver is not draining
+			// (back-pressure). Wait a bounded time, then abort the socket so the thread returns;
+			// otherwise the BoardReader Stop transition hangs until the run-control timeout.
+			auto wait_start = std::chrono::steady_clock::now();
+			while (!send_thread_exited_ && TimeUtils::GetElapsedTimeMilliseconds(wait_start) < static_cast<size_t>(stop_abort_timeout_ms_))
+			{
+				usleep(10000);
+			}
+			if (!send_thread_exited_)
+			{
+				TLOG(TLVL_WARNING) << GetTraceName() << "Send thread still blocked after " << stop_abort_timeout_ms_
+				                   << " ms at teardown; aborting in-flight Bundle to rank " << destination_rank()
+				                   << " (receiver not draining). Buffered data is dropped.";
+				aborted_ = true;
+				theTransfer_->abort_send();
+			}
 			send_timeout_thread_->join();
 		}
-		send_bundle_fragment_(true);
+		if (!aborted_)
+		{
+			send_bundle_fragment_(true);
+		}
+		else
+		{
+			std::lock_guard<std::mutex> lk(fragment_mutex_);
+			TLOG(TLVL_WARNING) << GetTraceName() << "Dropping " << fragment_buffer_.size() << " buffered Fragments ("
+			                   << current_buffer_size_bytes_ << " bytes) after Bundle abort";
+			fragment_buffer_.clear();
+			current_buffer_size_bytes_ = 0;
+		}
 	}
 	running_ = false;
 }
@@ -294,6 +326,7 @@ void artdaq::BundleTransfer::start_timeout_thread_()
 		send_timeout_thread_->join();
 	}
 	send_timeout_thread_running_ = true;
+	send_thread_exited_ = false;
 	TLOG(TLVL_INFO) << GetTraceName() << "Starting Send Timeout Thread";
 
 	try
@@ -322,6 +355,7 @@ void artdaq::BundleTransfer::send_timeout_thread_proc_()
 			usleep(5000);
 		}
 	}
+	send_thread_exited_ = true;
 }
 
 bool artdaq::BundleTransfer::check_send_(bool force)
