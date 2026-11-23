@@ -1,5 +1,5 @@
-#ifndef ARTDAQ_ARTDAQ_ARTMODULES_DETAIL_LISTENTRANSFERWRAPPER_HH_
-#define ARTDAQ_ARTDAQ_ARTMODULES_DETAIL_LISTENTRANSFERWRAPPER_HH_
+#ifndef artdaq_ArtModules_TransferWrapper_hh
+#define artdaq_ArtModules_TransferWrapper_hh
 
 #include <iostream>
 #include <memory>
@@ -99,4 +99,4 @@ private:
 };  // namespace artdaq
 }  // namespace artdaq
 
-#endif  // ARTDAQ_ARTDAQ_ARTMODULES_DETAIL_LISTENTRANSFERWRAPPER_HH_
+#endif /* artdaq_ArtModules_TransferWrapper_hh */

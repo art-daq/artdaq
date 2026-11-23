@@ -1,9 +1,7 @@
-#ifndef ARTDAQ_TOOLS_SWIG_ARTDAQ_H_
-#define ARTDAQ_TOOLS_SWIG_ARTDAQ_H_
+#ifndef ARTDAQ_TOOLS_ARTDAQ_H
+#define ARTDAQ_TOOLS_ARTDAQ_H
 
 #include "TRACE/tracemf.h"
-
-#include <string>
 
 /**
  * \file swig_artdaq.h This file serves as an entry point for a SWIG module which can be used to send MessageFacility messages or metrics
@@ -139,4 +137,4 @@ public:
 	bool initialized_;
 };
 
-#endif  // ARTDAQ_TOOLS_SWIG_ARTDAQ_H_
+#endif  // ARTDAQ_TOOLS_ARTDAQ_H

@@ -1,5 +1,5 @@
-#ifndef ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQEVENT_HH_
-#define ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQEVENT_HH_
+#ifndef artdaq_ArtModules_ArtdaqEvent_hh
+#define artdaq_ArtModules_ArtdaqEvent_hh
 
 #include "artdaq-core/Data/RawEvent.hh"
 
@@ -129,7 +129,7 @@ inline bool operator<(std::shared_ptr<ArtdaqEvent> const& l, std::shared_ptr<Art
 	return *l < *r;
 }
 
-#endif  // ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQEVENT_HH_
+#endif /* artdaq_ArtModules_ArtdaqEvent_hh */
 
 // Local Variables:
 // mode: c++

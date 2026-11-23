@@ -1,14 +1,16 @@
-#ifndef ARTDAQ_ARTDAQ_DAQRATE_DETAIL_FRAGCOUNTER_HH_
-#define ARTDAQ_ARTDAQ_DAQRATE_DETAIL_FRAGCOUNTER_HH_
+#ifndef artdaq_DAQrate_detail_FragCounter_hh
+#define artdaq_DAQrate_detail_FragCounter_hh
 
 #include <atomic>
 #include <limits>
 #include <mutex>
 #include <unordered_map>
 
-namespace artdaq::detail {
+namespace artdaq {
+namespace detail {
 class FragCounter;
-}  // namespace artdaq::detail
+}
+}  // namespace artdaq
 
 /**
  * \brief Keep track of the count of Fragments received from a set of sources
@@ -147,4 +149,4 @@ artdaq::detail::FragCounter::
 	return min;
 }
 
-#endif  // ARTDAQ_ARTDAQ_DAQRATE_DETAIL_FRAGCOUNTER_HH_
+#endif /* artdaq_DAQrate_detail_FragCounter_hh */

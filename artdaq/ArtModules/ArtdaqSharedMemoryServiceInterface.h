@@ -1,5 +1,5 @@
-#ifndef ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQSHAREDMEMORYSERVICEINTERFACE_H_
-#define ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQSHAREDMEMORYSERVICEINTERFACE_H_
+#ifndef artdaq_ArtModules_ArtdaqSharedMemoryServiceInterface_h
+#define artdaq_ArtModules_ArtdaqSharedMemoryServiceInterface_h
 
 #include "art/Framework/Services/Registry/ServiceDeclarationMacros.h"
 #include "artdaq-core/Data/RawEvent.hh"
@@ -53,7 +53,7 @@ private:
 
 DECLARE_ART_SERVICE_INTERFACE(ArtdaqSharedMemoryServiceInterface, LEGACY)
 
-#endif  // ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQSHAREDMEMORYSERVICEINTERFACE_H_
+#endif /* artdaq_ArtModules_ArtdaqSharedMemoryServiceInterface_h */
 
 // Local Variables:
 // mode: c++

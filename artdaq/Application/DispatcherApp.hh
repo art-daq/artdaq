@@ -1,5 +1,5 @@
-#ifndef ARTDAQ_ARTDAQ_APPLICATION_DISPATCHERAPP_HH_
-#define ARTDAQ_ARTDAQ_APPLICATION_DISPATCHERAPP_HH_
+#ifndef artdaq_Application_MPI2_DispatcherApp_hh
+#define artdaq_Application_MPI2_DispatcherApp_hh
 
 #include "artdaq/Application/Commandable.hh"
 #include "artdaq/Application/DispatcherCore.hh"
@@ -117,4 +117,4 @@ private:
 	std::unique_ptr<DispatcherCore> Dispatcher_ptr_;
 };
 
-#endif  // ARTDAQ_ARTDAQ_APPLICATION_DISPATCHERAPP_HH_
+#endif

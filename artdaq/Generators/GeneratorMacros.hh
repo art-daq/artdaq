@@ -1,5 +1,5 @@
-#ifndef ARTDAQ_ARTDAQ_GENERATORS_GENERATORMACROS_HH_
-#define ARTDAQ_ARTDAQ_GENERATORS_GENERATORMACROS_HH_
+#ifndef artdaq_Application_GeneratorMacros_hh
+#define artdaq_Application_GeneratorMacros_hh
 
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
 
@@ -33,4 +33,4 @@ typedef std::unique_ptr<artdaq::CommandableFragmentGenerator> makeFunc_t(fhicl::
 	}                                                                                \
 	}
 
-#endif  // ARTDAQ_ARTDAQ_GENERATORS_GENERATORMACROS_HH_
+#endif /* artdaq_Application_GeneratorMacros_hh */

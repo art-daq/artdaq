@@ -1,9 +1,7 @@
+#include <iostream>
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
-
 #include "fhiclcpp/types/TableFragment.h"
-
-#include <iostream>
 
 /**
  * \brief Configuration for simple_metric_sender

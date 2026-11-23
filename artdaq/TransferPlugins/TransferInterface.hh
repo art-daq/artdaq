@@ -1,5 +1,5 @@
-#ifndef ARTDAQ_ARTDAQ_TRANSFERPLUGINS_TRANSFERINTERFACE_HH_
-#define ARTDAQ_ARTDAQ_TRANSFERPLUGINS_TRANSFERINTERFACE_HH_
+#ifndef artdaq_ArtModules_TransferInterface_hh
+#define artdaq_ArtModules_TransferInterface_hh
 
 #include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
@@ -203,8 +203,8 @@ public:
 	virtual void abort_send() {}
 
 /** \cond */
-#define GetTraceName() unique_label_ << (role_ == Role::kSend ? std::string("_SEND: ") : std::string("_RECV: "))  // NOLINT
-	                                                                                                              /** \endcond */
+#define GetTraceName() unique_label_ << (role_ == Role::kSend ? std::string("_SEND: ") : std::string("_RECV: "))
+	/** \endcond */
 
 protected:
 	TransferInterface(TransferInterface&&) = delete;             ///< Move Constructor is deleted
@@ -219,6 +219,7 @@ protected:
 	size_t buffer_count_;                   ///< The number of Fragment transfers the TransferInterface can handle simultaneously
 	const size_t max_fragment_size_words_;  ///< The maximum size of the transferred Fragment objects, in artdaq::Fragment::RawDataType words
 
+protected:
 	/**
 	 * \brief Get the TransferInterface::Role of this TransferInterface
 	 * \return The Role of this TransferInterface
@@ -233,7 +234,6 @@ protected:
 #define EXTERN_C_FUNC_DECLARE_START extern "C" {
 #endif
 
-// NOLINTNEXTLINE
 #define DEFINE_ARTDAQ_TRANSFER(klass)                                                                                    \
 	EXTERN_C_FUNC_DECLARE_START                                                                                          \
 	std::unique_ptr<artdaq::TransferInterface> make(fhicl::ParameterSet const& ps, artdaq::TransferInterface::Role role) \
@@ -244,7 +244,7 @@ protected:
 
 /** \endcond */
 
-#endif  // ARTDAQ_ARTDAQ_TRANSFERPLUGINS_TRANSFERINTERFACE_HH_
+#endif /* artdaq_ArtModules_TransferInterface.hh */
 
 // Local Variables:
 // mode: c++

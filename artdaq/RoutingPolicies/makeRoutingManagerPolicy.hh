@@ -1,5 +1,5 @@
-#ifndef ARTDAQ_ARTDAQ_ROUTINGPOLICIES_MAKEROUTINGMANAGERPOLICY_HH_
-#define ARTDAQ_ARTDAQ_ROUTINGPOLICIES_MAKEROUTINGMANAGERPOLICY_HH_
+#ifndef artdaq_Application_Routing_makeRoutingManagerPolicy_hh
+#define artdaq_Application_Routing_makeRoutingManagerPolicy_hh
 // Using LibraryManager, find the correct library and return an instance
 // of the specified generator.
 
@@ -23,4 +23,4 @@ std::shared_ptr<RoutingManagerPolicy>
 makeRoutingManagerPolicy(std::string const& policy_plugin_spec,
                          fhicl::ParameterSet const& ps);
 }  // namespace artdaq
-#endif  // ARTDAQ_ARTDAQ_ROUTINGPOLICIES_MAKEROUTINGMANAGERPOLICY_HH_
+#endif /* artdaq_Application_Routing_makeRoutingManagerPolicy_hh */

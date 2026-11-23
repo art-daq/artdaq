@@ -1,5 +1,5 @@
-#ifndef ARTDAQ_ARTDAQ_APPLICATION_COMMANDABLE_HH_
-#define ARTDAQ_ARTDAQ_APPLICATION_COMMANDABLE_HH_
+#ifndef artdaq_Application_Commandable_hh
+#define artdaq_Application_Commandable_hh
 
 #include <mutex>
 #include <string>
@@ -328,4 +328,4 @@ private:
 	mutable std::mutex primary_mutex_;
 };
 
-#endif  // ARTDAQ_ARTDAQ_APPLICATION_COMMANDABLE_HH_
+#endif /* artdaq_Application_Commandable_hh */

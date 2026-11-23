@@ -1,5 +1,5 @@
-#ifndef ARTDAQ_ARTDAQ_DAQRATE_DETAIL_REQUESTMESSAGE_HH_
-#define ARTDAQ_ARTDAQ_DAQRATE_DETAIL_REQUESTMESSAGE_HH_
+#ifndef artdaq_DAQrate_detail_RequestMessage_hh
+#define artdaq_DAQrate_detail_RequestMessage_hh
 
 #include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
@@ -188,4 +188,4 @@ private:
 	std::vector<RequestPacket> packets_;
 };
 
-#endif  // ARTDAQ_ARTDAQ_DAQRATE_DETAIL_REQUESTMESSAGE_HH_
+#endif  // artdaq_DAQrate_detail_RequestMessage

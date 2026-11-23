@@ -1,5 +1,5 @@
-#ifndef ARTDAQ_ARTDAQ_EXTERNALCOMMS_COMMANDERINTERFACE_HH_
-#define ARTDAQ_ARTDAQ_EXTERNALCOMMS_COMMANDERINTERFACE_HH_
+#ifndef artdaq_ExternalComms_CommanderInterface_hh
+#define artdaq_ExternalComms_CommanderInterface_hh
 
 #include "artdaq/Application/Commandable.hh"
 
@@ -332,7 +332,7 @@ protected:
 	}                                                                                   \
 	}
 
-#endif  // ARTDAQ_ARTDAQ_EXTERNALCOMMS_COMMANDERINTERFACE_HH_
+#endif /* artdaq_ExternalComms_CommanderInterface.hh */
 
 // Local Variables:
 // mode: c++

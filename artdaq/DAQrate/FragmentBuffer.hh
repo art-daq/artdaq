@@ -1,5 +1,5 @@
-#ifndef ARTDAQ_ARTDAQ_DAQRATE_FRAGMENTBUFFER_HH_
-#define ARTDAQ_ARTDAQ_DAQRATE_FRAGMENTBUFFER_HH_
+#ifndef artdaq_Application_FragmentBuffer_hh
+#define artdaq_Application_FragmentBuffer_hh
 
 #include "fhiclcpp/types/Sequence.h"  // Must pre-empt fhiclcpp/types/Atom.h
 
@@ -436,4 +436,4 @@ private:
 };
 }  // namespace artdaq
 
-#endif  // ARTDAQ_ARTDAQ_DAQRATE_FRAGMENTBUFFER_HH_
+#endif /* artdaq_Application_FragmentBuffer_hh */

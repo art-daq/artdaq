@@ -1,5 +1,5 @@
-#ifndef ARTDAQ_ARTDAQ_APPLICATION_EVENTBUILDERCORE_HH_
-#define ARTDAQ_ARTDAQ_APPLICATION_EVENTBUILDERCORE_HH_
+#ifndef artdaq_Application_MPI2_EventBuilderCore_hh
+#define artdaq_Application_MPI2_EventBuilderCore_hh
 
 #include "artdaq/Application/DataReceiverCore.hh"
 
@@ -66,4 +66,4 @@ public:
 	bool initialize(fhicl::ParameterSet const& pset) override;
 };
 
-#endif  // ARTDAQ_ARTDAQ_APPLICATION_EVENTBUILDERCORE_HH_
+#endif /* artdaq_Application_MPI2_EventBuilderCore_hh */

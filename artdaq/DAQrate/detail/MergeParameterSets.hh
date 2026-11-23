@@ -1,5 +1,5 @@
-#ifndef ARTDAQ_ARTDAQ_DAQRATE_DETAIL_MERGEPARAMETERSETS_HH_
-#define ARTDAQ_ARTDAQ_DAQRATE_DETAIL_MERGEPARAMETERSETS_HH_
+#ifndef artdaq_DAQrate_detail_MergeParameterSets_hh
+#define artdaq_DAQrate_detail_MergeParameterSets_hh
 
 #include <fhiclcpp/ParameterSet.h>
 
@@ -21,4 +21,4 @@ inline fhicl::ParameterSet merge(fhicl::ParameterSet const& first, fhicl::Parame
 }
 }  // namespace artdaq
 
-#endif  // ARTDAQ_ARTDAQ_DAQRATE_DETAIL_MERGEPARAMETERSETS_HH_
+#endif  // artdaq_DAQrate_detail_MergeParameterSets_hh
